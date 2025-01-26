@@ -39,6 +39,7 @@ CMakeLists.txt.user*
 
 # Build directories
 /build
+/libs/efm/lib
 
 # CMake build directories
 CMakeLists.txt.user
