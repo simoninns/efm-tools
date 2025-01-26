@@ -83,8 +83,9 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         data24_to_f1.push_frame(data24_frame, frame_time, F1Frame::USER_DATA, track_number);
 
         // Increment the frame time by one frame (1/75th of a second)
-        // every 75 data24 frames
-        if (data24_count % 75 == 0) {
+        // every 98 data24 frames.  98 Frames is one section and each
+        // section represents 1/75th of a second.
+        if (data24_count % 98 == 0) {
             frame_time.increment_frame();
         }
 

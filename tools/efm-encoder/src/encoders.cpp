@@ -317,7 +317,7 @@ void F3FrameToChannel::process_queue() {
 
         // Pick the subcode value or a sync0/1 symbol based on the inputF3 frame type    
         if (f3_frame.get_frame_type() == F3Frame::FrameType::SUBCODE) {
-            channel_frame += convert_8bit_to_efm(f3_frame.get_subcode());
+            channel_frame += convert_8bit_to_efm(f3_frame.get_subcode_byte());
         } else if (f3_frame.get_frame_type() == F3Frame::FrameType::SYNC0) {
             channel_frame += convert_8bit_to_efm(256);
         } else {

@@ -209,7 +209,7 @@ uint8_t F2Frame::get_track_number() const {
 // Constructor for F3Frame, initializes data to the frame size
 F3Frame::F3Frame() {
     frame_data.resize(get_frame_size());
-    subcode = 0;
+    subcode_byte = 0;
     frame_type = SUBCODE;
 }
 
@@ -221,19 +221,19 @@ int F3Frame::get_frame_size() const {
 // Set the frame type as subcode and set the subcode value
 void F3Frame::set_frame_type_as_subcode(uint8_t subcode_value) {
     frame_type = SUBCODE;
-    subcode = subcode_value;
+    subcode_byte = subcode_value;
 }
 
 // Set the frame type as sync0 and set the subcode value to 0
 void F3Frame::set_frame_type_as_sync0() {
     frame_type = SYNC0;
-    subcode = 0;
+    subcode_byte = 0;
 }
 
 // Set the frame type as sync1 and set the subcode value to 0
 void F3Frame::set_frame_type_as_sync1() {
     frame_type = SYNC1;
-    subcode = 0;
+    subcode_byte = 0;
 }
 
 // Get the frame type
@@ -242,8 +242,8 @@ F3Frame::FrameType F3Frame::get_frame_type() const {
 }
 
 // Get the subcode value
-uint8_t F3Frame::get_subcode() const {
-    return subcode;
+uint8_t F3Frame::get_subcode_byte() const {
+    return subcode_byte;
 }
 
 void F3Frame::show_data() {

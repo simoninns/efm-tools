@@ -304,18 +304,51 @@ bool F3FrameToSection::is_ready() const {
 void F3FrameToSection::process_queue() {
     // Process the input buffer
     while (input_buffer.size() >= 98) {
-        Section section;
-        for (uint32_t symbol = 0; symbol < 98; symbol++) {
+        // Firstly we have to gather the 98 F3 frames and compute the subcode
+        // (since we need the subcode in order to generate the F2 frames)
+        QVector<F3Frame> f3_frames;
+        Subcode subcode;
+
+        for (uint32_t index = 0; index < 98; index++) {
             F3Frame f3_frame = input_buffer.dequeue();
+            f3_frames.append(f3_frame);
 
-            // Do something with the subcode here!!!
+            if (index >= 2) {
+                // Get the subcode byte from the F3 frame and set it in the subcode object
+                subcode.set_subcode_byte(index, f3_frame.get_subcode_byte());
+            }
 
-            F2Frame f2_frame;
-            f2_frame.set_data(f3_frame.get_data());
-
-            section.push_frame(f2_frame);
             valid_f3_frames_count++;
         }
+
+        // Now we have 98 F3 Frames and the subcode, we can create a new section
+        Section section;
+        for (uint32_t index = 0; index < 98; index++) {
+            F2Frame f2_frame;
+            f2_frame.set_data(f3_frames[index].get_data());
+            
+            // Now we have to extract the section data and add it to the F2 frame
+            // Note: The F2 Frame doesn't support AP time at the moment - to-do
+
+            // Convert subcode q-channel frame type to F2 frame type
+            Qchannel::SubcodeFrameType frame_type = subcode.q_channel.get_frame_type();
+
+            if (frame_type == Qchannel::SubcodeFrameType::LEAD_IN) {
+                f2_frame.set_frame_type(F2Frame::FrameType::LEAD_IN);
+            } else if (frame_type == Qchannel::SubcodeFrameType::LEAD_OUT) {
+                f2_frame.set_frame_type(F2Frame::FrameType::LEAD_OUT);
+            } else {
+                f2_frame.set_frame_type(F2Frame::FrameType::USER_DATA);
+            }
+
+            f2_frame.set_track_number(subcode.q_channel.get_track_number());
+            f2_frame.set_frame_time(subcode.q_channel.get_frame_time());
+
+            section.push_frame(f2_frame);
+        }
+        
+        // Copy the subcode object to the section object
+        section.subcode = subcode;
 
         // Add the section to the output buffer
         output_buffer.enqueue(section);

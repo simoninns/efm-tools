@@ -119,13 +119,13 @@ public:
     void set_frame_type_as_sync1();
 
     FrameType get_frame_type() const;
-    uint8_t get_subcode() const;
+    uint8_t get_subcode_byte() const;
 
     void show_data();
 
 private:
     FrameType frame_type;
-    uint8_t subcode;
+    uint8_t subcode_byte;
 };
 
 #endif // FRAME_H
