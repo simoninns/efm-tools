@@ -1,32 +1,55 @@
-# Prerequisites
-*.d
+# Qt-es
+*.jsc
+*.moc
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.qmlc
+*/.qtc_clangd
+*_plugin_import.cpp
+*build-*
+/.qmake.cache
+/.qmake.stash
+Makefile*
+moc_*.cpp
+moc_*.h
+object_script.*.Debug
+object_script.*.Release
+qrc_*.cpp
+ui_*.h
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Qt unit tests
+target_wrapper.*
 
-# Precompiled Headers
-*.gch
-*.pch
+# QtCreator
+*.autosave
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# QtCreator Qml
+*.qmlproject.user
+*.qmlproject.user.*
 
-# Fortran module files
-*.mod
-*.smod
+# QtCreator CMake
+CMakeLists.txt.user*
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# EFM test and output files
+*.dat
+*.bin
+*.wav
 
-# Executables
-*.exe
-*.out
-*.app
+# Build directories
+/build
+
+# CMake build directories
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+CMakeUserPresets.json
