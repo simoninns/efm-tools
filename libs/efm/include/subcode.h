@@ -28,28 +28,7 @@
 #include <cstdint>
 #include <QByteArray>
 #include <QString>
-
-class FrameTime {
-public:
-    FrameTime() : min(0), sec(0), frame(0) {}
-    FrameTime(uint8_t _min, uint8_t _sec, uint8_t _frame) : min(_min), sec(_sec), frame(_frame) {}
-    virtual ~FrameTime() = default;
-
-    uint8_t get_min() const { return min; }
-    uint8_t get_sec() const { return sec; }
-    uint8_t get_frame() const { return frame; }
-
-    void set_min(uint8_t _min);
-    void set_sec(uint8_t _sec);
-    void set_frame(uint8_t _frame);
-
-    QByteArray to_bcd() const;
-
-private:
-    uint8_t min;
-    uint8_t sec;
-    uint8_t frame;    
-};
+#include "frame.h"
 
 class Pchannel {
 public:
@@ -77,7 +56,7 @@ public:
         DIGITAL_COPY_PROHIBITED,
         DIGITAL_COPY_PERMITTED,
     };
-    enum FrameType {
+    enum SubcodeFrameType {
         LEAD_IN,
         LEAD_OUT,
         USER_DATA
@@ -86,8 +65,8 @@ public:
     Qchannel();
     bool get_bit(uint8_t index) const;
 
-    void set_q_mode_1(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
-    void set_q_mode_4(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
+    void set_q_mode_1(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type);
+    void set_q_mode_4(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type);
 
 private:
     QModes q_mode;
@@ -98,7 +77,7 @@ private:
     void set_control(Control _control);
     void generate_crc();
     uint16_t crc16(const QByteArray &data);
-    void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
+    void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type);
     uint16_t int_to_bcd2(uint16_t value);
     uint16_t bcd2_to_int(uint16_t bcd);
 };

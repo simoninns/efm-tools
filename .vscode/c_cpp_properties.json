@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "efm-tools",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/libs/efm/include",
+                "/usr/include/x86_64-linux-gnu/qt5",
+                "/usr/include/x86_64-linux-gnu/qt5/QtCore",
+                "/usr/include/x86_64-linux-gnu/qt5/QtGui",
+                "/usr/include/x86_64-linux-gnu/qt5/QtWidgets"
+            ],
+            "defines": [
+                "QT_CORE_LIB",
+                "QT_NO_DEBUG"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

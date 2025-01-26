@@ -40,7 +40,7 @@
 class Data24ToF1Frame {
 public:
     Data24ToF1Frame();
-    void push_frame(QVector<uint8_t> data);
+    void push_frame(QVector<uint8_t> data, FrameTime frame_time, F1Frame::FrameType frame_type, uint8_t track_number);
     F1Frame pop_frame();
     bool is_ready() const;
 
@@ -48,6 +48,9 @@ private:
     void process_queue();
 
     QQueue<QVector<uint8_t>> input_buffer;
+    QQueue<FrameTime> time_buffer;
+    QQueue<F1Frame::FrameType> type_buffer;
+    QQueue<uint8_t> track_number_buffer;
     QQueue<F1Frame> output_buffer;
 };
 
@@ -86,11 +89,6 @@ private:
 
     QQueue<F2Frame> input_buffer;
     QQueue<Section> output_buffer;
-
-    uint8_t track_number;
-    uint8_t track_time_min;
-    uint8_t track_time_sec;
-    uint8_t track_time_frame;
 };
 
 class SectionToF3Frame {

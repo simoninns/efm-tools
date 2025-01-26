@@ -25,36 +25,6 @@
 #include <QDebug>
 #include "subcode.h"
 
-// Frame time class ---------------------------------------------------------------------------------------------------
-void FrameTime::set_min(uint8_t _min) {
-    if (_min > 59) {
-        qFatal("FrameTime::set_min(): Invalid minute value of %d", _min);
-    }
-    min = _min;
-}
-
-void FrameTime::set_sec(uint8_t _sec) {
-    if (_sec > 59) {
-        qFatal("FrameTime::set_sec(): Invalid second value of %d", _sec);
-    }
-    sec = _sec;
-}
-
-void FrameTime::set_frame(uint8_t _frame) {
-    if (_frame > 74) {
-        qFatal("FrameTime::set_frame(): Invalid frame value of %d", _frame);
-    }
-    frame = _frame;
-}
-
-QByteArray FrameTime::to_bcd() const {
-    QByteArray bcd;
-    bcd.append((min / 10) << 4 | (min % 10));
-    bcd.append((sec / 10) << 4 | (sec % 10));
-    bcd.append((frame / 10) << 4 | (frame % 10));
-    return bcd;
-}
-
 // P-channel class -----------------------------------------------------------------------------------------------------
 Pchannel::Pchannel() {
     flag = false;
@@ -80,7 +50,7 @@ Qchannel::Qchannel() {
     set_control(AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED);
 }
 
-void Qchannel::set_q_mode_1(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type) {
+void Qchannel::set_q_mode_1(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type) {
     q_mode = QMODE_1;
     set_control(_control);
     set_q_mode_1or4(track_number, f_time, ap_time, frame_type);
@@ -88,7 +58,7 @@ void Qchannel::set_q_mode_1(Control _control, uint8_t track_number, FrameTime f_
 
 // To-Do: Implement the set_q_mode_2, set_q_mode_3 functions
 
-void Qchannel::set_q_mode_4(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type) {
+void Qchannel::set_q_mode_4(Control _control, uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type) {
     q_mode = QMODE_4;
     set_control(_control);
     set_q_mode_1or4(track_number, f_time, ap_time, frame_type);
@@ -96,15 +66,15 @@ void Qchannel::set_q_mode_4(Control _control, uint8_t track_number, FrameTime f_
 
 // The only difference between Q-mode 1 and 4 is the control bits, so we can use the same function for both
 // to save code duplication
-void Qchannel::set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type) {
-    if (frame_type == FrameType::LEAD_IN) track_number = 0;
-    if (frame_type == FrameType::LEAD_OUT) track_number = 0;
-    if ((frame_type == FrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
+void Qchannel::set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type) {
+    if (frame_type == SubcodeFrameType::LEAD_IN) track_number = 0;
+    if (frame_type == SubcodeFrameType::LEAD_OUT) track_number = 0;
+    if ((frame_type == SubcodeFrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
         qFatal("Qchannel::generate_frame(): Track number must be in the range 1 to 98.");
     }
 
     // Set the Q-channel data
-    if (frame_type == FrameType::LEAD_IN) {
+    if (frame_type == SubcodeFrameType::LEAD_IN) {
         uint16_t tno = 0x00;
         uint16_t pointer = 0x00;
         uint8_t zero = 0;
@@ -122,7 +92,7 @@ void Qchannel::set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime
         generate_crc();
     }
  
-    if (frame_type == FrameType::USER_DATA) {
+    if (frame_type == SubcodeFrameType::USER_DATA) {
         uint8_t tno = int_to_bcd2(track_number);
         uint8_t index = 01; // Not correct
         uint8_t zero = 0;
@@ -140,7 +110,7 @@ void Qchannel::set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime
         generate_crc();
     }
 
-    if (frame_type == FrameType::LEAD_OUT) {
+    if (frame_type == SubcodeFrameType::LEAD_OUT) {
         uint16_t tno = 0xAA; // Hexidecimal AA for lead-out
         uint16_t index = 01; // Must be 01 for lead-out
         uint8_t zero = 0;
@@ -292,7 +262,7 @@ Subcode::Subcode() {
     // Set the Q-channel to default (Q-mode 1, audio 2-channel, no preemphasis, copy permitted)
     p_channel.set_flag(false);
     q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1,
-        FrameTime(0, 0, 0), FrameTime(0, 0, 0), Qchannel::FrameType::USER_DATA);
+        FrameTime(0, 0, 0), FrameTime(0, 0, 0), Qchannel::SubcodeFrameType::USER_DATA);
 }
 
 uint8_t Subcode::get_subcode_byte(int index) const {

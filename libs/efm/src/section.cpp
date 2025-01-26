@@ -27,7 +27,7 @@
 Section::Section() {
     // Set some sane defaults for the subcode channels
     subcode.p_channel.set_flag(false);
-    subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1, FrameTime(0, 0, 0), FrameTime(0, 0, 0), Qchannel::FrameType::USER_DATA);
+    subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1, FrameTime(0, 0, 0), FrameTime(0, 0, 0), Qchannel::SubcodeFrameType::USER_DATA);
 }
 
 void Section::push_frame(F2Frame f2_frame) {

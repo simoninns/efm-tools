@@ -33,11 +33,14 @@
 // Data24ToF1Frame class implementation
 Data24ToF1Frame::Data24ToF1Frame() {}
 
-void Data24ToF1Frame::push_frame(QVector<uint8_t> data) {
+void Data24ToF1Frame::push_frame(QVector<uint8_t> data, FrameTime frame_time, F1Frame::FrameType frame_type, uint8_t track_number) {
     if (data.size() != 24) {
         qFatal("Data24ToF1Frame::push_frame(): Data must be a QVector of 24 integers in the range 0-255.");
     }
     input_buffer.enqueue(data);
+    time_buffer.enqueue(frame_time);
+    type_buffer.enqueue(frame_type);
+    track_number_buffer.enqueue(track_number);
     process_queue();
 }
 
@@ -51,6 +54,9 @@ F1Frame Data24ToF1Frame::pop_frame() {
 void Data24ToF1Frame::process_queue() {
     while (!input_buffer.isEmpty()) {
         QVector<uint8_t> data = input_buffer.dequeue();
+        FrameTime frame_time = time_buffer.dequeue();
+        F1Frame::FrameType frame_type = type_buffer.dequeue();
+        uint8_t track_number = track_number_buffer.dequeue();
 
         // ECMA-130 issue 2 page 16 - Clause 16
         // All byte pairs are swapped by the F1 Frame encoder
@@ -60,6 +66,10 @@ void Data24ToF1Frame::process_queue() {
 
         F1Frame f1_frame;
         f1_frame.set_data(data);
+        f1_frame.set_frame_time(frame_time);
+        f1_frame.set_frame_type(frame_type);
+        f1_frame.set_track_number(track_number);
+
         output_buffer.enqueue(f1_frame);
     }
 }
@@ -120,6 +130,28 @@ void F1FrameToF2Frame::process_queue() {
         // Put the resulting data into an F2 frame and push it to the output buffer
         F2Frame f2_frame;
         f2_frame.set_data(data);
+        f2_frame.set_frame_time(f1_frame.get_frame_time());
+
+        // Convert F1 frame type to F2 frame type (this could be a bit tidier...)
+        F2Frame::FrameType f2_frame_type;
+
+        switch (f1_frame.get_frame_type()) {
+            case F1Frame::FrameType::LEAD_IN:
+                f2_frame_type = F2Frame::FrameType::LEAD_IN;
+                break;
+            case F1Frame::FrameType::LEAD_OUT:
+                f2_frame_type = F2Frame::FrameType::LEAD_OUT;
+                break;
+            case F1Frame::FrameType::USER_DATA:
+                f2_frame_type = F2Frame::FrameType::USER_DATA;
+                break;
+            default:
+                qFatal("F1FrameToF2Frame::process_queue(): Unknown F1 frame type.");
+        }
+
+        f2_frame.set_frame_type(f2_frame_type);
+        f2_frame.set_track_number(f1_frame.get_track_number());
+        
         output_buffer.enqueue(f2_frame);
     }
 }
@@ -130,13 +162,6 @@ bool F1FrameToF2Frame::is_ready() const {
 
 // F2FrameToSection class implementation
 F2FrameToSection::F2FrameToSection() {
-    // Set the track time to 0:00:00 - track 1
-    // Note: This is very basic right now and will need to be enhanced
-    // but we need multi-track support for that, and that isn't a priority
-    track_number = 1;
-    track_time_min = 0;
-    track_time_sec = 0;
-    track_time_frame = 0;
 }
 
 // Input is 32 bytes of data from the F2 frame payload
@@ -158,33 +183,41 @@ Section F2FrameToSection::pop_section() {
 void F2FrameToSection::process_queue() {
     while (input_buffer.size() >= 98) {
         Section section;
-        section.subcode.p_channel.set_flag(false);
-        section.subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, track_number,
-            FrameTime(track_time_min, track_time_sec, track_time_frame),
-            FrameTime(track_time_min, track_time_sec, track_time_frame),
-            Qchannel::FrameType::USER_DATA);
-
+        
         for (uint32_t symbol = 0; symbol < 98; ++symbol) {
-            section.push_frame(input_buffer.dequeue());
+            F2Frame f2_frame = input_buffer.dequeue();
+
+            // Set the overall section information based on the first F2 frame of the section
+            if (symbol == 0) {
+                Qchannel::SubcodeFrameType subcode_frame_type;
+
+                // Set the subcode frame type based on the F2 frame type
+                switch (f2_frame.get_frame_type()) {
+                    case F2Frame::FrameType::LEAD_IN:
+                        subcode_frame_type = Qchannel::SubcodeFrameType::LEAD_IN;
+                        break;
+                    case F2Frame::FrameType::LEAD_OUT:
+                        subcode_frame_type = Qchannel::SubcodeFrameType::LEAD_OUT;
+                        break;
+                    case F2Frame::FrameType::USER_DATA:
+                        subcode_frame_type = Qchannel::SubcodeFrameType::USER_DATA;
+                        break;
+                    default:
+                        qFatal("F2FrameToSection::process_queue(): Unknown F2 frame type.");
+                }
+
+                section.subcode.p_channel.set_flag(false);
+                section.subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, f2_frame.get_track_number(),
+                    f2_frame.get_frame_time(),
+                    f2_frame.get_frame_time(), // Note: This sets absolute time to time, which isn't correct
+                    subcode_frame_type);
+            }
+
+            section.push_frame(f2_frame);
         }
 
         // Queue the section
         output_buffer.enqueue(section);
-
-        // Update the track time
-        track_time_frame++;
-        if (track_time_frame == 75) {
-            track_time_frame = 0;
-            track_time_sec++;
-            if (track_time_sec == 60) {
-                track_time_sec = 0;
-                track_time_min++;
-
-                if (track_time_min == 60) {
-                    qFatal("F2FrameToSection::process_queue(): Track time has exceeded 60 minutes.");
-                }
-            }
-        }
     }
 }
 

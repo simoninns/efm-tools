@@ -68,14 +68,25 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     uint32_t section_count = 0;
     uint32_t channel_byte_count = 0;
 
+    // Since we don't really support multi-track yet, we'll just use a single track
+    // with a single absolute frame time
+    FrameTime frame_time; // 0:00:00 default
+    uint8_t track_number = 1;
+
     // Process the input audio data 24 bytes at a time
     while (!(data24_frame = data24.read()).isEmpty()) {
-        data24_count += 24;
+        data24_count += 1;
 
         if (showInput) data24.show_data();
 
         // Push the data to the first converter
-        data24_to_f1.push_frame(data24_frame);
+        data24_to_f1.push_frame(data24_frame, frame_time, F1Frame::USER_DATA, track_number);
+
+        // Increment the frame time by one frame (1/75th of a second)
+        // every 75 data24 frames
+        if (data24_count % 75 == 0) {
+            frame_time.increment_frame();
+        }
 
         // Are there any F1 frames ready?
         if (data24_to_f1.is_ready()) {
@@ -138,14 +149,15 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         size_unit = "bytes";
         size_value = total_bytes;
     } else if (total_bytes < 1024 * 1024) {
-        size_unit = "KBytes";
+        size_unit = "Kbytes";
         size_value = total_bytes / 1024;
     } else {
-        size_unit = "MBytes";
+        size_unit = "Mbytes";
         size_value = total_bytes / (1024 * 1024);
     }
 
     qInfo().noquote() << "Processed" << data24_count << "data24 frames totalling" << size_value << size_unit;
+    qInfo().noquote() << "Final time was" << frame_time.to_string();
 
     qInfo() << f3_frame_to_channel.get_total_t_values() << "T-values," << channel_byte_count << "channel bytes";
     qInfo() << f1_frame_count << "F1 frames," << f2_frame_count << "F2 frames," << section_count << "Sections," << f3_frame_count << "F3 frames,";

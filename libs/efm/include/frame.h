@@ -28,6 +28,30 @@
 #include <QVector>
 #include <cstdint>
 
+class FrameTime {
+public:
+    FrameTime() : min(0), sec(0), frame(0) {}
+    FrameTime(uint8_t _min, uint8_t _sec, uint8_t _frame) : min(_min), sec(_sec), frame(_frame) {}
+    virtual ~FrameTime() = default;
+
+    uint8_t get_min() const { return min; }
+    uint8_t get_sec() const { return sec; }
+    uint8_t get_frame() const { return frame; }
+
+    void set_min(uint8_t _min);
+    void set_sec(uint8_t _sec);
+    void set_frame(uint8_t _frame);
+
+    QByteArray to_bcd() const;
+    void increment_frame();
+    QString to_string() const;
+
+private:
+    uint8_t min;
+    uint8_t sec;
+    uint8_t frame;    
+};
+
 class Frame {
 public:
     virtual ~Frame() {} // Virtual destructor
@@ -45,16 +69,42 @@ protected:
 
 class F1Frame : public Frame {
 public:
+    enum FrameType { LEAD_IN, LEAD_OUT, USER_DATA };
     F1Frame();
     int get_frame_size() const override;
     void show_data();
+
+    void set_frame_type(FrameType _frame_type);
+    FrameType get_frame_type() const;
+    void set_frame_time(const FrameTime& _frame_time);
+    FrameTime get_frame_time() const;
+    void set_track_number(uint8_t _track_number);
+    uint8_t get_track_number() const;
+
+private:
+    uint8_t track_number;
+    FrameTime frame_time;
+    FrameType frame_type;
 };
 
 class F2Frame : public Frame {
 public:
+    enum FrameType { LEAD_IN, LEAD_OUT, USER_DATA };
     F2Frame();
     int get_frame_size() const override;
     void show_data();
+    
+    void set_frame_type(FrameType _frame_type);
+    FrameType get_frame_type() const;
+    void set_frame_time(const FrameTime& _frame_time);
+    FrameTime get_frame_time() const;
+    void set_track_number(uint8_t _track_number);
+    uint8_t get_track_number() const;
+
+private:
+    uint8_t track_number;
+    FrameTime frame_time;
+    FrameType frame_type;
 };
 
 class F3Frame : public Frame {

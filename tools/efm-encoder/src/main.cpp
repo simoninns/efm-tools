@@ -42,17 +42,17 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
 
     // Set application name and version
-    QCoreApplication::setApplicationName("ld-efm-encoder");
+    QCoreApplication::setApplicationName("efm-encoder");
     QCoreApplication::setApplicationVersion(QString("Branch: %1 / Commit: %2").arg(APP_BRANCH, APP_COMMIT));
     QCoreApplication::setOrganizationDomain("domesday86.com");
 
     // Set up the command line parser
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        "ld-efm-encoder - EFM data encoder\n"
+        "efm-encoder - EFM data encoder\n"
         "\n"
         "(c)2025 Simon Inns\n"
-        "GPLv3 Open-Source - github: https://github.com/happycube/ld-decode");
+        "GPLv3 Open-Source - github: https://github.com/simoninns/efm-tools");
     parser.addHelpOption();
     parser.addVersionOption();
 
