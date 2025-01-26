@@ -63,15 +63,14 @@ int main(int argc, char *argv[])
     QCommandLineOption outputTypeOption("wav-output", QCoreApplication::translate("main", "Add wav header to output data"));
     parser.addOption(outputTypeOption);
 
-    // Add custom options for showing frame data
-    QCommandLineOption showOutputOption("show-output", QCoreApplication::translate("main", "Show output data"));
-    QCommandLineOption showF1Option("show-f1", QCoreApplication::translate("main", "Show frame data at level F1"));
-    QCommandLineOption showF2Option("show-f2", QCoreApplication::translate("main", "Show frame data at level F2"));
-    QCommandLineOption showF3Option("show-f3", QCoreApplication::translate("main", "Show frame data at level F3"));
-    parser.addOption(showOutputOption);
-    parser.addOption(showF1Option);
-    parser.addOption(showF2Option);
-    parser.addOption(showF3Option);
+    // Group of options for showing frame data
+    QList<QCommandLineOption> displayFrameDataOptions = {
+        QCommandLineOption("show-f1", QCoreApplication::translate("main", "Show F1 frame data")),
+        QCommandLineOption("show-f2", QCoreApplication::translate("main", "Show F2 frame data")),
+        QCommandLineOption("show-f3", QCoreApplication::translate("main", "Show F3 frame data")),
+        QCommandLineOption("show-output", QCoreApplication::translate("main", "Show output data")),
+    };
+    parser.addOptions(displayFrameDataOptions);
 
     // -- Positional arguments --
     parser.addPositionalArgument("input", QCoreApplication::translate("main", "Specify input EFM file"));
@@ -83,11 +82,11 @@ int main(int argc, char *argv[])
     // Standard logging options
     processStandardDebugOptions(parser);
 
-    // Check for custom options
-    bool showOutput = parser.isSet(showOutputOption);
-    bool showF1 = parser.isSet(showF1Option);
-    bool showF2 = parser.isSet(showF2Option);
-    bool showF3 = parser.isSet(showF3Option);
+    // Check for frame data options
+    bool showF1 = parser.isSet("show-f1");
+    bool showF2 = parser.isSet("show-f2");
+    bool showF3 = parser.isSet("show-f3");
+    bool showOutput = parser.isSet("show-output");
 
     // Get the filename arguments from the parser
     QString input_filename;

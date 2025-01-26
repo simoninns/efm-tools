@@ -51,6 +51,28 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         return false;
     }
 
+    // Check for the pad start corruption option
+    if (pad_start) {
+        qInfo() << "Corrupting output: Padding start of file with" << pad_start_symbols << "t-value symbols";
+        // Pad the start of the file with the specified number of symbols
+        srand(static_cast<unsigned int>(time(nullptr))); // Seed the random number generator
+        for (uint32_t i = 0; i < pad_start_symbols; i++) {
+            // Pick a random value between 3 and 11
+            uint8_t value = (rand() % 9) + 3;
+            char val = static_cast<char>(value);
+            output_file.write(&val, sizeof(val));
+        }
+    }
+
+    // Check for the corrupt t-values option
+    if (corrupt_tvalues) {
+        if (corrupt_tvalues_frequency < 2) {
+            qWarning() << "Corrupting output: Corrupt t-values frequency must be at least 2";
+            return false;
+        }
+        qInfo() << "Corrupting output: Corrupting t-values with a frequency of" << corrupt_tvalues_frequency;
+    }
+
     // Audio data
     QVector<uint8_t> data24_frame;
     uint32_t data24_count = 0;
@@ -131,6 +153,28 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         if (f3_frame_to_channel.is_ready()) {
             // Pop the channel data, count it and write it to the output file
             QVector<uint8_t> channel_data = f3_frame_to_channel.pop_frame();
+
+            // Check for the corrupt t-values option
+            if (corrupt_tvalues) {
+                // We have to take the channel_byte_count and the size of channel data
+                // and figure out if we need to corrupt the t-values in channel_data based
+                // on the corrupt_tvalues_frequency
+                //
+                // Any t-values that should be corrupted will be set to a random
+                // value between 3 and 11
+                for (int j = 0; j < channel_data.size(); j++) {
+                    if ((channel_byte_count + j) % corrupt_tvalues_frequency == 0) {
+                        uint8_t new_value;
+                        // Make sure the new value is different from the current value
+                        do {
+                            new_value = (rand() % 9) + 3;
+                        } while (new_value == channel_data[j]);
+                        channel_data[j] = new_value;
+                        //qDebug() << "Corrupting t-value at" << (channel_byte_count + j) << "with value" << channel_data[j];
+                    }
+                }
+            }
+
             channel_byte_count += channel_data.size();
 
             // Write the channel data to the output file
@@ -162,6 +206,15 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
     qInfo() << f3_frame_to_channel.get_total_t_values() << "T-values," << channel_byte_count << "channel bytes";
     qInfo() << f1_frame_count << "F1 frames," << f2_frame_count << "F2 frames," << section_count << "Sections," << f3_frame_count << "F3 frames,";
+
+    // Show corruption warnings
+    if (corrupt_tvalues) {
+        qWarning() << "Corruption applied-> Corrupted t-values with a frequency of" << corrupt_tvalues_frequency;
+    }
+    if (pad_start) {
+        qWarning() << "Corruption applied-> Padded start of file with" << pad_start_symbols << "random t-value symbols";
+    }
+
     qInfo() << "Encoding complete";
 
     return true;
@@ -177,4 +230,16 @@ void EfmProcessor::set_show_data(bool _showInput, bool _showF1, bool _showF2, bo
 // Set the input data type (true for WAV, false for raw)
 void EfmProcessor::set_input_type(bool _wavInput) {
     is_input_data_wav = _wavInput;
-}   
+}
+
+// Note: The corruption options are to assist in generating test data
+// used to verify the decoder.  They are not intended to be used in
+// normal operation.
+void EfmProcessor::set_corruption(bool _corrupt_tvalues,
+        uint32_t _corrupt_tvalues_frequency, bool _pad_start, uint32_t _pad_start_symbols) {
+
+    corrupt_tvalues = _corrupt_tvalues;
+    corrupt_tvalues_frequency = _corrupt_tvalues_frequency;
+    pad_start = _pad_start;
+    pad_start_symbols = _pad_start_symbols;
+}

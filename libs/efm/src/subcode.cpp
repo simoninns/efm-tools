@@ -255,6 +255,11 @@ void Qchannel::refresh_q_channel_from_data() {
             break;
     }
 
+    // Check the Q-mode is valid according to what we support
+    if (q_mode != QMODE_1 && q_mode != QMODE_4) {
+        qFatal("Qchannel::refresh_q_channel_from_data(): Unsupported Q-mode! Must be 1 or 4");
+    }
+
     switch (control_nybble) {
         case 0x0:
             control = AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED;

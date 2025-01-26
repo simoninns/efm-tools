@@ -35,13 +35,23 @@ public:
     bool process(QString input_fileName, QString output_fileName);
     void set_show_data(bool _showInput, bool _showF1, bool _showF2, bool _showF3);
     void set_input_type(bool _wavInput);
+    void set_corruption(bool _corrupt_tvalues, uint32_t _corrupt_tvalues_frequency, bool _pad_start, uint32_t _pad_start_symbols);
 
 private:
+    // Show data flags
     bool showInput;
     bool showF1;
     bool showF2;
     bool showF3;
+
+    // Input type flag
     bool is_input_data_wav;
+
+    // Corruption flags
+    bool corrupt_tvalues;
+    uint32_t corrupt_tvalues_frequency;
+    bool pad_start;
+    uint32_t pad_start_symbols;
 };
 
 #endif // EFMPROCESSOR_H

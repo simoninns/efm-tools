@@ -63,15 +63,21 @@ int main(int argc, char *argv[])
     QCommandLineOption inputTypeOption("wav-input", QCoreApplication::translate("main", "Treat input data as WAV file"));
     parser.addOption(inputTypeOption);
 
-    // Add options for showing frame data
-    QCommandLineOption showF1Option("show-f1", QCoreApplication::translate("main", "Show F1 frame data"));
-    QCommandLineOption showF2Option("show-f2", QCoreApplication::translate("main", "Show F2 frame data"));
-    QCommandLineOption showF3Option("show-f3", QCoreApplication::translate("main", "Show F3 frame data"));
-    QCommandLineOption showInputOption("show-input", QCoreApplication::translate("main", "Show input data"));
-    parser.addOption(showF1Option);
-    parser.addOption(showF2Option);
-    parser.addOption(showF3Option);
-    parser.addOption(showInputOption);
+    // Group of options for showing frame data
+    QList<QCommandLineOption> displayFrameDataOptions = {
+        QCommandLineOption("show-f1", QCoreApplication::translate("main", "Show F1 frame data")),
+        QCommandLineOption("show-f2", QCoreApplication::translate("main", "Show F2 frame data")),
+        QCommandLineOption("show-f3", QCoreApplication::translate("main", "Show F3 frame data")),
+        QCommandLineOption("show-input", QCoreApplication::translate("main", "Show input data")),
+    };
+    parser.addOptions(displayFrameDataOptions);
+
+    // Group of options for corrupting data
+    QList<QCommandLineOption> corruptionOptions = {
+        QCommandLineOption("corrupt-tvalues", QCoreApplication::translate("main", "Corrupt t-values with specified symbol frequency"), "symbol-frequency"),
+        QCommandLineOption("pad-start", QCoreApplication::translate("main", "Add the specified number of random t-value symbols before actual data"), "symbols"),
+    };
+    parser.addOptions(corruptionOptions);
 
     // Positional argument to specify input data file
     parser.addPositionalArgument("input", QCoreApplication::translate("main", "Specify input data file"));
@@ -102,15 +108,25 @@ int main(int argc, char *argv[])
     bool wav_input = parser.isSet(inputTypeOption);
 
     // Check for frame data options
-    bool showF1 = parser.isSet(showF1Option);
-    bool showF2 = parser.isSet(showF2Option);
-    bool showF3 = parser.isSet(showF3Option);
-    bool showInput = parser.isSet(showInputOption);
+    bool showF1 = parser.isSet("show-f1");
+    bool showF2 = parser.isSet("show-f2");
+    bool showF3 = parser.isSet("show-f3");
+    bool showInput = parser.isSet("show-input");
+
+    // Check for data corruption options
+    bool bad_channel_sync = parser.isSet("bad-channel-sync");
+    bool corrupt_tvalues = parser.isSet("corrupt-tvalues");
+    bool pad_start = parser.isSet("pad-start");
+
+    // Get the corruption parameters
+    int corrupt_tvalues_frequency = parser.value("corrupt-tvalues").toInt();
+    int pad_start_symbols = parser.value("pad-start").toInt();
 
     // Perform the processing
     EfmProcessor efm_processor;
 
     efm_processor.set_show_data(showInput, showF1, showF2, showF3);
+    efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, pad_start, pad_start_symbols);
     efm_processor.set_input_type(wav_input);
 
     if (!efm_processor.process(input_filename, output_filename)) {
