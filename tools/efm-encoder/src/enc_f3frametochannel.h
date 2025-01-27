@@ -26,6 +26,7 @@
 #define ENC_F3FRAMETOCHANNEL_H
 
 #include "encoders.h"
+#include "efm.h"
 
 class F3FrameToChannel : Encoder {
 public:
@@ -43,7 +44,6 @@ private:
     QQueue<QVector<uint8_t>> output_buffer;
 
     void write_frame(QString channel_frame);
-    QString convert_8bit_to_efm(uint16_t value);
 
     QString add_merging_bits(QString channel_frame);
     QStringList get_legal_merging_bit_patterns(const QString& current_efm, const QString& next_efm);
@@ -54,11 +54,11 @@ private:
     bool dsv_direction;
     int32_t total_t_values;
     QString previous_channel_frame;
-
-    static const QString sync_header;
-    static const QStringList efm_lut;
-
     uint32_t valid_channel_frames_count;
+    Efm efm;
+
+    // Define the 24-bit sync header for the F3 frame
+    const QString sync_header = "100000000001000000000010";
 };
 
 #endif // ENC_F3FRAMETOCHANNEL_H

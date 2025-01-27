@@ -1,8 +1,8 @@
 /************************************************************************
 
-    dec_channeltof3frame.h
+    efm.h
 
-    ld-efm-decoder - EFM data decoder
+    EFM-library - EFM Frame type classes
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
@@ -22,36 +22,25 @@
 
 ************************************************************************/
 
-#ifndef DEC_CHANNELTOF3FRAME_H
-#define DEC_CHANNELTOF3FRAME_H
-
-#include "decoders.h"
 #include "efm.h"
 
-class ChannelToF3Frame : Decoder {
-public:
-    ChannelToF3Frame();
-    void push_frame(QString data);
-    F3Frame pop_frame();
-    bool is_ready() const;
-    uint32_t get_invalid_input_frames_count() const { return invalid_channel_frames_count; }
-    uint32_t get_valid_input_frames_count() const { return valid_channel_frames_count; }
+Efm::Efm() {
+}
 
-private:
-    void process_queue();
+// Note: There are 257 EFM symbols: 0 to 255 and two additional sync0 and sync1 symbols
+uint16_t Efm::fourteen_to_eight(QString efm) {
+    // Convert the EFM symbol to an 8-bit value
+    uint16_t index = efm_lut.indexOf(efm);
+    if (index == -1) {
+        qFatal("Efm::fourteen_to_eight(): EFM symbol not found.");
+    }
+    return index;
+}
 
-    QQueue<QString> input_buffer;
-    QQueue<F3Frame> output_buffer;
-
-    QString internal_buffer;
-
-    uint32_t invalid_channel_frames_count;
-    uint32_t valid_channel_frames_count;
-
-    // Define the 24-bit sync header for the F3 frame
-    const QString sync_header = "100000000001000000000010";
-
-    Efm efm;
-};
-
-#endif // DEC_CHANNELTOF3FRAME_H
+QString Efm::eight_to_fourteen(uint16_t value) {
+    if (value < 258) {
+        return efm_lut[value];
+    } else {
+        qFatal("Efm::eight_to_fourteen(): Value must be in the range 0 to 257.");
+    }
+}
