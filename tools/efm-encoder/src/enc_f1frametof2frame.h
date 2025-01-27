@@ -1,6 +1,6 @@
 /************************************************************************
 
-    encoders.h
+    enc_f1frametof2frame.h
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,20 +22,39 @@
 
 ************************************************************************/
 
-#ifndef ENCODERS_H
-#define ENCODERS_H
+#ifndef ENC_F1FRAMETOF2FRAME_H
+#define ENC_F1FRAMETOF2FRAME_H
 
-#include <QtGlobal>
-#include <QDebug>
-#include <QQueue>
-#include <QVector>
-#include <QString>
-#include "frame.h"
+#include "encoders.h"
+#include "delay_lines.h"
+#include "interleave.h"
+#include "inverter.h"
+#include "reedsolomon.h"
 
-class Encoder {
+class F1FrameToF2Frame : Encoder {
 public:
-    virtual uint32_t get_valid_output_frames_count() const = 0;
+    F1FrameToF2Frame();
+    void push_frame(F1Frame f1_frame);
+    F2Frame pop_frame();
+    bool is_ready() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_f2_frames_count; };
+
+private:
+    void process_queue();
+
+    QQueue<F1Frame> input_buffer;
+    QQueue<F2Frame> output_buffer;
+
+    ReedSolomon circ;
+
+    DelayLines delay_line1;
+    DelayLines delay_line2;
+    DelayLines delay_lineM;
+
+    Interleave interleave;
+    Inverter inverter;
+
+    uint32_t valid_f2_frames_count;
 };
 
-#endif // ENCODERS_H
-
+#endif // ENC_F1FRAMETOF2FRAME_H

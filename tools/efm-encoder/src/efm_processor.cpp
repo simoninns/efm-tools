@@ -28,7 +28,11 @@
 
 #include "efm_processor.h"
 #include "encoders.h"
-#include "delay_lines.h"
+#include "enc_data24tof1frame.h"
+#include "enc_f1frametof2frame.h"
+#include "enc_f2frametosection.h"
+#include "enc_sectiontof3frame.h"
+#include "enc_f3frametochannel.h"
 
 EfmProcessor::EfmProcessor() {}
 

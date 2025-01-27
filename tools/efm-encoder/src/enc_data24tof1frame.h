@@ -1,6 +1,6 @@
 /************************************************************************
 
-    encoders.h
+    enc_data24_to_f1frame.h
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,20 +22,27 @@
 
 ************************************************************************/
 
-#ifndef ENCODERS_H
-#define ENCODERS_H
+#ifndef ENC_DATA24_TO_F1FRAME_H
+#define ENC_DATA24_TO_F1FRAME_H
 
-#include <QtGlobal>
-#include <QDebug>
-#include <QQueue>
-#include <QVector>
-#include <QString>
-#include "frame.h"
+#include "encoders.h"
 
-class Encoder {
+class Data24ToF1Frame : Encoder {
 public:
-    virtual uint32_t get_valid_output_frames_count() const = 0;
+    Data24ToF1Frame();
+    void push_frame(Data24 data);
+    F1Frame pop_frame();
+    bool is_ready() const;
+
+    uint32_t get_valid_output_frames_count() const override { return valid_f1_frames_count; }
+
+private:
+    void process_queue();
+
+    QQueue<Data24> input_buffer;
+    QQueue<F1Frame> output_buffer;
+
+    uint32_t valid_f1_frames_count;
 };
 
-#endif // ENCODERS_H
-
+#endif // ENC_DATA24_TO_F1FRAME_H

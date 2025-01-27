@@ -1,11 +1,9 @@
 # Set the target name
 set(TARGET_NAME efm-encoder)
 
-add_executable(${TARGET_NAME}
-    src/main.cpp
-    src/efm_processor.cpp
-    src/encoders.cpp
-)
+file(GLOB_RECURSE SRC_FILES ${CMAKE_SOURCE_DIR}/tools/efm-encoder/src/*.cpp)
+
+add_executable(${TARGET_NAME} ${SRC_FILES})
 
 # Find the Qt library
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets)

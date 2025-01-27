@@ -1,6 +1,6 @@
 /************************************************************************
 
-    encoders.h
+    enc_f2frametosection.h
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,20 +22,27 @@
 
 ************************************************************************/
 
-#ifndef ENCODERS_H
-#define ENCODERS_H
+#ifndef ENC_F2FRAMETOSECTION_H
+#define ENC_F2FRAMETOSECTION_H
 
-#include <QtGlobal>
-#include <QDebug>
-#include <QQueue>
-#include <QVector>
-#include <QString>
-#include "frame.h"
+#include "encoders.h"
+#include "section.h"
 
-class Encoder {
+class F2FrameToSection : Encoder {
 public:
-    virtual uint32_t get_valid_output_frames_count() const = 0;
+    F2FrameToSection();
+    void push_frame(F2Frame f2_frame);
+    Section pop_section();
+    bool is_ready() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_sections_count; };
+
+private:
+    void process_queue();
+
+    QQueue<F2Frame> input_buffer;
+    QQueue<Section> output_buffer;
+
+    uint32_t valid_sections_count;
 };
 
-#endif // ENCODERS_H
-
+#endif // ENC_F2FRAMETOSECTION_H

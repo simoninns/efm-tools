@@ -1,6 +1,6 @@
 /************************************************************************
 
-    encoders.h
+    enc_sectiontof3frame.h
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,20 +22,30 @@
 
 ************************************************************************/
 
-#ifndef ENCODERS_H
-#define ENCODERS_H
+#ifndef ENC_SECTIONTOF3FRAME_H
+#define ENC_SECTIONTOF3FRAME_H
 
-#include <QtGlobal>
-#include <QDebug>
-#include <QQueue>
-#include <QVector>
-#include <QString>
-#include "frame.h"
+#include "encoders.h"
+#include "section.h"
+#include "subcode.h"
 
-class Encoder {
+class SectionToF3Frame : Encoder {
 public:
-    virtual uint32_t get_valid_output_frames_count() const = 0;
+    SectionToF3Frame();
+    void push_section(Section section);
+    QVector<F3Frame> pop_frames();
+    bool is_ready() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_f3_frames_count; };
+
+private:
+    void process_queue();
+
+    QQueue<Section> input_buffer;
+    QQueue<QVector<F3Frame>> output_buffer;
+
+    Subcode subcode;
+
+    uint32_t valid_f3_frames_count;
 };
 
-#endif // ENCODERS_H
-
+#endif // ENC_SECTIONTOF3FRAME_H
