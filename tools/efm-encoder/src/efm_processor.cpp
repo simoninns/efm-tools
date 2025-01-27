@@ -47,6 +47,11 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         return false;
     }
 
+    // Calculate the total size of the input file for progress reporting
+    qint64 total_size = input_file.size();
+    qint64 processed_size = 0;
+    int last_reported_progress = 0;
+
     if (is_input_data_wav) {
         // Input data is a WAV file, so we need to verify the WAV file format
         // by reading the WAV header
@@ -217,6 +222,18 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
             // Write the channel data to the output file
             output_file.write(reinterpret_cast<const char*>(channel_data.data()), channel_data.size());
+        }
+
+        // Update the processed size
+        processed_size += bytes_read;
+
+        // Calculate the current progress
+        int current_progress = static_cast<int>((processed_size * 100) / total_size);
+
+        // Report progress every 5%
+        if (current_progress >= last_reported_progress + 5) {
+            qInfo() << "Progress:" << current_progress << "%";
+            last_reported_progress = current_progress;
         }
 
         // Read the next 24 bytes

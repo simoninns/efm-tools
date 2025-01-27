@@ -78,14 +78,26 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     uint32_t f3_frame_count = 0;
     uint32_t section_count = 0;
 
+    // Get the total size of the input file for progress reporting
+    qint64 total_size = input_file.size();
+    qint64 processed_size = 0;
+    int last_progress = 0;
+
     // Process the EFM data in chunks of 100 T-values
     bool end_of_data = false;
     while (!end_of_data) {
         // Read 100 T-values from the input file
         QByteArray t_values = input_file.read(100);
+        processed_size += t_values.size();
+
+        int progress = static_cast<int>((processed_size * 100) / total_size);
+        if (progress >= last_progress + 5) { // Show progress every 5%
+            qInfo() << "Progress:" << progress << "%";
+            last_progress = progress;
+        }
+
         if (t_values.isEmpty()) {
             end_of_data = true;
-            qDebug() << "EfmEncoder::process(): End of data";
         } else {
             t_values_to_channel.push_frame(t_values);
         }
@@ -213,4 +225,4 @@ void EfmProcessor::set_show_data(bool _showOutput, bool _showF1, bool _showF2, b
 // Set the output data type (true for WAV, false for raw)
 void EfmProcessor::set_output_type(bool _wavOutput) {
     is_output_data_wav = _wavOutput;
-}   
+}
