@@ -39,6 +39,8 @@ public:
 
 private:
     void process_queue();
+    void process_state_machine();
+    void process_channel_frame(QString frame_data);
 
     QQueue<QString> input_buffer;
     QQueue<F3Frame> output_buffer;
@@ -52,6 +54,24 @@ private:
     const QString sync_header = "100000000001000000000010";
 
     Efm efm;
+
+    // State machine states
+    enum State {
+        WAITING_FOR_INITIAL_SYNC,
+        WAITING_FOR_SYNC,
+        PROCESS_FRAME,
+        SYNC_LOST
+    };
+
+    State current_state;
+    QString frame_data;
+    uint32_t sync_lost_count;
+
+    // State machine state processing functions
+    State state_waiting_for_initial_sync();
+    State state_waiting_for_sync();
+    State state_processing_frame();
+    State state_sync_lost();
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H
