@@ -49,6 +49,17 @@ bool F3FrameToSection::is_ready() const {
 
 void F3FrameToSection::process_queue() {
     // Process the input buffer
+
+    // Sanity check - The first frame must be a sync0 subcode frame
+    F3Frame f3_frame = input_buffer.head();
+    if (f3_frame.get_f3_frame_type() != F3Frame::F3FrameType::SYNC0) {
+        // This is an invalid frame, so we have to discard it
+        input_buffer.dequeue();
+        qDebug() << "F3FrameToSection::process_queue(): Got valid F3 frame before sync0 frame - discarding";
+        invalid_f3_frames_count++;
+        return;
+    }
+
     while (input_buffer.size() >= 98) {
         // Firstly we have to gather the 98 F3 frames and compute the subcode
         // (since we need the subcode in order to generate the F2 frames)
@@ -58,6 +69,14 @@ void F3FrameToSection::process_queue() {
         for (uint32_t index = 0; index < 98; index++) {
             F3Frame f3_frame = input_buffer.dequeue();
             f3_frames.append(f3_frame);
+
+            // Sanity checks
+            if (index == 0 && f3_frame.get_f3_frame_type() != F3Frame::F3FrameType::SYNC0) {
+                qFatal("F3FrameToSection::process_queue(): Expected sync0 frame at index 0, got something else!");
+            }
+            if (index == 1 && f3_frame.get_f3_frame_type() != F3Frame::F3FrameType::SYNC1) {
+                qFatal("F3FrameToSection::process_queue(): Expected sync1 frame at index 1, got something else!");
+            }
 
             if (index >= 2) {
                 // Get the subcode byte from the F3 frame and set it in the subcode object

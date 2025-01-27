@@ -185,6 +185,7 @@ void Qchannel::set_conmode() {
     }
 
     // The Q-channel data is constructed from the Q-mode (4 bits) and control bits (4 bits)
+    // Q-mode is 0-3 and control is 4-7
     q_channel_data[0] = control_nybble << 4 | mode_nybble;
 }
 
@@ -337,6 +338,8 @@ bool Qchannel::is_crc_valid() {
 
     // Compare the CRCs...
     if (crc != data_crc) {
+        qDebug() << "Qchannel::is_crc_valid(): Calculated CRC:" << QString::number(crc, 16).toUpper() << "Data CRC:" << QString::number(data_crc, 16).toUpper();
+        qDebug() << "Qchannel::is_crc_valid(): Data:" << q_channel_data.toHex();
         return false;
     }
     return true;
