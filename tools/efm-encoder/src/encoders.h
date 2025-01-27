@@ -37,29 +37,36 @@
 #include "interleave.h"
 #include "inverter.h"
 
-class Data24ToF1Frame {
+class Encoder {
+public:
+    virtual uint32_t get_valid_output_frames_count() const = 0;
+};
+
+class Data24ToF1Frame : Encoder {
 public:
     Data24ToF1Frame();
-    void push_frame(QVector<uint8_t> data, FrameTime frame_time, F1Frame::FrameType frame_type, uint8_t track_number);
+    void push_frame(Data24 data);
     F1Frame pop_frame();
     bool is_ready() const;
+
+    uint32_t get_valid_output_frames_count() const override { return valid_f1_frames_count; }
 
 private:
     void process_queue();
 
-    QQueue<QVector<uint8_t>> input_buffer;
-    QQueue<FrameTime> time_buffer;
-    QQueue<F1Frame::FrameType> type_buffer;
-    QQueue<uint8_t> track_number_buffer;
+    QQueue<Data24> input_buffer;
     QQueue<F1Frame> output_buffer;
+
+    uint32_t valid_f1_frames_count;
 };
 
-class F1FrameToF2Frame {
+class F1FrameToF2Frame : Encoder{
 public:
     F1FrameToF2Frame();
     void push_frame(F1Frame f1_frame);
     F2Frame pop_frame();
     bool is_ready() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_f2_frames_count; };
 
 private:
     void process_queue();
@@ -75,28 +82,34 @@ private:
 
     Interleave interleave;
     Inverter inverter;
+
+    uint32_t valid_f2_frames_count;
 };
 
-class F2FrameToSection {
+class F2FrameToSection : Encoder {
 public:
     F2FrameToSection();
     void push_frame(F2Frame f2_frame);
     Section pop_section();
     bool is_ready() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_sections_count; };
 
 private:
     void process_queue();
 
     QQueue<F2Frame> input_buffer;
     QQueue<Section> output_buffer;
+
+    uint32_t valid_sections_count;
 };
 
-class SectionToF3Frame {
+class SectionToF3Frame : Encoder {
 public:
     SectionToF3Frame();
     void push_section(Section section);
     QVector<F3Frame> pop_frames();
     bool is_ready() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_f3_frames_count; };
 
 private:
     void process_queue();
@@ -105,15 +118,18 @@ private:
     QQueue<QVector<F3Frame>> output_buffer;
 
     Subcode subcode;
+
+    uint32_t valid_f3_frames_count;
 };
 
-class F3FrameToChannel {
+class F3FrameToChannel : Encoder {
 public:
     F3FrameToChannel();
     void push_frame(F3Frame f3_frame);
     QVector<uint8_t> pop_frame();
     bool is_ready() const;
     int32_t get_total_t_values() const;
+    uint32_t get_valid_output_frames_count() const override { return valid_channel_frames_count; };
 
 private:
     void process_queue();
@@ -136,6 +152,8 @@ private:
 
     static const QString sync_header;
     static const QStringList efm_lut;
+
+    uint32_t valid_channel_frames_count;
 };
 
 #endif // ENCODERS_H

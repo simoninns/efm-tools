@@ -28,6 +28,7 @@
 #include <QVector>
 #include <cstdint>
 
+// Frame time class - stores ECMA-130 frame time as minutes, seconds, and frames
 class FrameTime {
 public:
     FrameTime() : min(0), sec(0), frame(0) {}
@@ -52,6 +53,39 @@ private:
     uint8_t frame;    
 };
 
+// Frame type class - stores the type of frame (LEAD_IN, LEAD_OUT, USER_DATA)
+class FrameType {
+public:
+    enum Type { LEAD_IN, LEAD_OUT, USER_DATA };
+
+    FrameType() : type(USER_DATA) {}
+    FrameType(Type _type) : type(_type) {}
+
+    Type get_type() const { return type; }
+    void set_type(Type _type) { type = _type; }
+
+    QString to_string() const {
+        switch (type) {
+            case LEAD_IN: return "LEAD_IN";
+            case LEAD_OUT: return "LEAD_OUT";
+            case USER_DATA: return "USER_DATA";
+            default: return "UNKNOWN";
+        }
+    }
+
+    bool operator==(const FrameType& other) const {
+        return type == other.type;
+    }
+
+    bool operator!=(const FrameType& other) const {
+        return type != other.type;
+    }
+
+private:
+    Type type;
+};
+
+// Frame class - base class for F1, F2, and F3 frames
 class Frame {
 public:
     virtual ~Frame() {} // Virtual destructor
@@ -67,9 +101,28 @@ protected:
     QVector<uint8_t> frame_data;
 };
 
+class Data24 : public Frame {
+public:
+    Data24();
+    int get_frame_size() const override;
+    void show_data();
+    void set_data(const QVector<uint8_t>& data) override;
+
+    void set_frame_type(FrameType _frame_type);
+    FrameType get_frame_type() const;
+    void set_frame_time(const FrameTime& _frame_time);
+    FrameTime get_frame_time() const;
+    void set_track_number(uint8_t _track_number);
+    uint8_t get_track_number() const;
+
+private:
+    uint8_t track_number;
+    FrameTime frame_time;
+    FrameType frame_type;
+};
+
 class F1Frame : public Frame {
 public:
-    enum FrameType { LEAD_IN, LEAD_OUT, USER_DATA };
     F1Frame();
     int get_frame_size() const override;
     void show_data();
@@ -89,7 +142,6 @@ private:
 
 class F2Frame : public Frame {
 public:
-    enum FrameType { LEAD_IN, LEAD_OUT, USER_DATA };
     F2Frame();
     int get_frame_size() const override;
     void show_data();
@@ -109,7 +161,7 @@ private:
 
 class F3Frame : public Frame {
 public:
-    enum FrameType { SUBCODE, SYNC0, SYNC1 };
+    enum F3FrameType { SUBCODE, SYNC0, SYNC1 };
 
     F3Frame();
     int get_frame_size() const override;
@@ -118,13 +170,13 @@ public:
     void set_frame_type_as_sync0();
     void set_frame_type_as_sync1();
 
-    FrameType get_frame_type() const;
+    F3FrameType get_f3_frame_type() const;
     uint8_t get_subcode_byte() const;
 
     void show_data();
 
 private:
-    FrameType frame_type;
+    F3FrameType f3_frame_type;
     uint8_t subcode_byte;
 };
 

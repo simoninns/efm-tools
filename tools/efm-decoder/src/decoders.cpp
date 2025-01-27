@@ -329,18 +329,7 @@ void F3FrameToSection::process_queue() {
             
             // Now we have to extract the section data and add it to the F2 frame
             // Note: The F2 Frame doesn't support AP time at the moment - to-do
-
-            // Convert subcode q-channel frame type to F2 frame type
-            Qchannel::SubcodeFrameType frame_type = subcode.q_channel.get_frame_type();
-
-            if (frame_type == Qchannel::SubcodeFrameType::LEAD_IN) {
-                f2_frame.set_frame_type(F2Frame::FrameType::LEAD_IN);
-            } else if (frame_type == Qchannel::SubcodeFrameType::LEAD_OUT) {
-                f2_frame.set_frame_type(F2Frame::FrameType::LEAD_OUT);
-            } else {
-                f2_frame.set_frame_type(F2Frame::FrameType::USER_DATA);
-            }
-
+            f2_frame.set_frame_type(subcode.q_channel.get_frame_type());
             f2_frame.set_track_number(subcode.q_channel.get_track_number());
             f2_frame.set_frame_time(subcode.q_channel.get_frame_time());
 
@@ -454,6 +443,9 @@ void F2FrameToF1Frame::process_queue() {
         // Put the resulting data into an F1 frame and push it to the output buffer
         F1Frame f1_frame;
         f1_frame.set_data(data);
+        f1_frame.set_frame_type(f2_frame.get_frame_type());
+        f1_frame.set_frame_time(f2_frame.get_frame_time());
+        f1_frame.set_track_number(f2_frame.get_track_number());
         valid_f2_frames_count++;
         output_buffer.enqueue(f1_frame);
     }
@@ -486,7 +478,7 @@ void F1FrameToData24::push_frame(F1Frame data) {
     process_queue();
 }
 
-QByteArray F1FrameToData24::pop_frame() {
+Data24 F1FrameToData24::pop_frame() {
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
@@ -510,14 +502,15 @@ void F1FrameToData24::process_queue() {
             }
         }
 
-        // Convert the data to a QByteArray
-        QByteArray byte_data;
-        for (int i = 0; i < data.size(); i++) {
-            byte_data.append(data[i]);
-        }
+        // Put the resulting data into a Data24 frame and push it to the output buffer
+        Data24 data24;
+        data24.set_data(data);
+        data24.set_frame_type(f1_frame.get_frame_type());
+        data24.set_frame_time(f1_frame.get_frame_time());
+        data24.set_track_number(f1_frame.get_track_number());
 
         // Add the data to the output buffer
-        output_buffer.enqueue(byte_data);
+        output_buffer.enqueue(data24);
         
         valid_f1_frames_count++;
     }

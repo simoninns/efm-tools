@@ -37,14 +37,20 @@
 #include "inverter.h"
 #include "section.h"
 
-class TvaluesToChannel {
+class Decoder {
+public:
+    virtual uint32_t get_invalid_input_frames_count() const = 0;
+    virtual uint32_t get_valid_input_frames_count() const = 0;
+};
+
+class TvaluesToChannel : Decoder {
 public:
     TvaluesToChannel();
     void push_frame(QByteArray data);
     QString pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_t_values_count() const { return invalid_t_values_count; }
-    uint32_t get_valid_t_values_count() const { return valid_t_values_count; }
+    uint32_t get_invalid_input_frames_count() const { return invalid_t_values_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_t_values_count; }
 
 private:
     void process_queue();
@@ -55,14 +61,14 @@ private:
     uint32_t valid_t_values_count;
 };
 
-class ChannelToF3Frame {
+class ChannelToF3Frame : Decoder {
 public:
     ChannelToF3Frame();
     void push_frame(QString data);
     F3Frame pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_channel_frames_count() const { return invalid_channel_frames_count; }
-    uint32_t get_valid_channel_frames_count() const { return valid_channel_frames_count; }
+    uint32_t get_invalid_input_frames_count() const { return invalid_channel_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_channel_frames_count; }
 
 private:
     void process_queue();
@@ -80,14 +86,14 @@ private:
     static const QStringList efm_lut;
 };
 
-class F3FrameToSection {
+class F3FrameToSection : Decoder {
 public:
     F3FrameToSection();
     void push_frame(F3Frame data);
     Section pop_section();
     bool is_ready() const;
-    uint32_t get_invalid_f3_frames_count() const { return invalid_f3_frames_count; }
-    uint32_t get_valid_f3_frames_count() const { return valid_f3_frames_count; }
+    uint32_t get_invalid_input_frames_count() const { return invalid_f3_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_f3_frames_count; }
 
 private:
     void process_queue();
@@ -99,14 +105,14 @@ private:
     uint32_t valid_f3_frames_count;
 };
 
-class SectionToF2Frame {
+class SectionToF2Frame : Decoder {
 public:
     SectionToF2Frame();
     void push_frame(Section data);
     QVector<F2Frame> pop_frames();
     bool is_ready() const;
-    uint32_t get_invalid_sections_count() const { return invalid_sections_count; }
-    uint32_t get_valid_sections_count() const { return valid_sections_count; }
+    uint32_t get_invalid_input_frames_count() const { return invalid_sections_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_sections_count; }
 
 private:
     void process_queue();
@@ -118,14 +124,14 @@ private:
     uint32_t valid_sections_count;
 };
 
-class F2FrameToF1Frame {
+class F2FrameToF1Frame : Decoder {
 public:
     F2FrameToF1Frame();
     void push_frame(F2Frame data);
     F1Frame pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_f2_frames_count() const { return invalid_f2_frames_count; }
-    uint32_t get_valid_f2_frames_count() const { return valid_f2_frames_count; }
+    uint32_t get_invalid_input_frames_count() const { return invalid_f2_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_f2_frames_count; }
 
     void get_c1_circ_stats(int32_t &valid_c1s, int32_t &fixed_c1s, int32_t &error_c1s);
     void get_c2_circ_stats(int32_t &valid_c2s, int32_t &fixed_c2s, int32_t &error_c2s);
@@ -149,20 +155,20 @@ private:
     uint32_t valid_f2_frames_count;
 };
 
-class F1FrameToData24 {
+class F1FrameToData24 : Decoder {
 public:
     F1FrameToData24();
     void push_frame(F1Frame data);
-    QByteArray pop_frame();
+    Data24 pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_f1_frames_count() const { return invalid_f1_frames_count; }
-    uint32_t get_valid_f1_frames_count() const { return valid_f1_frames_count; }
+    uint32_t get_invalid_input_frames_count() const { return invalid_f1_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_f1_frames_count; }
 
 private:
     void process_queue();
 
     QQueue<F1Frame> input_buffer;
-    QQueue<QByteArray> output_buffer;
+    QQueue<Data24> output_buffer;
 
     uint32_t invalid_f1_frames_count;
     uint32_t valid_f1_frames_count;

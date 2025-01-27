@@ -5,7 +5,6 @@ add_executable(${TARGET_NAME}
     src/main.cpp
     src/efm_processor.cpp
     src/encoders.cpp
-    src/data24.cpp
 )
 
 # Find the Qt library

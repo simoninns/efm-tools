@@ -56,23 +56,18 @@ public:
         DIGITAL_COPY_PROHIBITED,
         DIGITAL_COPY_PERMITTED,
     };
-    enum SubcodeFrameType {
-        LEAD_IN,
-        LEAD_OUT,
-        USER_DATA
-    };
 
     Qchannel();
     bool get_bit(uint8_t index) const;
     void set_bit(uint8_t index, bool value);
 
-    void set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, SubcodeFrameType _frame_type);
-    void set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, SubcodeFrameType _frame_type);
+    void set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type);
+    void set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type);
 
     QModes get_q_mode() const { return q_mode; }
     Control get_control() const { return control; }
 
-    SubcodeFrameType get_frame_type() const { return frame_type; }
+    FrameType get_frame_type() const { return frame_type; }
     FrameTime get_frame_time() const { return f_time; }
     FrameTime get_ap_time() const { return ap_time; }
     uint8_t get_track_number() const { return track_number; }
@@ -81,7 +76,7 @@ private:
     QModes q_mode;
     Control control;
     QByteArray q_channel_data; // 12 bytes (96 bits)
-    SubcodeFrameType frame_type;
+    FrameType frame_type;
     uint8_t track_number;
     FrameTime f_time;
     FrameTime ap_time;
@@ -91,7 +86,7 @@ private:
     void generate_crc();
     bool is_crc_valid();
     uint16_t crc16(const QByteArray &data);
-    void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, SubcodeFrameType frame_type);
+    void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
     uint16_t int_to_bcd2(uint16_t value);
     uint16_t bcd2_to_int(uint16_t bcd);
     void refresh_q_channel_from_data();

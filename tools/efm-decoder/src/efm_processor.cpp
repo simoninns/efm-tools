@@ -126,29 +126,24 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
         // Are there any data frames ready?
         if (f1_frame_to_data24.is_ready()) {
-            QByteArray data = f1_frame_to_data24.pop_frame();
-            output_file.write(data);
+            Data24 data24 = f1_frame_to_data24.pop_frame();
+            output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
             data24_count += 1;
 
             if (showOutput) {
-                QString dataString;
-                for (int i = 0; i < data.size(); ++i) {
-                    uint8_t byte = static_cast<uint8_t>(data[i]);
-                    dataString.append(QString("%1 ").arg(byte, 2, 16, QChar('0')));
-                }
-                qInfo().noquote() << "Output data:" << dataString.trimmed();
+                data24.show_data();
             }
         }
     }
 
     // Show summary
     qInfo() << "Decoding complete";
-    qInfo() << "Processed" << t_values_to_channel.get_valid_t_values_count() << "Valid T-Values and" << t_values_to_channel.get_invalid_t_values_count() << "Invalid T-Values";
-    qInfo() << "Processed" << channel_to_f3.get_valid_channel_frames_count() << "Valid Channel Frames and" << channel_to_f3.get_invalid_channel_frames_count() << "Invalid Channel Frames";
-    qInfo() << "Processed" << f3_frame_to_section.get_valid_f3_frames_count() << "Valid F3 Frames and" << f3_frame_to_section.get_invalid_f3_frames_count() << "Invalid F3 Frames";
-    qInfo() << "Processed" << section_to_f2.get_valid_sections_count() << "Valid sections and" << section_to_f2.get_invalid_sections_count() << "Invalid sections";
-    qInfo() << "Processed" << f2_frame_to_f1.get_valid_f2_frames_count() << "Valid F2 Frames and" << f2_frame_to_f1.get_invalid_f2_frames_count() << "Invalid F2 Frames";
-    qInfo() << "Processed" << f1_frame_to_data24.get_valid_f1_frames_count() << "Valid F1 Frames and" << f1_frame_to_data24.get_invalid_f1_frames_count() << "Invalid F1 Frames";
+    qInfo() << "Processed" << t_values_to_channel.get_valid_input_frames_count() << "Valid T-Values and" << t_values_to_channel.get_invalid_input_frames_count() << "Invalid T-Values";
+    qInfo() << "Processed" << channel_to_f3.get_valid_input_frames_count() << "Valid Channel Frames and" << channel_to_f3.get_invalid_input_frames_count() << "Invalid Channel Frames";
+    qInfo() << "Processed" << f3_frame_to_section.get_valid_input_frames_count() << "Valid F3 Frames and" << f3_frame_to_section.get_invalid_input_frames_count() << "Invalid F3 Frames";
+    qInfo() << "Processed" << section_to_f2.get_valid_input_frames_count() << "Valid sections and" << section_to_f2.get_invalid_input_frames_count() << "Invalid sections";
+    qInfo() << "Processed" << f2_frame_to_f1.get_valid_input_frames_count() << "Valid F2 Frames and" << f2_frame_to_f1.get_invalid_input_frames_count() << "Invalid F2 Frames";
+    qInfo() << "Processed" << f1_frame_to_data24.get_valid_input_frames_count() << "Valid F1 Frames and" << f1_frame_to_data24.get_invalid_input_frames_count() << "Invalid F1 Frames";
 
     // Get the statistics for the C1 and C2 decoders
     int32_t valid_c1s, fixed_c1s, error_c1s;

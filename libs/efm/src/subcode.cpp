@@ -49,19 +49,19 @@ Qchannel::Qchannel() {
     // q Channel defaults
     q_mode = QMODE_1;
     set_control(AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED);
-    frame_type = SubcodeFrameType::USER_DATA;
+    frame_type = FrameType::USER_DATA;
     track_number = 1;
 }
 
-void Qchannel::set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, SubcodeFrameType _frame_type) {
+void Qchannel::set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
     q_mode = QMODE_1;
     set_control(_control);
-    set_q_mode_1or4(track_number, f_time, ap_time, frame_type);
+    set_q_mode_1or4(_track_number, _f_time, ap_time, _frame_type);
 }
 
 // To-Do: Implement the set_q_mode_2, set_q_mode_3 functions
 
-void Qchannel::set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, SubcodeFrameType _frame_type) {
+void Qchannel::set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
     q_mode = QMODE_4;
     set_control(_control);
     set_q_mode_1or4(_track_number, _f_time, _ap_time, _frame_type);
@@ -69,13 +69,13 @@ void Qchannel::set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _
 
 // The only difference between Q-mode 1 and 4 is the control bits, so we can use the same function for both
 // to save code duplication
-void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, SubcodeFrameType _frame_type) {
-    if (frame_type == SubcodeFrameType::LEAD_IN) track_number = 0;
-    if (frame_type == SubcodeFrameType::LEAD_OUT) track_number = 0;
-    if ((frame_type == SubcodeFrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
+void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
+    if (frame_type == FrameType::LEAD_IN) track_number = 0;
+    if (frame_type == FrameType::LEAD_OUT) track_number = 0;
+    if ((frame_type == FrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
         qFatal("Qchannel::generate_frame(): Track number must be in the range 1 to 98.");
     }
-    if ((frame_type == SubcodeFrameType::USER_DATA) && (track_number > 0 || track_number < 99)) {
+    if ((frame_type == FrameType::USER_DATA) && (track_number > 0 || track_number < 99)) {
         track_number = _track_number;
     }
 
@@ -84,7 +84,7 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
     ap_time = _ap_time;
 
     // Set the Q-channel data
-    if (frame_type == SubcodeFrameType::LEAD_IN) {
+    if (frame_type == FrameType::LEAD_IN) {
         uint16_t tno = 0x00;
         uint16_t pointer = 0x00;
         uint8_t zero = 0;
@@ -102,7 +102,7 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         generate_crc();
     }
  
-    if (frame_type == SubcodeFrameType::USER_DATA) {
+    if (frame_type == FrameType::USER_DATA) {
         uint8_t tno = int_to_bcd2(track_number);
         uint8_t index = 01; // Not correct
         uint8_t zero = 0;
@@ -120,7 +120,7 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         generate_crc();
     }
 
-    if (frame_type == SubcodeFrameType::LEAD_OUT) {
+    if (frame_type == FrameType::LEAD_OUT) {
         uint16_t tno = 0xAA; // Hexidecimal AA for lead-out
         uint16_t index = 01; // Must be 01 for lead-out
         uint8_t zero = 0;
@@ -226,8 +226,6 @@ void Qchannel::set_bit(uint8_t index, bool value) {
 }
 
 void Qchannel::refresh_q_channel_from_data() {
-    qDebug() << "Qchannel::refresh_q_channel_from_data()" << q_channel_data.toHex();
-
     // Firstly compute the CRC and check the q-channel data is valid
     if (!is_crc_valid()) {
         qFatal("Qchannel::refresh_q_channel_from_data(): CRC is invalid");
@@ -288,11 +286,11 @@ void Qchannel::refresh_q_channel_from_data() {
     // If the track number is 0xAA, then this is a lead-out frame
     // If the track number is 1-99, then this is a user data frame
     if (track_number == 0) {
-        frame_type = SubcodeFrameType::LEAD_IN;
+        frame_type = FrameType::LEAD_IN;
     } else if (track_number == 0xAA) {
-        frame_type = SubcodeFrameType::LEAD_OUT;
+        frame_type = FrameType::LEAD_OUT;
     } else {
-        frame_type = SubcodeFrameType::USER_DATA;
+        frame_type = FrameType::USER_DATA;
     }
 
     // Set the index/pointer q_data_channel[2] - Not used at the moment
@@ -308,6 +306,9 @@ void Qchannel::refresh_q_channel_from_data() {
     ap_time.set_min(bcd2_to_int(q_channel_data[7]));
     ap_time.set_sec(bcd2_to_int(q_channel_data[8]));
     ap_time.set_frame(bcd2_to_int(q_channel_data[9]));
+
+    // qDebug() << "Qchannel::refresh_q_channel_from_data()" << q_channel_data.toHex() << "Qmode:" << q_mode << "Control:" << control <<
+    //     "Track:" << track_number << "Frame Time:" << f_time.to_string() << "AP Time:" << ap_time.to_string() << "Frame Type:" << frame_type.to_string();
 }
 
 void Qchannel::generate_crc() {
@@ -397,7 +398,7 @@ Subcode::Subcode() {
     // Set the Q-channel to default (Q-mode 1, audio 2-channel, no preemphasis, copy permitted)
     p_channel.set_flag(false);
     q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1,
-        FrameTime(0, 0, 0), FrameTime(0, 0, 0), Qchannel::SubcodeFrameType::USER_DATA);
+        FrameTime(0, 0, 0), FrameTime(0, 0, 0), FrameType::USER_DATA);
 }
 
 uint8_t Subcode::get_subcode_byte(uint8_t index) const {

@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
     bool showInput = parser.isSet("show-input");
 
     // Check for data corruption options
-    bool bad_channel_sync = parser.isSet("bad-channel-sync");
     bool corrupt_tvalues = parser.isSet("corrupt-tvalues");
     bool pad_start = parser.isSet("pad-start");
 

@@ -31,16 +31,12 @@
 #include "encoders.h"
 
 // Data24ToF1Frame class implementation
-Data24ToF1Frame::Data24ToF1Frame() {}
+Data24ToF1Frame::Data24ToF1Frame() {
+    valid_f1_frames_count = 0;
+}
 
-void Data24ToF1Frame::push_frame(QVector<uint8_t> data, FrameTime frame_time, F1Frame::FrameType frame_type, uint8_t track_number) {
-    if (data.size() != 24) {
-        qFatal("Data24ToF1Frame::push_frame(): Data must be a QVector of 24 integers in the range 0-255.");
-    }
-    input_buffer.enqueue(data);
-    time_buffer.enqueue(frame_time);
-    type_buffer.enqueue(frame_type);
-    track_number_buffer.enqueue(track_number);
+void Data24ToF1Frame::push_frame(Data24 data24) {
+    input_buffer.enqueue(data24);
     process_queue();
 }
 
@@ -53,23 +49,22 @@ F1Frame Data24ToF1Frame::pop_frame() {
 
 void Data24ToF1Frame::process_queue() {
     while (!input_buffer.isEmpty()) {
-        QVector<uint8_t> data = input_buffer.dequeue();
-        FrameTime frame_time = time_buffer.dequeue();
-        F1Frame::FrameType frame_type = type_buffer.dequeue();
-        uint8_t track_number = track_number_buffer.dequeue();
+        Data24 data24 = input_buffer.dequeue();
 
         // ECMA-130 issue 2 page 16 - Clause 16
         // All byte pairs are swapped by the F1 Frame encoder
+        QVector<uint8_t> data = data24.get_data();
         for (int i = 0; i < data.size(); i += 2) {
             std::swap(data[i], data[i + 1]);
         }
 
         F1Frame f1_frame;
         f1_frame.set_data(data);
-        f1_frame.set_frame_time(frame_time);
-        f1_frame.set_frame_type(frame_type);
-        f1_frame.set_track_number(track_number);
+        f1_frame.set_frame_type(data24.get_frame_type());
+        f1_frame.set_frame_time(data24.get_frame_time());
+        f1_frame.set_track_number(data24.get_track_number());
 
+        valid_f1_frames_count++;
         output_buffer.enqueue(f1_frame);
     }
 }
@@ -83,7 +78,9 @@ F1FrameToF2Frame::F1FrameToF2Frame()
     : delay_line1({1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0}),
       delay_line2({2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0}),
       delay_lineM({0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108})
-{}
+{
+    valid_f2_frames_count = 0;
+}
 
 void F1FrameToF2Frame::push_frame(F1Frame f1_frame) {
     input_buffer.enqueue(f1_frame);
@@ -130,28 +127,11 @@ void F1FrameToF2Frame::process_queue() {
         // Put the resulting data into an F2 frame and push it to the output buffer
         F2Frame f2_frame;
         f2_frame.set_data(data);
+        f2_frame.set_frame_type(f1_frame.get_frame_type());
         f2_frame.set_frame_time(f1_frame.get_frame_time());
-
-        // Convert F1 frame type to F2 frame type (this could be a bit tidier...)
-        F2Frame::FrameType f2_frame_type;
-
-        switch (f1_frame.get_frame_type()) {
-            case F1Frame::FrameType::LEAD_IN:
-                f2_frame_type = F2Frame::FrameType::LEAD_IN;
-                break;
-            case F1Frame::FrameType::LEAD_OUT:
-                f2_frame_type = F2Frame::FrameType::LEAD_OUT;
-                break;
-            case F1Frame::FrameType::USER_DATA:
-                f2_frame_type = F2Frame::FrameType::USER_DATA;
-                break;
-            default:
-                qFatal("F1FrameToF2Frame::process_queue(): Unknown F1 frame type.");
-        }
-
-        f2_frame.set_frame_type(f2_frame_type);
         f2_frame.set_track_number(f1_frame.get_track_number());
         
+        valid_f2_frames_count++;
         output_buffer.enqueue(f2_frame);
     }
 }
@@ -162,6 +142,7 @@ bool F1FrameToF2Frame::is_ready() const {
 
 // F2FrameToSection class implementation
 F2FrameToSection::F2FrameToSection() {
+    valid_sections_count = 0;
 }
 
 // Input is 32 bytes of data from the F2 frame payload
@@ -189,34 +170,18 @@ void F2FrameToSection::process_queue() {
 
             // Set the overall section information based on the first F2 frame of the section
             if (symbol == 0) {
-                Qchannel::SubcodeFrameType subcode_frame_type;
-
-                // Set the subcode frame type based on the F2 frame type
-                switch (f2_frame.get_frame_type()) {
-                    case F2Frame::FrameType::LEAD_IN:
-                        subcode_frame_type = Qchannel::SubcodeFrameType::LEAD_IN;
-                        break;
-                    case F2Frame::FrameType::LEAD_OUT:
-                        subcode_frame_type = Qchannel::SubcodeFrameType::LEAD_OUT;
-                        break;
-                    case F2Frame::FrameType::USER_DATA:
-                        subcode_frame_type = Qchannel::SubcodeFrameType::USER_DATA;
-                        break;
-                    default:
-                        qFatal("F2FrameToSection::process_queue(): Unknown F2 frame type.");
-                }
-
                 section.subcode.p_channel.set_flag(false);
                 section.subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, f2_frame.get_track_number(),
                     f2_frame.get_frame_time(),
                     f2_frame.get_frame_time(), // Note: This sets absolute time to time, which isn't correct
-                    subcode_frame_type);
+                    f2_frame.get_frame_type());
             }
 
             section.push_frame(f2_frame);
         }
 
         // Queue the section
+        valid_sections_count++;
         output_buffer.enqueue(section);
     }
 }
@@ -227,6 +192,7 @@ bool F2FrameToSection::is_ready() const {
 
 // SectionToF3Frame class implementation
 SectionToF3Frame::SectionToF3Frame() {
+    valid_f3_frames_count = 0;
 }
 
 void SectionToF3Frame::push_section(Section section) {
@@ -260,6 +226,8 @@ void SectionToF3Frame::process_queue() {
             }
 
             f3_frame.set_data(f2_frame.get_data());
+
+            valid_f3_frames_count++;
             f3_frames.append(f3_frame);
         }
 
@@ -282,6 +250,8 @@ F3FrameToChannel::F3FrameToChannel(){
     total_t_values = 0;
 
     previous_channel_frame.clear();
+
+    valid_channel_frames_count = 0;
 }
 
 void F3FrameToChannel::push_frame(F3Frame f3_frame) {
@@ -316,9 +286,9 @@ void F3FrameToChannel::process_queue() {
         channel_frame += merging_bits;
 
         // Pick the subcode value or a sync0/1 symbol based on the inputF3 frame type    
-        if (f3_frame.get_frame_type() == F3Frame::FrameType::SUBCODE) {
+        if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SUBCODE) {
             channel_frame += convert_8bit_to_efm(f3_frame.get_subcode_byte());
-        } else if (f3_frame.get_frame_type() == F3Frame::FrameType::SYNC0) {
+        } else if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC0) {
             channel_frame += convert_8bit_to_efm(256);
         } else {
             channel_frame += convert_8bit_to_efm(257);
@@ -357,6 +327,7 @@ void F3FrameToChannel::process_queue() {
         }   
 
         // Flush the output data to the output buffer
+        valid_channel_frames_count++;
         write_frame(channel_frame);
     }
 }

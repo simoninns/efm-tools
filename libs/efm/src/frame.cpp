@@ -104,12 +104,77 @@ bool Frame::is_empty() const {
     return frame_data.isEmpty();
 }
 
+// Constructor for Data24, initializes data to the frame size
+Data24::Data24() {
+    frame_data.resize(get_frame_size());
+
+    // Set defaults
+    frame_type = FrameType::USER_DATA;
+    frame_time.set_min(0);
+    frame_time.set_sec(0);
+    frame_time.set_frame(0);
+}
+
+// We override the set_data function to ensure the data is 24 bytes
+// since it's possible to have less than 24 bytes of data
+void Data24::set_data(const QVector<uint8_t>& data) {
+    frame_data = data;
+
+    // If there are less than 24 bytes, pad data with zeros to 24 bytes
+    if (frame_data.size() < 24) {
+        frame_data.resize(24);
+        for (int i = frame_data.size(); i < 24; ++i) {
+            frame_data[i] = 0;
+        }
+    }
+}
+
+// Get the frame size for Data24
+int Data24::get_frame_size() const {
+    return 24;
+}
+
+void Data24::show_data() {
+    QString dataString;
+    for (int i = 0; i < frame_data.size(); ++i) {
+        dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
+    }
+    qInfo().noquote() << "Data24 data:" << dataString.trimmed() << "-" << frame_time.to_string() << "Track:" << track_number;
+}
+
+void Data24::set_frame_type(FrameType _frame_type) {
+    frame_type = _frame_type;
+}
+
+FrameType Data24::get_frame_type() const {
+    return frame_type;
+}
+
+void Data24::set_frame_time(const FrameTime& _frame_time) {
+    frame_time = _frame_time;
+}
+
+FrameTime Data24::get_frame_time() const {
+    return frame_time;
+}
+
+void Data24::set_track_number(uint8_t _track_number) {
+    if (_track_number > 99) {
+        qFatal("Data24::set_track_number(): Invalid track number of %d", _track_number);
+    }
+    track_number = _track_number;
+}
+
+uint8_t Data24::get_track_number() const {
+    return track_number;
+}
+
 // Constructor for F1Frame, initializes data to the frame size
 F1Frame::F1Frame() {
     frame_data.resize(get_frame_size());
 
     // Set defaults
-    frame_type = USER_DATA;
+    frame_type = FrameType::USER_DATA;
     frame_time.set_min(0);
     frame_time.set_sec(0);
     frame_time.set_frame(0);
@@ -132,7 +197,7 @@ void F1Frame::set_frame_type(FrameType _frame_type) {
     frame_type = _frame_type;
 }
 
-F1Frame::FrameType F1Frame::get_frame_type() const {
+FrameType F1Frame::get_frame_type() const {
     return frame_type;
 }
 
@@ -160,7 +225,7 @@ F2Frame::F2Frame() {
     frame_data.resize(get_frame_size());
 
     // Set defaults
-    frame_type = USER_DATA;
+    frame_type = FrameType::USER_DATA;
     frame_time.set_min(0);
     frame_time.set_sec(0);
     frame_time.set_frame(0);
@@ -183,7 +248,7 @@ void F2Frame::set_frame_type(FrameType _frame_type) {
     frame_type = _frame_type;
 }
 
-F2Frame::FrameType F2Frame::get_frame_type() const {
+FrameType F2Frame::get_frame_type() const {
     return frame_type;
 }
 
@@ -210,7 +275,7 @@ uint8_t F2Frame::get_track_number() const {
 F3Frame::F3Frame() {
     frame_data.resize(get_frame_size());
     subcode_byte = 0;
-    frame_type = SUBCODE;
+    f3_frame_type = SUBCODE;
 }
 
 // Get the frame size for F3Frame
@@ -220,25 +285,25 @@ int F3Frame::get_frame_size() const {
 
 // Set the frame type as subcode and set the subcode value
 void F3Frame::set_frame_type_as_subcode(uint8_t subcode_value) {
-    frame_type = SUBCODE;
+    f3_frame_type = SUBCODE;
     subcode_byte = subcode_value;
 }
 
 // Set the frame type as sync0 and set the subcode value to 0
 void F3Frame::set_frame_type_as_sync0() {
-    frame_type = SYNC0;
+    f3_frame_type = SYNC0;
     subcode_byte = 0;
 }
 
 // Set the frame type as sync1 and set the subcode value to 0
 void F3Frame::set_frame_type_as_sync1() {
-    frame_type = SYNC1;
+    f3_frame_type = SYNC1;
     subcode_byte = 0;
 }
 
-// Get the frame type
-F3Frame::FrameType F3Frame::get_frame_type() const {
-    return frame_type;
+// Get the F3 frame type
+F3Frame::F3FrameType F3Frame::get_f3_frame_type() const {
+    return f3_frame_type;
 }
 
 // Get the subcode value

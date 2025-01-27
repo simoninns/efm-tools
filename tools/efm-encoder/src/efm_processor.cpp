@@ -27,9 +27,7 @@
 #include <QFile>
 
 #include "efm_processor.h"
-#include "data24.h"
 #include "encoders.h"
-
 #include "delay_lines.h"
 
 EfmProcessor::EfmProcessor() {}
@@ -37,10 +35,50 @@ EfmProcessor::EfmProcessor() {}
 bool EfmProcessor::process(QString input_filename, QString output_filename) {
     qInfo() << "Encoding EFM data from file:" << input_filename << "to file:" << output_filename;
 
-    Data24 data24(input_filename, is_input_data_wav);
-    if (!data24.is_ready()) {
-        qDebug() << "EfmProcessor::process(): Failed to load data file:" << input_filename;
+    // Open the input file
+    QFile input_file(input_filename);
+
+    if (!input_file.open(QIODevice::ReadOnly)) {
+        qDebug() << "EfmProcessor::process(): Failed to open input file:" << input_filename;
         return false;
+    }
+
+    if (is_input_data_wav) {
+        // Input data is a WAV file, so we need to verify the WAV file format
+        // by reading the WAV header
+        // Read the WAV header
+        QByteArray header = input_file.read(44);
+        if (header.size() != 44) {
+            qWarning() << "Failed to read WAV header from input file:" << input_filename;
+            return false;
+        }
+
+        // Check the WAV header for the correct format
+        if (header.mid(0, 4) != "RIFF" || header.mid(8, 4) != "WAVE") {
+            qWarning() << "Invalid WAV file format:" << input_filename;
+            return false;
+        }
+
+        // Check the sampling rate (44.1KHz)
+        uint32_t sampleRate = *reinterpret_cast<const quint32*>(header.mid(24, 4).constData());
+        if (sampleRate != 44100) {
+            qWarning() << "Unsupported sample rate:" << sampleRate << "in file:" << input_filename;
+            return false;
+        }
+
+        // Check the bit depth (16 bits)
+        uint16_t bitDepth = *reinterpret_cast<const quint16*>(header.mid(34, 2).constData());
+        if (bitDepth != 16) {
+            qWarning() << "Unsupported bit depth:" << bitDepth << "in file:" << input_filename;
+            return false;
+        }
+
+        // Check the number of channels (stereo)
+        uint16_t numChannels = *reinterpret_cast<const quint16*>(header.mid(22, 2).constData());
+        if (numChannels != 2) {
+            qWarning() << "Unsupported number of channels:" << numChannels << "in file:" << input_filename;
+            return false;
+        }
     }
 
     // Prepare the output file
@@ -73,10 +111,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         qInfo() << "Corrupting output: Corrupting t-values with a frequency of" << corrupt_tvalues_frequency;
     }
 
-    // Audio data
-    QVector<uint8_t> data24_frame;
-    uint32_t data24_count = 0;
-
     // Prepare the encoders
     Data24ToF1Frame data24_to_f1;
     F1FrameToF2Frame f1_frame_to_f2;
@@ -84,29 +118,33 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     SectionToF3Frame section_to_f3;
     F3FrameToChannel f3_frame_to_channel;
 
-    uint32_t f1_frame_count = 0;
-    uint32_t f2_frame_count = 0;
-    uint32_t f3_frame_count = 0;
-    uint32_t section_count = 0;
+    // Channel data counter
     uint32_t channel_byte_count = 0;
 
-    // Since we don't really support multi-track yet, we'll just use a single track
-    // with a single absolute frame time
-    FrameTime frame_time; // 0:00:00 default
-    uint8_t track_number = 1;
-
     // Process the input audio data 24 bytes at a time
-    while (!(data24_frame = data24.read()).isEmpty()) {
-        data24_count += 1;
+    // The time, type and track number are set to default values for now
+    uint8_t track_number = 1;
+    FrameType frame_type = FrameType::USER_DATA;
+    FrameTime frame_time;
+    uint32_t data24_count = 0;
 
+    QVector<uint8_t> input_data(24);
+    uint64_t bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 24);
+
+    while (bytes_read > 0) {
+        // Create a Data24 object and set the data
+        Data24 data24;
+        data24.set_data(input_data);
+        data24.set_frame_type(frame_type);
+        data24.set_frame_time(frame_time);
+        data24.set_track_number(track_number);
         if (showInput) data24.show_data();
 
         // Push the data to the first converter
-        data24_to_f1.push_frame(data24_frame, frame_time, F1Frame::USER_DATA, track_number);
+        data24_to_f1.push_frame(data24);
+        data24_count++;
 
-        // Increment the frame time by one frame (1/75th of a second)
-        // every 98 data24 frames.  98 Frames is one section and each
-        // section represents 1/75th of a second.
+        // Adjust the frame time if required
         if (data24_count % 98 == 0) {
             frame_time.increment_frame();
         }
@@ -116,7 +154,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             // Pop the F1 frame, count it and push it to the next converter
             F1Frame f1_frame = data24_to_f1.pop_frame();
             if (showF1) f1_frame.show_data();
-            f1_frame_count++;
             f1_frame_to_f2.push_frame(f1_frame);
         }
 
@@ -125,7 +162,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             // Pop the F2 frame, count it and push it to the next converter
             F2Frame f2_frame = f1_frame_to_f2.pop_frame();
             if (showF2) f2_frame.show_data();
-            f2_frame_count++;
             f2_frame_to_section.push_frame(f2_frame);
         }
 
@@ -133,7 +169,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         if (f2_frame_to_section.is_ready()) {
             // Pop the section, count it and push it to the next converter
             Section section = f2_frame_to_section.pop_section();
-            section_count++;
             section_to_f3.push_section(section);
         }
 
@@ -144,7 +179,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
             for (int i = 0; i < f3_frames.size(); i++) {
                 if (showF3) f3_frames[i].show_data();
-                f3_frame_count++;
                 f3_frame_to_channel.push_frame(f3_frames[i]);
             }
         }
@@ -180,6 +214,9 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             // Write the channel data to the output file
             output_file.write(reinterpret_cast<const char*>(channel_data.data()), channel_data.size());
         }
+
+        // Read the next 24 bytes
+        bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 24);
     }
 
     // Close the output file
@@ -204,8 +241,10 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     qInfo().noquote() << "Processed" << data24_count << "data24 frames totalling" << size_value << size_unit;
     qInfo().noquote() << "Final time was" << frame_time.to_string();
 
-    qInfo() << f3_frame_to_channel.get_total_t_values() << "T-values," << channel_byte_count << "channel bytes";
-    qInfo() << f1_frame_count << "F1 frames," << f2_frame_count << "F2 frames," << section_count << "Sections," << f3_frame_count << "F3 frames,";
+    qInfo() << data24_to_f1.get_valid_output_frames_count() << "F1 frames," << f1_frame_to_f2.get_valid_output_frames_count() << "F2 frames," <<
+        f2_frame_to_section.get_valid_output_frames_count() << "Sections," << section_to_f3.get_valid_output_frames_count() << "F3 frames,";
+    qInfo() << f3_frame_to_channel.get_valid_output_frames_count() << "channel frames" << f3_frame_to_channel.get_total_t_values() <<
+        "T-values," << channel_byte_count << "channel bytes";
 
     // Show corruption warnings
     if (corrupt_tvalues) {
