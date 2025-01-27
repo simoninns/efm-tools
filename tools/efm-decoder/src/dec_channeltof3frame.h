@@ -1,6 +1,6 @@
 /************************************************************************
 
-    decoders.h
+    dec_channeltof3frame.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,23 +22,34 @@
 
 ************************************************************************/
 
-#ifndef DECODERS_H
-#define DECODERS_H
+#ifndef DEC_CHANNELTOF3FRAME_H
+#define DEC_CHANNELTOF3FRAME_H
 
-#include <QVector>
-#include <QQueue>
-#include <QByteArray>
-#include <QString>
-#include <QDebug>
-#include <cstdint>
+#include "decoders.h"
 
-#include "frame.h"
-#include "section.h"
-
-class Decoder {
+class ChannelToF3Frame : Decoder {
 public:
-    virtual uint32_t get_invalid_input_frames_count() const = 0;
-    virtual uint32_t get_valid_input_frames_count() const = 0;
+    ChannelToF3Frame();
+    void push_frame(QString data);
+    F3Frame pop_frame();
+    bool is_ready() const;
+    uint32_t get_invalid_input_frames_count() const { return invalid_channel_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_channel_frames_count; }
+
+private:
+    void process_queue();
+    uint16_t convert_efm_to_8bit(QString efm);
+
+    QQueue<QString> input_buffer;
+    QQueue<F3Frame> output_buffer;
+
+    QString internal_buffer;
+
+    uint32_t invalid_channel_frames_count;
+    uint32_t valid_channel_frames_count;
+
+    static const QString sync_header;
+    static const QStringList efm_lut;
 };
 
-#endif // DECODERS_H
+#endif // DEC_CHANNELTOF3FRAME_H

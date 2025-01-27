@@ -1,8 +1,8 @@
 # Set the target name
 set(TARGET_NAME efm-encoder)
 
+# Add the source files
 file(GLOB_RECURSE SRC_FILES ${CMAKE_SOURCE_DIR}/tools/efm-encoder/src/*.cpp)
-
 add_executable(${TARGET_NAME} ${SRC_FILES})
 
 # Find the Qt library

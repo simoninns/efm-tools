@@ -28,6 +28,12 @@
 
 #include "efm_processor.h"
 #include "decoders.h"
+#include "dec_channeltof3frame.h"
+#include "dec_f3frametosection.h"
+#include "dec_sectiontof2frame.h"
+#include "dec_f2frametof1frame.h"
+#include "dec_f1frametodata24.h"
+#include "dec_tvaluestochannel.h"
 
 EfmProcessor::EfmProcessor() {
 }

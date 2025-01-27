@@ -1,0 +1,65 @@
+/************************************************************************
+
+    dec_f2frametof1frame.h
+
+    ld-efm-decoder - EFM data decoder
+    Copyright (C) 2025 Simon Inns
+
+    This file is part of ld-decode-tools.
+
+    ld-efm-decoder is free software: you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+************************************************************************/
+
+#ifndef DEC_F2FRAMETOF1FRAME_H
+#define DEC_F2FRAMETOF1FRAME_H
+
+#include "decoders.h"
+#include "reedsolomon.h"
+#include "delay_lines.h"
+#include "interleave.h"
+#include "inverter.h"
+
+class F2FrameToF1Frame : Decoder {
+public:
+    F2FrameToF1Frame();
+    void push_frame(F2Frame data);
+    F1Frame pop_frame();
+    bool is_ready() const;
+    uint32_t get_invalid_input_frames_count() const { return invalid_f2_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_f2_frames_count; }
+
+    void get_c1_circ_stats(int32_t &valid_c1s, int32_t &fixed_c1s, int32_t &error_c1s);
+    void get_c2_circ_stats(int32_t &valid_c2s, int32_t &fixed_c2s, int32_t &error_c2s);
+
+private:
+    void process_queue();
+
+    QQueue<F2Frame> input_buffer;
+    QQueue<F1Frame> output_buffer;
+
+    ReedSolomon circ;
+
+    DelayLines delay_line1;
+    DelayLines delay_line2;
+    DelayLines delay_lineM;
+
+    Interleave interleave;
+    Inverter inverter;
+
+    uint32_t invalid_f2_frames_count;
+    uint32_t valid_f2_frames_count;
+};
+
+#endif // DEC_F2FRAMETOF1FRAME_H

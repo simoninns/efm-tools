@@ -1,6 +1,6 @@
 /************************************************************************
 
-    decoders.h
+    dec_sectiontof2frame.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,23 +22,28 @@
 
 ************************************************************************/
 
-#ifndef DECODERS_H
-#define DECODERS_H
+#ifndef DEC_SECTIONTOF2FRAME_H
+#define DEC_SECTIONTOF2FRAME_H
 
-#include <QVector>
-#include <QQueue>
-#include <QByteArray>
-#include <QString>
-#include <QDebug>
-#include <cstdint>
+#include "decoders.h"
 
-#include "frame.h"
-#include "section.h"
-
-class Decoder {
+class SectionToF2Frame : Decoder {
 public:
-    virtual uint32_t get_invalid_input_frames_count() const = 0;
-    virtual uint32_t get_valid_input_frames_count() const = 0;
+    SectionToF2Frame();
+    void push_frame(Section data);
+    QVector<F2Frame> pop_frames();
+    bool is_ready() const;
+    uint32_t get_invalid_input_frames_count() const { return invalid_sections_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_sections_count; }
+
+private:
+    void process_queue();
+
+    QQueue<Section> input_buffer;
+    QQueue<QVector<F2Frame>> output_buffer;
+
+    uint32_t invalid_sections_count;
+    uint32_t valid_sections_count;
 };
 
-#endif // DECODERS_H
+#endif // DEC_SECTIONTOF2FRAME_H

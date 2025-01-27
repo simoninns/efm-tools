@@ -1,6 +1,6 @@
 /************************************************************************
 
-    decoders.h
+    dec_tvaluestochannel.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,23 +22,27 @@
 
 ************************************************************************/
 
-#ifndef DECODERS_H
-#define DECODERS_H
+#ifndef DEC_TVALUESTOCHANNEL_H
+#define DEC_TVALUESTOCHANNEL_H
 
-#include <QVector>
-#include <QQueue>
-#include <QByteArray>
-#include <QString>
-#include <QDebug>
-#include <cstdint>
+#include "decoders.h"
 
-#include "frame.h"
-#include "section.h"
-
-class Decoder {
+class TvaluesToChannel : Decoder {
 public:
-    virtual uint32_t get_invalid_input_frames_count() const = 0;
-    virtual uint32_t get_valid_input_frames_count() const = 0;
+    TvaluesToChannel();
+    void push_frame(QByteArray data);
+    QString pop_frame();
+    bool is_ready() const;
+    uint32_t get_invalid_input_frames_count() const { return invalid_t_values_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_t_values_count; }
+
+private:
+    void process_queue();
+
+    QQueue<QByteArray> input_buffer;
+    QQueue<QString> output_buffer;
+    uint32_t invalid_t_values_count;
+    uint32_t valid_t_values_count;
 };
 
-#endif // DECODERS_H
+#endif // DEC_TVALUESTOCHANNEL_H

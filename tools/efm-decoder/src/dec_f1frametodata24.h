@@ -1,6 +1,6 @@
 /************************************************************************
 
-    decoders.h
+    dec_f1frametodata24.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,23 +22,28 @@
 
 ************************************************************************/
 
-#ifndef DECODERS_H
-#define DECODERS_H
+#ifndef DEC_F1FRAMETODATA24_H
+#define DEC_F1FRAMETODATA24_H
 
-#include <QVector>
-#include <QQueue>
-#include <QByteArray>
-#include <QString>
-#include <QDebug>
-#include <cstdint>
+#include "decoders.h"
 
-#include "frame.h"
-#include "section.h"
-
-class Decoder {
+class F1FrameToData24 : Decoder {
 public:
-    virtual uint32_t get_invalid_input_frames_count() const = 0;
-    virtual uint32_t get_valid_input_frames_count() const = 0;
+    F1FrameToData24();
+    void push_frame(F1Frame data);
+    Data24 pop_frame();
+    bool is_ready() const;
+    uint32_t get_invalid_input_frames_count() const { return invalid_f1_frames_count; }
+    uint32_t get_valid_input_frames_count() const { return valid_f1_frames_count; }
+
+private:
+    void process_queue();
+
+    QQueue<F1Frame> input_buffer;
+    QQueue<Data24> output_buffer;
+
+    uint32_t invalid_f1_frames_count;
+    uint32_t valid_f1_frames_count;
 };
 
-#endif // DECODERS_H
+#endif // DEC_F1FRAMETODATA24_H
