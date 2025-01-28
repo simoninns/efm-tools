@@ -328,17 +328,42 @@ void EfmProcessor::set_input_type(bool _wavInput) {
 // Note: The corruption options are to assist in generating test data
 // used to verify the decoder.  They are not intended to be used in
 // normal operation.
-void EfmProcessor::set_corruption(bool _corrupt_tvalues,
+bool EfmProcessor::set_corruption(bool _corrupt_tvalues,
         uint32_t _corrupt_tvalues_frequency, bool _pad_start, uint32_t _pad_start_symbols,
         bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency,
         bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency) {
 
     corrupt_tvalues = _corrupt_tvalues;
     corrupt_tvalues_frequency = _corrupt_tvalues_frequency;
+
+    if (corrupt_tvalues && corrupt_tvalues_frequency < 2) {
+        qInfo() << "Corrupting output: Corrupt t-values frequency must be at least 2";
+        return false;
+    }
+
     corrupt_start = _pad_start;
     corrupt_start_symbols = _pad_start_symbols;
+
+    if (corrupt_start && corrupt_start_symbols < 1) {
+        qInfo() << "Corrupting output: Pad start symbols must be at least 1";
+        return false;
+    }
+
     corrupt_f3sync = _corrupt_f3sync;
     corrupt_f3sync_frequency = _corrupt_f3sync_frequency;
+
+    if (corrupt_f3sync && corrupt_f3sync_frequency < 2) {
+        qInfo() << "Corrupting output: Corrupt F3 sync frequency must be at least 2";
+        return false;
+    }
+
     corrupt_subcode_sync = _corrupt_subcode_sync;
     corrupt_subcode_sync_frequency = _corrupt_subcode_sync_frequency;
+
+    if (corrupt_subcode_sync && corrupt_subcode_sync_frequency < 2) {
+        qInfo() << "Corrupting output: Corrupt subcode sync frequency must be at least 2";
+        return false;
+    }
+
+    return true;
 }

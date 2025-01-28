@@ -170,10 +170,14 @@ int main(int argc, char *argv[])
 
     efm_processor.set_qmode_options(qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy);
     efm_processor.set_show_data(showInput, showF1, showF2, showF3);
-    efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
+    bool parameters_ok = efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
         corrupt_f3sync, corrupt_f3sync_frequency,
         corrupt_subcode_sync, corrupt_subcode_sync_frequency);
     efm_processor.set_input_type(wav_input);
+
+    if (!parameters_ok) {
+        return 1;
+    }
 
     if (!efm_processor.process(input_filename, output_filename)) {
         return 1;
