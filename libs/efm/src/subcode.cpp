@@ -56,7 +56,7 @@ Qchannel::Qchannel() {
 void Qchannel::set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
     q_mode = QMODE_1;
     set_control(_control);
-    set_q_mode_1or4(_track_number, _f_time, ap_time, _frame_type);
+    set_q_mode_1or4(_track_number, _f_time, _ap_time, _frame_type);
 }
 
 // To-Do: Implement the set_q_mode_2, set_q_mode_3 functions
