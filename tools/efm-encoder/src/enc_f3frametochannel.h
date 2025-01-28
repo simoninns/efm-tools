@@ -39,7 +39,7 @@ public:
     int32_t get_total_t_values() const;
     uint32_t get_valid_output_frames_count() const override { return valid_channel_frames_count; };
 
-    void set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency);
+    void set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
 
 private:
     void process_queue();
@@ -57,6 +57,7 @@ private:
     int32_t dsv;
     bool dsv_direction;
     int32_t total_t_values;
+    int32_t total_sections;
     QString previous_channel_frame;
     uint32_t valid_channel_frames_count;
     Efm efm;
@@ -67,6 +68,9 @@ private:
     // Corruption flags
     bool corrupt_f3sync;
     uint32_t corrupt_f3sync_frequency;
+    bool corrupt_subcode_sync;
+    uint32_t corrupt_subcode_sync_frequency;
+    uint32_t subcode_corruption_type;
 
     QString generate_random_sync_value();
 };

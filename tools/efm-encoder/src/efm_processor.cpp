@@ -129,7 +129,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
     // Apply encoder options
     f2_frame_to_section.set_qmode_options(qmode, qcontrol);
-    f3_frame_to_channel.set_corruption(corrupt_f3sync, corrupt_f3sync_frequency);
+    f3_frame_to_channel.set_corruption(corrupt_f3sync, corrupt_f3sync_frequency, corrupt_subcode_sync, corrupt_subcode_sync_frequency);
 
     // Channel data counter
     uint32_t channel_byte_count = 0;

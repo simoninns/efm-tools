@@ -33,6 +33,7 @@ F3FrameToChannel::F3FrameToChannel(){
     dsv = 0;
     dsv_direction = true;
     total_t_values = 0;
+    total_sections = 0;
 
     previous_channel_frame.clear();
     valid_channel_frames_count = 0;
@@ -40,6 +41,10 @@ F3FrameToChannel::F3FrameToChannel(){
     // Set corruption to false by default
     corrupt_f3sync = false;
     corrupt_f3sync_frequency = 0;
+    corrupt_subcode_sync = false;
+    corrupt_subcode_sync_frequency = 0;
+
+    subcode_corruption_type = 0;
 }
 
 void F3FrameToChannel::push_frame(F3Frame f3_frame) {
@@ -56,6 +61,9 @@ QVector<uint8_t> F3FrameToChannel::pop_frame() {
 }
 
 void F3FrameToChannel::process_queue() {
+    // Seed a random number generator
+    QRandomGenerator random_generator(static_cast<uint32_t>(QTime::currentTime().msecsSinceStartOfDay()));
+
     while (!input_buffer.isEmpty()) {
         // Pop the F3 frame data from the processing queue
         F3Frame f3_frame = input_buffer.dequeue();
@@ -69,7 +77,7 @@ void F3FrameToChannel::process_queue() {
         QString channel_frame;
         QString merging_bits = "xxx";
      
-        // Sync header
+        // F3 Sync header
         if (corrupt_f3sync) {
             if (valid_channel_frames_count % corrupt_f3sync_frequency == 0) {
                 // Generate a random sync header
@@ -84,14 +92,45 @@ void F3FrameToChannel::process_queue() {
         }
         channel_frame += merging_bits;
 
-        // Pick the subcode value or a sync0/1 symbol based on the inputF3 frame type    
+        QString subcode_value;
+
+        // Subcode sync0 and sync1 headers (based on the F3 frame type)
         if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SUBCODE) {
-            channel_frame += efm.eight_to_fourteen(f3_frame.get_subcode_byte());
+            subcode_value = efm.eight_to_fourteen(f3_frame.get_subcode_byte());
         } else if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC0) {
-            channel_frame += efm.eight_to_fourteen(256);
+            subcode_value += efm.eight_to_fourteen(256);
+            total_sections++;
+
+            // Note: This is 0-8 because we want it to be unlikely that both sync0 and sync1 are corrupted
+            // at the same time.  So 0 = corrupt both, 1-4 = corrupt sync0 and 5-8 = corrupt sync1
+            subcode_corruption_type = random_generator.bounded(9); // 0-8
         } else {
-            channel_frame += efm.eight_to_fourteen(257);
+            // SYNC1
+            subcode_value += efm.eight_to_fourteen(257);
         }
+
+        // Corrupt the subcode sync0 and sync1 patterns?
+        if (corrupt_subcode_sync) {
+            if (total_sections % corrupt_subcode_sync_frequency == 0) {
+                if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC0) {
+                    if (subcode_corruption_type == 0 || (subcode_corruption_type >= 1 && subcode_corruption_type <= 4)) {
+                        // Corrupt the sync0 pattern
+                        subcode_value = efm.eight_to_fourteen(random_generator.bounded(256));
+                        qDebug() << "F3FrameToChannel::process_queue(): Corrupting subcode sync0 value:" << subcode_value;
+                    }
+                }
+
+                if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC1) {
+                    if (subcode_corruption_type == 0 || (subcode_corruption_type >= 5 && subcode_corruption_type <= 8)) {
+                        // Corrupt the sync1 pattern
+                        subcode_value = efm.eight_to_fourteen(random_generator.bounded(256));
+                        qDebug() << "F3FrameToChannel::process_queue(): Corrupting subcode sync1 value:" << subcode_value;
+                    }
+                }
+            }
+        }
+
+        channel_frame += subcode_value;
         channel_frame += merging_bits;
 
         // Now we output the actual F3 frame data
@@ -389,9 +428,11 @@ int32_t F3FrameToChannel::get_total_t_values() const {
     return total_t_values;
 }
 
-void F3FrameToChannel::set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency) {
+void F3FrameToChannel::set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency) {
     corrupt_f3sync = _corrupt_f3sync;
     corrupt_f3sync_frequency = _corrupt_f3sync_frequency;
+    corrupt_subcode_sync = _corrupt_subcode_sync;
+    corrupt_subcode_sync_frequency = _corrupt_subcode_sync_frequency;
 }
 
 // Function to generate a "random" 24-bit sync
