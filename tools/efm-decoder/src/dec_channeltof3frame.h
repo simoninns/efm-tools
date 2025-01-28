@@ -34,8 +34,8 @@ public:
     void push_frame(QString data);
     F3Frame pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_input_frames_count() const { return invalid_channel_frames_count; }
-    uint32_t get_valid_input_frames_count() const { return valid_channel_frames_count; }
+
+    void show_statistics();
 
 private:
     void process_queue();

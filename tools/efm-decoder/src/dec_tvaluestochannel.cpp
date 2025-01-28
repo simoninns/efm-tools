@@ -81,3 +81,9 @@ void TvaluesToChannel::process_queue() {
         output_buffer.enqueue(bit_string);
     }
 }
+
+void TvaluesToChannel::show_statistics() {
+    qInfo() << "T-values to channel statistics:";
+    qInfo() << "  Valid T-values:" << valid_t_values_count;
+    qInfo() << "  Invalid T-values:" << invalid_t_values_count;
+}

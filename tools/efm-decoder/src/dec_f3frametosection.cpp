@@ -108,3 +108,9 @@ void F3FrameToSection::process_queue() {
         output_buffer.enqueue(section);
     }
 }
+
+void F3FrameToSection::show_statistics() {
+    qInfo() << "F3 frame to section statistics:";
+    qInfo() << "  Valid F3 frames: " << valid_f3_frames_count;
+    qInfo() << "  Invalid F3 frames: " << invalid_f3_frames_count;
+}

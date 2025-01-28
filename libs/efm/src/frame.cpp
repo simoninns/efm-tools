@@ -73,6 +73,51 @@ void FrameTime::increment_frame() {
     }
 }
 
+bool FrameTime::operator==(const FrameTime& other) const {
+    return min == other.min && sec == other.sec && frame == other.frame;
+}
+
+bool FrameTime::operator!=(const FrameTime& other) const {
+    return !(*this == other);
+}
+
+bool FrameTime::operator<(const FrameTime& other) const {
+    if (min != other.min) return min < other.min;
+    if (sec != other.sec) return sec < other.sec;
+    return frame < other.frame;
+}
+
+bool FrameTime::operator>(const FrameTime& other) const {
+    return other < *this;
+}
+
+FrameTime FrameTime::operator+(const FrameTime& other) const {
+    FrameTime result = *this;
+    result.frame += other.frame;
+    result.sec += other.sec + result.frame / 75;
+    result.frame %= 75;
+    result.min += other.min + result.sec / 60;
+    result.sec %= 60;
+    result.min %= 60;
+    return result;
+}
+
+FrameTime FrameTime::operator-(const FrameTime& other) const {
+    FrameTime result = *this;
+    int totalFrames1 = (min * 60 + sec) * 75 + frame;
+    int totalFrames2 = (other.min * 60 + other.sec) * 75 + other.frame;
+    int diffFrames = totalFrames1 - totalFrames2;
+
+    if (diffFrames < 0) {
+        qFatal("FrameTime::operator-(): Resulting frame time is negative");
+    }
+
+    result.min = (diffFrames / 75) / 60;
+    result.sec = (diffFrames / 75) % 60;
+    result.frame = diffFrames % 75;
+    return result;
+}
+
 QString FrameTime::to_string() const {
     return QString("%1:%2.%3").arg(min, 2, 10, QChar('0')).arg(sec, 2, 10, QChar('0')).arg(frame, 2, 10, QChar('0'));
 }

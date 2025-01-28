@@ -33,8 +33,8 @@ public:
     void push_frame(F3Frame data);
     Section pop_section();
     bool is_ready() const;
-    uint32_t get_invalid_input_frames_count() const { return invalid_f3_frames_count; }
-    uint32_t get_valid_input_frames_count() const { return valid_f3_frames_count; }
+    
+    void show_statistics();
 
 private:
     void process_queue();

@@ -47,6 +47,13 @@ public:
     void increment_frame();
     QString to_string() const;
 
+    bool operator==(const FrameTime& other) const;
+    bool operator!=(const FrameTime& other) const;
+    bool operator<(const FrameTime& other) const;
+    bool operator>(const FrameTime& other) const;
+    FrameTime operator+(const FrameTime& other) const;
+    FrameTime operator-(const FrameTime& other) const;
+
 private:
     uint8_t min;
     uint8_t sec;

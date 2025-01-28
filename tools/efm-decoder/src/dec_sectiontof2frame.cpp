@@ -62,3 +62,9 @@ void SectionToF2Frame::process_queue() {
         valid_sections_count++;
     }
 }
+
+void SectionToF2Frame::show_statistics() {
+    qInfo() << "Section to F2 frame statistics:";
+    qInfo() << "  Valid sections:" << valid_sections_count;
+    qInfo() << "  Invalid sections:" << invalid_sections_count;
+}

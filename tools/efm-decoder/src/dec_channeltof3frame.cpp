@@ -203,3 +203,10 @@ ChannelToF3Frame::State ChannelToF3Frame::state_sync_lost() {
     sync_lost_count++;
     return WAITING_FOR_INITIAL_SYNC;
 }
+
+void ChannelToF3Frame::show_statistics() {
+    qInfo() << "Channel to F3 frame statistics:";
+    qInfo() << "  Valid channel frames:" << valid_channel_frames_count;
+    qInfo() << "  Invalid channel frames:" << invalid_channel_frames_count;
+    qInfo() << "  Sync lost count:" << sync_lost_count;
+}

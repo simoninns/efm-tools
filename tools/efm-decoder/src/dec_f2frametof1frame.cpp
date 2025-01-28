@@ -92,16 +92,17 @@ void F2FrameToF1Frame::process_queue() {
     }
 }
 
-// Get the statistics for the C1 decoder
-void F2FrameToF1Frame::get_c1_circ_stats(int32_t &valid_c1s, int32_t &fixed_c1s, int32_t &error_c1s) {
-    valid_c1s = circ.get_valid_c1s();
-    fixed_c1s = circ.get_fixed_c1s();
-    error_c1s = circ.get_error_c1s();
-}
-
-// Get the statistics for the C2 decoder
-void F2FrameToF1Frame::get_c2_circ_stats(int32_t &valid_c2s, int32_t &fixed_c2s, int32_t &error_c2s) {
-    valid_c2s = circ.get_valid_c2s();
-    fixed_c2s = circ.get_fixed_c2s();
-    error_c2s = circ.get_error_c2s();
+void F2FrameToF1Frame::show_statistics() {
+    qInfo() << "F2 frame to F1 frame statistics:";
+    qInfo() << "  Frames:";
+    qInfo() << "    Valid F2 frames:" << valid_f2_frames_count;
+    qInfo() << "    Invalid F2 frames:" << invalid_f2_frames_count;
+    qInfo() << "  C1 decoder:";
+    qInfo() << "    Valid C1s:" << circ.get_valid_c1s();
+    qInfo() << "    Fixed C1s:" << circ.get_fixed_c1s();
+    qInfo() << "    Error C1s:" << circ.get_error_c1s();
+    qInfo() << "  C2 decoder:";
+    qInfo() << "    Valid C2s:" << circ.get_valid_c2s();
+    qInfo() << "    Fixed C2s:" << circ.get_fixed_c2s();
+    qInfo() << "    Error C2s:" << circ.get_error_c2s();
 }

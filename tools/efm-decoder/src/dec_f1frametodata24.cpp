@@ -68,9 +68,28 @@ void F1FrameToData24::process_queue() {
         data24.set_frame_time(f1_frame.get_frame_time());
         data24.set_track_number(f1_frame.get_track_number());
 
+        if (valid_f1_frames_count == 0) {
+            start_time = f1_frame.get_frame_time();
+        }
+
+        if (f1_frame.get_frame_time() > end_time) {
+            end_time = f1_frame.get_frame_time();
+        }
+
         // Add the data to the output buffer
         output_buffer.enqueue(data24);
         
         valid_f1_frames_count++;
     }
+}
+
+void F1FrameToData24::show_statistics() {
+    qInfo() << "F1 frame to Data24 statistics:";
+    qInfo() << "  Frames:";
+    qInfo() << "    Valid F1 frames:" << valid_f1_frames_count;
+    qInfo() << "    Invalid F1 frames:" << invalid_f1_frames_count;
+    qInfo() << "  Q-Channel time information:";
+    qInfo().noquote() << "    Start time:" << start_time.to_string();
+    qInfo().noquote() << "    End time:" << end_time.to_string();
+    qInfo().noquote() << "    Total time:" << (end_time - start_time).to_string();
 }

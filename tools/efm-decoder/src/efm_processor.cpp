@@ -156,25 +156,15 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
     // Show summary
     qInfo() << "Decoding complete";
-    qInfo() << "Processed" << t_values_to_channel.get_valid_input_frames_count() << "Valid T-Values and" << t_values_to_channel.get_invalid_input_frames_count() << "Invalid T-Values";
-    qInfo() << "Processed" << channel_to_f3.get_valid_input_frames_count() << "Valid Channel Frames and" << channel_to_f3.get_invalid_input_frames_count() << "Invalid Channel Frames";
-    qInfo() << "Processed" << f3_frame_to_section.get_valid_input_frames_count() << "Valid F3 Frames and" << f3_frame_to_section.get_invalid_input_frames_count() << "Invalid F3 Frames";
-    qInfo() << "Processed" << section_to_f2.get_valid_input_frames_count() << "Valid sections and" << section_to_f2.get_invalid_input_frames_count() << "Invalid sections";
-    qInfo() << "Processed" << f2_frame_to_f1.get_valid_input_frames_count() << "Valid F2 Frames and" << f2_frame_to_f1.get_invalid_input_frames_count() << "Invalid F2 Frames";
-    qInfo() << "Processed" << f1_frame_to_data24.get_valid_input_frames_count() << "Valid F1 Frames and" << f1_frame_to_data24.get_invalid_input_frames_count() << "Invalid F1 Frames";
 
-    // Get the statistics for the C1 and C2 decoders
-    int32_t valid_c1s, fixed_c1s, error_c1s;
-    f2_frame_to_f1.get_c1_circ_stats(valid_c1s, fixed_c1s, error_c1s);
-    qInfo() << "C1 Decoder: Valid:" << valid_c1s << "- Fixed:" << fixed_c1s << "- Error:" << error_c1s
-        << "- Total:" << valid_c1s + fixed_c1s + error_c1s << "- Total errors:" << fixed_c1s + error_c1s;
-
-    int32_t valid_c2s, fixed_c2s, error_c2s;
-    f2_frame_to_f1.get_c2_circ_stats(valid_c2s, fixed_c2s, error_c2s);
-    qInfo() << "C2 Decoder: Valid:" << valid_c2s << "- Fixed:" << fixed_c2s << "- Error:" << error_c2s
-        << "- Total:" << valid_c2s + fixed_c2s + error_c2s << "- Total errors:" << fixed_c2s + error_c2s;
+    t_values_to_channel.show_statistics(); qInfo() << "";
+    channel_to_f3.show_statistics(); qInfo() << "";
+    f3_frame_to_section.show_statistics(); qInfo() << "";
+    section_to_f2.show_statistics(); qInfo() << "";
+    f2_frame_to_f1.show_statistics(); qInfo() << "";
+    f1_frame_to_data24.show_statistics(); qInfo() << "";
     
-    qInfo() << "Processed" << f1_frame_count << "F1 Frames," << f2_frame_count << "F2 Frames," << f3_frame_count << "F3 Frames";
+    qInfo() << "Processed" << data24_count << "Data24 Frames," << f1_frame_count << "F1 Frames," << f2_frame_count << "F2 Frames," << f3_frame_count << "F3 Frames";
 
     // Should we add a wav header to the output data?
     if (is_output_data_wav) {

@@ -37,11 +37,8 @@ public:
     void push_frame(F2Frame data);
     F1Frame pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_input_frames_count() const { return invalid_f2_frames_count; }
-    uint32_t get_valid_input_frames_count() const { return valid_f2_frames_count; }
-
-    void get_c1_circ_stats(int32_t &valid_c1s, int32_t &fixed_c1s, int32_t &error_c1s);
-    void get_c2_circ_stats(int32_t &valid_c2s, int32_t &fixed_c2s, int32_t &error_c2s);
+    
+    void show_statistics();
 
 private:
     void process_queue();

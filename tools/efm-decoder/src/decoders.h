@@ -37,8 +37,7 @@
 
 class Decoder {
 public:
-    virtual uint32_t get_invalid_input_frames_count() const = 0;
-    virtual uint32_t get_valid_input_frames_count() const = 0;
+    virtual void show_statistics() { qInfo() << "Decoder::show_statistics(): No statistics available"; };
 };
 
 #endif // DECODERS_H

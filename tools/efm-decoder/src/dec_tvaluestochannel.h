@@ -33,8 +33,8 @@ public:
     void push_frame(QByteArray data);
     QString pop_frame();
     bool is_ready() const;
-    uint32_t get_invalid_input_frames_count() const { return invalid_t_values_count; }
-    uint32_t get_valid_input_frames_count() const { return valid_t_values_count; }
+    
+    void show_statistics();
 
 private:
     void process_queue();
