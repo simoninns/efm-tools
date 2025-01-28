@@ -146,7 +146,7 @@ void F3FrameToChannel::write_frame(QString channel_frame) {
             // Yes, so count the number of 0s until the next 1
             uint32_t zero_count = 0;
             for (uint32_t j = 1; i < channel_frame.size(); j++) {
-                if (channel_frame[j + i] == '0') {
+                if ((j + i) < channel_frame.size() && channel_frame[j + i] == '0') {
                     zero_count++;
                 } else {
                     break;
