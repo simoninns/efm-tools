@@ -182,6 +182,18 @@ void Qchannel::set_conmode() {
         case DIGITAL_COPY_PERMITTED:
             control_nybble = 0x6; // 0b0110 = 0x6
             break;
+        case AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED:
+            control_nybble = 0x8; // 0b1000 = 0x8
+            break;
+        case AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED:
+            control_nybble = 0x9; // 0b1001 = 0x9
+            break;
+        case AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED:
+            control_nybble = 0xA; // 0b1010 = 0xA
+            break;
+        case AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED:
+            control_nybble = 0xB; // 0b1011 = 0xB
+            break;
     }
 
     // The Q-channel data is constructed from the Q-mode (4 bits) and control bits (4 bits)
@@ -277,6 +289,18 @@ void Qchannel::refresh_q_channel_from_data() {
             break;
         case 0x6:
             control = DIGITAL_COPY_PERMITTED;
+            break;
+        case 0x8:
+            control = AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED;
+            break;
+        case 0x9:
+            control = AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED;
+            break;
+        case 0xA:
+            control = AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED;
+            break;
+        case 0xB:
+            control = AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED;
             break;
     }
 

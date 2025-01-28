@@ -290,27 +290,80 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     return true;
 }
 
-void EfmProcessor::set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data, bool _qmode_copy, bool _qmode_nocopy) {
+bool EfmProcessor::set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data, bool _qmode_copy, bool _qmode_nocopy, bool _qmode_nopreemp, bool _qmode_preemp, bool _qmode_2ch, bool _qmode_4ch) {
     if (_qmode_1 && _qmode_4) {
-        qFatal("You can only specify one Q-Channel mode with --qmode-1 or --qmode-4");
+        qInfo() << "You can only specify one Q-Channel mode with --qmode-1 or --qmode-4";
+        return false;
     }
     if (_qmode_audio && _qmode_data) {
-        qFatal("You can only specify one Q-Channel data type with --qmode-audio or --qmode-data");
+        qInfo() << "You can only specify one Q-Channel data type with --qmode-audio or --qmode-data";
+        return false;
     }
     if (_qmode_copy && _qmode_nocopy) {
         qFatal("You can only specify one Q-Channel copy type with --qmode-copy or --qmode-nocopy");
+        return false;
+    }
+    if (_qmode_2ch && _qmode_4ch) {
+        qInfo() << "You can only specify one Q-Channel channel type with --qmode-2ch or --qmode-4ch";
+        return false;
+    }
+    if (_qmode_nopreemp && _qmode_preemp) {
+        qInfo() << "You can only specify one Q-Channel preemphasis type with --qmode-preemp or --qmode-nopreemp";
+        return false;
     }
 
-    if (_qmode_1) qmode = Qchannel::QModes::QMODE_1;
-    else if (_qmode_4) qmode = Qchannel::QModes::QMODE_4;
-
-    if (_qmode_audio && _qmode_copy) qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED;
-    else if (_qmode_audio && _qmode_nocopy) qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED;
-    else if (_qmode_data && _qmode_copy) qcontrol = Qchannel::Control::DIGITAL_COPY_PERMITTED;
-    else if (_qmode_data && _qmode_nocopy) qcontrol = Qchannel::Control::DIGITAL_COPY_PROHIBITED;
-    else {
-        qFatal("Invalid Q-Channel control options");
+    if (_qmode_1) {
+        qmode = Qchannel::QModes::QMODE_1;
+        qInfo() << "Q-Channel mode set to: QMODE_1";
+    } else if (_qmode_4) {
+        qmode = Qchannel::QModes::QMODE_4;
+        qInfo() << "Q-Channel mode set to: QMODE_4";
     }
+
+    if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_2ch) {
+        qcontrol = Qchannel::Control::AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED";
+    }
+    if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_2ch) {
+        qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED";
+    }
+    if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_2ch) {
+        qcontrol = Qchannel::Control::AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED";
+    }
+    if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_2ch) {
+        qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED";
+    }
+
+    if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_4ch) {
+        qcontrol = Qchannel::Control::AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED";
+    }
+    if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_4ch) {
+        qcontrol = Qchannel::Control::AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED";
+    }
+    if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_4ch) {
+        qcontrol = Qchannel::Control::AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED";
+    }
+    if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_4ch) {
+        qcontrol = Qchannel::Control::AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED;
+        qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED";
+    }
+
+    if (_qmode_data && _qmode_copy) {
+        qcontrol = Qchannel::Control::DIGITAL_COPY_PERMITTED;
+        qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PERMITTED";
+    }
+    if (_qmode_data && _qmode_nocopy) {
+        qcontrol = Qchannel::Control::DIGITAL_COPY_PROHIBITED;
+        qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PROHIBITED";
+    }
+
+    return true;
 }
 
 void EfmProcessor::set_show_data(bool _showInput, bool _showF1, bool _showF2, bool _showF3) {

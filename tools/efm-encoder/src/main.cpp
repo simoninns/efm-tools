@@ -71,6 +71,10 @@ int main(int argc, char *argv[])
         QCommandLineOption("qmode-data", QCoreApplication::translate("main", "Set Q-Channel control to data")),
         QCommandLineOption("qmode-copy", QCoreApplication::translate("main", "Set Q-Channel control to copy permitted (default)")),
         QCommandLineOption("qmode-nocopy", QCoreApplication::translate("main", "Set Q-Channel control to copy prohibited")),
+        QCommandLineOption("qmode-nopreemp", QCoreApplication::translate("main", "Set Q-Channel audio pre-emphasis to off (default)")),
+        QCommandLineOption("qmode-preemp", QCoreApplication::translate("main", "Set Q-Channel audio pre-emphasis to on")),
+        QCommandLineOption("qmode-2ch", QCoreApplication::translate("main", "Set Q-Channel audio to stereo (default)")),
+        QCommandLineOption("qmode-4ch", QCoreApplication::translate("main", "Set Q-Channel audio to 4 channel")),
     };
     parser.addOptions(qChannelOptions);
 
@@ -127,25 +131,17 @@ int main(int argc, char *argv[])
     bool qmode_data = parser.isSet("qmode-data");
     bool qmode_copy = parser.isSet("qmode-copy");
     bool qmode_nocopy = parser.isSet("qmode-nocopy");
+    bool qmode_no_preemp = parser.isSet("qmode-nopreemp");
+    bool qmode_preemp = parser.isSet("qmode-preemp");
+    bool qmode_2ch = parser.isSet("qmode-2ch");
+    bool qmode_4ch = parser.isSet("qmode-4ch");
 
     // Apply default Q-Channel options
     if (!qmode_1 && !qmode_4) qmode_1 = true;
     if (!qmode_audio && !qmode_data) qmode_audio = true;
     if (!qmode_copy && !qmode_nocopy) qmode_copy = true;
-
-    // Sanity check the Q-Channel options
-    if (qmode_1 && qmode_4) {
-        qWarning() << "You can only specify one Q-Channel mode with --qmode-1 or --qmode-4";
-        return 1;
-    }
-    if (qmode_audio && qmode_data) {
-        qWarning() << "You can only specify one Q-Channel data type with --qmode-audio or --qmode-data";
-        return 1;
-    }
-    if (qmode_copy && qmode_nocopy) {
-        qWarning() << "You can only specify one Q-Channel copy type with --qmode-copy or --qmode-nocopy";
-        return 1;
-    }
+    if (!qmode_2ch && !qmode_4ch) qmode_2ch = true;
+    if (!qmode_no_preemp && !qmode_preemp) qmode_no_preemp = true;
 
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
@@ -168,14 +164,14 @@ int main(int argc, char *argv[])
     // Perform the processing
     EfmProcessor efm_processor;
 
-    efm_processor.set_qmode_options(qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy);
+    bool qmode_options_ok = efm_processor.set_qmode_options(qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy, qmode_no_preemp, qmode_preemp, qmode_2ch, qmode_4ch);
     efm_processor.set_show_data(showInput, showF1, showF2, showF3);
-    bool parameters_ok = efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
+    bool corruption_options_ok = efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
         corrupt_f3sync, corrupt_f3sync_frequency,
         corrupt_subcode_sync, corrupt_subcode_sync_frequency);
     efm_processor.set_input_type(wav_input);
 
-    if (!parameters_ok) {
+    if (!corruption_options_ok || !qmode_options_ok) {
         return 1;
     }
 
