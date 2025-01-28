@@ -25,6 +25,8 @@
 #ifndef ENC_F3FRAMETOCHANNEL_H
 #define ENC_F3FRAMETOCHANNEL_H
 
+#include <QTime>
+#include <QRandomGenerator>
 #include "encoders.h"
 #include "efm.h"
 
@@ -36,6 +38,8 @@ public:
     bool is_ready() const;
     int32_t get_total_t_values() const;
     uint32_t get_valid_output_frames_count() const override { return valid_channel_frames_count; };
+
+    void set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency);
 
 private:
     void process_queue();
@@ -57,8 +61,14 @@ private:
     uint32_t valid_channel_frames_count;
     Efm efm;
 
-    // Define the 24-bit sync header for the F3 frame
+    // Define the 24-bit F3 sync header for the F3 frame
     const QString sync_header = "100000000001000000000010";
+
+    // Corruption flags
+    bool corrupt_f3sync;
+    uint32_t corrupt_f3sync_frequency;
+
+    QString generate_random_sync_value();
 };
 
 #endif // ENC_F3FRAMETOCHANNEL_H

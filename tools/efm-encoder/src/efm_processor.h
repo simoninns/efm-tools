@@ -26,6 +26,7 @@
 #define EFMPROCESSOR_H
 
 #include <QString>
+#include "subcode.h"
 
 class EfmProcessor
 {
@@ -33,11 +34,17 @@ public:
     EfmProcessor();
 
     bool process(QString input_fileName, QString output_fileName);
+    void set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data, bool _qmode_copy, bool _qmode_nocopy);
     void set_show_data(bool _showInput, bool _showF1, bool _showF2, bool _showF3);
     void set_input_type(bool _wavInput);
-    void set_corruption(bool _corrupt_tvalues, uint32_t _corrupt_tvalues_frequency, bool _pad_start, uint32_t _pad_start_symbols);
+    void set_corruption(bool _corrupt_tvalues, uint32_t _corrupt_tvalues_frequency, bool _corrupt_start, uint32_t _corrupt_start_symbols,
+        bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
 
 private:
+    // Show Q-Channel data flags
+    Qchannel::QModes qmode;
+    Qchannel::Control qcontrol;
+
     // Show data flags
     bool showInput;
     bool showF1;
@@ -50,8 +57,12 @@ private:
     // Corruption flags
     bool corrupt_tvalues;
     uint32_t corrupt_tvalues_frequency;
-    bool pad_start;
-    uint32_t pad_start_symbols;
+    bool corrupt_start;
+    uint32_t corrupt_start_symbols;
+    bool corrupt_f3sync;
+    uint32_t corrupt_f3sync_frequency;
+    bool corrupt_subcode_sync;
+    uint32_t corrupt_subcode_sync_frequency;
 };
 
 #endif // EFMPROCESSOR_H

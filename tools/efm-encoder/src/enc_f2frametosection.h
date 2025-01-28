@@ -36,6 +36,8 @@ public:
     bool is_ready() const;
     uint32_t get_valid_output_frames_count() const override { return valid_sections_count; };
 
+    void set_qmode_options(Qchannel::QModes _qmode, Qchannel::Control _qcontrol);
+
 private:
     void process_queue();
 
@@ -43,6 +45,10 @@ private:
     QQueue<Section> output_buffer;
 
     uint32_t valid_sections_count;
+
+    // Q-Channel options
+    Qchannel::QModes qmode;
+    Qchannel::Control qcontrol;
 };
 
 #endif // ENC_F2FRAMETOSECTION_H

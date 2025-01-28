@@ -63,6 +63,17 @@ int main(int argc, char *argv[])
     QCommandLineOption inputTypeOption("wav-input", QCoreApplication::translate("main", "Treat input data as WAV file"));
     parser.addOption(inputTypeOption);
 
+    // Group of options for Q-Channel data
+    QList<QCommandLineOption> qChannelOptions = {
+        QCommandLineOption("qmode-1", QCoreApplication::translate("main", "Set Q-Channel mode 1 (default)")),
+        QCommandLineOption("qmode-4", QCoreApplication::translate("main", "Set Q-Channel mode 4")),
+        QCommandLineOption("qmode-audio", QCoreApplication::translate("main", "Set Q-Channel control to audio (default)")),
+        QCommandLineOption("qmode-data", QCoreApplication::translate("main", "Set Q-Channel control to data")),
+        QCommandLineOption("qmode-copy", QCoreApplication::translate("main", "Set Q-Channel control to copy permitted (default)")),
+        QCommandLineOption("qmode-nocopy", QCoreApplication::translate("main", "Set Q-Channel control to copy prohibited")),
+    };
+    parser.addOptions(qChannelOptions);
+
     // Group of options for showing frame data
     QList<QCommandLineOption> displayFrameDataOptions = {
         QCommandLineOption("show-f1", QCoreApplication::translate("main", "Show F1 frame data")),
@@ -75,7 +86,9 @@ int main(int argc, char *argv[])
     // Group of options for corrupting data
     QList<QCommandLineOption> corruptionOptions = {
         QCommandLineOption("corrupt-tvalues", QCoreApplication::translate("main", "Corrupt t-values with specified symbol frequency"), "symbol-frequency"),
-        QCommandLineOption("pad-start", QCoreApplication::translate("main", "Add the specified number of random t-value symbols before actual data"), "symbols"),
+        QCommandLineOption("corrupt-start", QCoreApplication::translate("main", "Add the specified number of random t-value symbols before actual data"), "symbols"),
+        QCommandLineOption("corrupt-f3sync", QCoreApplication::translate("main", "Corrupt F3 Frame 24-bit sync patterns"), "frame-frequency"),
+        QCommandLineOption("corrupt-subcode-sync", QCoreApplication::translate("main", "Corrupt subcode sync0 and sync1 patterns"), "section-frequency"),
     };
     parser.addOptions(corruptionOptions);
 
@@ -107,6 +120,33 @@ int main(int argc, char *argv[])
     // Check for input data type options
     bool wav_input = parser.isSet(inputTypeOption);
 
+    // Check for Q-Channel options
+    bool qmode_1 = parser.isSet("qmode-1");
+    bool qmode_4 = parser.isSet("qmode-4");
+    bool qmode_audio = parser.isSet("qmode-audio");
+    bool qmode_data = parser.isSet("qmode-data");
+    bool qmode_copy = parser.isSet("qmode-copy");
+    bool qmode_nocopy = parser.isSet("qmode-nocopy");
+
+    // Apply default Q-Channel options
+    if (!qmode_1 && !qmode_4) qmode_1 = true;
+    if (!qmode_audio && !qmode_data) qmode_audio = true;
+    if (!qmode_copy && !qmode_nocopy) qmode_copy = true;
+
+    // Sanity check the Q-Channel options
+    if (qmode_1 && qmode_4) {
+        qWarning() << "You can only specify one Q-Channel mode with --qmode-1 or --qmode-4";
+        return 1;
+    }
+    if (qmode_audio && qmode_data) {
+        qWarning() << "You can only specify one Q-Channel data type with --qmode-audio or --qmode-data";
+        return 1;
+    }
+    if (qmode_copy && qmode_nocopy) {
+        qWarning() << "You can only specify one Q-Channel copy type with --qmode-copy or --qmode-nocopy";
+        return 1;
+    }
+
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
     bool showF2 = parser.isSet("show-f2");
@@ -115,17 +155,24 @@ int main(int argc, char *argv[])
 
     // Check for data corruption options
     bool corrupt_tvalues = parser.isSet("corrupt-tvalues");
-    bool pad_start = parser.isSet("pad-start");
+    bool corrupt_start = parser.isSet("corrupt-start");
+    bool corrupt_f3sync = parser.isSet("corrupt-f3sync");
+    bool corrupt_subcode_sync = parser.isSet("corrupt-subcode-sync");
 
     // Get the corruption parameters
     int corrupt_tvalues_frequency = parser.value("corrupt-tvalues").toInt();
-    int pad_start_symbols = parser.value("pad-start").toInt();
+    int corrupt_start_symbols = parser.value("corrupt-start").toInt();
+    int corrupt_f3sync_frequency = parser.value("corrupt-f3sync").toInt();
+    int corrupt_subcode_sync_frequency = parser.value("corrupt-subcode-sync").toInt();
 
     // Perform the processing
     EfmProcessor efm_processor;
 
+    efm_processor.set_qmode_options(qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy);
     efm_processor.set_show_data(showInput, showF1, showF2, showF3);
-    efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, pad_start, pad_start_symbols);
+    efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
+        corrupt_f3sync, corrupt_f3sync_frequency,
+        corrupt_subcode_sync, corrupt_subcode_sync_frequency);
     efm_processor.set_input_type(wav_input);
 
     if (!efm_processor.process(input_filename, output_filename)) {

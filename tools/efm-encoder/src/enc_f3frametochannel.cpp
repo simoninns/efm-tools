@@ -35,8 +35,11 @@ F3FrameToChannel::F3FrameToChannel(){
     total_t_values = 0;
 
     previous_channel_frame.clear();
-
     valid_channel_frames_count = 0;
+
+    // Set corruption to false by default
+    corrupt_f3sync = false;
+    corrupt_f3sync_frequency = 0;
 }
 
 void F3FrameToChannel::push_frame(F3Frame f3_frame) {
@@ -67,7 +70,18 @@ void F3FrameToChannel::process_queue() {
         QString merging_bits = "xxx";
      
         // Sync header
-        channel_frame += sync_header;
+        if (corrupt_f3sync) {
+            if (valid_channel_frames_count % corrupt_f3sync_frequency == 0) {
+                // Generate a random sync header
+                // Must be 24 bits long and have a minimum of 2 and a maximum of 10 zeros between each 1
+                channel_frame += generate_random_sync_value();
+                qDebug() << "F3FrameToChannel::process_queue(): Corrupting F3 sync header:" << channel_frame;
+            } else {
+                channel_frame += sync_header;
+            }
+        } else {
+            channel_frame += sync_header;
+        }
         channel_frame += merging_bits;
 
         // Pick the subcode value or a sync0/1 symbol based on the inputF3 frame type    
@@ -95,8 +109,8 @@ void F3FrameToChannel::process_queue() {
             qFatal("F3FrameToChannel::process_queue(): BUG - Merged channel frame size is not 588 bits. It is %d bits", channel_frame.size());
         }
 
-        // Sanity check - The frame should only contain one sync header
-        if (channel_frame.count(sync_header) != 1) {
+        // Sanity check - The frame should only contain one sync header (unless we are corrupting it)
+        if (channel_frame.count(sync_header) != 1 && !corrupt_f3sync) {
             qDebug() << "F3FrameToChannel::process_queue(): Channel frame:" << channel_frame;
             qFatal("F3FrameToChannel::process_queue(): BUG - Channel frame contains %d sync headers.", channel_frame.count(sync_header));
         }
@@ -217,11 +231,14 @@ QString F3FrameToChannel::add_merging_bits(QString channel_frame) {
         for (const QString& pattern : merging_patterns) {
             QString temp_frame = merged_frame;
 
+            // Count the current number of sync headers (might be 0 due to corruption settings)
+            int sync_header_count = temp_frame.count(sync_header);
+
             // Add our possible pattern to the frame
             temp_frame.replace(start, 3, pattern);
 
             // Any spurious sync headers generated?
-            if (temp_frame.count(sync_header) == 2) {
+            if (temp_frame.count(sync_header) == sync_header_count) {
                 merging_bits = pattern;
                 break;
             }
@@ -370,4 +387,36 @@ int32_t F3FrameToChannel::calculate_dsv_delta(const QString data) {
 
 int32_t F3FrameToChannel::get_total_t_values() const {
     return total_t_values;
+}
+
+void F3FrameToChannel::set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency) {
+    corrupt_f3sync = _corrupt_f3sync;
+    corrupt_f3sync_frequency = _corrupt_f3sync_frequency;
+}
+
+// Function to generate a "random" 24-bit sync
+QString F3FrameToChannel::generate_random_sync_value() {
+
+    // Seed the random number generator
+    QRandomGenerator *generator = QRandomGenerator::global();
+
+    QStringList possible_replacements {
+        "100100000001000000000010",
+        "100000100010000010000010",
+        "100000000001001000000010",
+        "100000010000100001000010",
+        "100100000001001000000010",
+        "100000100000010001000010",
+        "100100000001000010000010",
+        "100000100010001000100010",
+        "100001000001001000000010",
+        "100100010000010001000010",
+        "100100000010001001000010",
+        "100000100001001000100010",
+    };
+
+    // Pick a random value between 0 and the length of the possible replacements
+    uint32_t random_index = generator->bounded(possible_replacements.size());
+
+    return possible_replacements[random_index];
 }

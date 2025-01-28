@@ -99,11 +99,11 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     }
 
     // Check for the pad start corruption option
-    if (pad_start) {
-        qInfo() << "Corrupting output: Padding start of file with" << pad_start_symbols << "t-value symbols";
+    if (corrupt_start) {
+        qInfo() << "Corrupting output: Padding start of file with" << corrupt_start_symbols << "t-value symbols";
         // Pad the start of the file with the specified number of symbols
         srand(static_cast<unsigned int>(time(nullptr))); // Seed the random number generator
-        for (uint32_t i = 0; i < pad_start_symbols; i++) {
+        for (uint32_t i = 0; i < corrupt_start_symbols; i++) {
             // Pick a random value between 3 and 11
             uint8_t value = (rand() % 9) + 3;
             char val = static_cast<char>(value);
@@ -126,6 +126,10 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     F2FrameToSection f2_frame_to_section;
     SectionToF3Frame section_to_f3;
     F3FrameToChannel f3_frame_to_channel;
+
+    // Apply encoder options
+    f2_frame_to_section.set_qmode_options(qmode, qcontrol);
+    f3_frame_to_channel.set_corruption(corrupt_f3sync, corrupt_f3sync_frequency);
 
     // Channel data counter
     uint32_t channel_byte_count = 0;
@@ -271,13 +275,42 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     if (corrupt_tvalues) {
         qWarning() << "Corruption applied-> Corrupted t-values with a frequency of" << corrupt_tvalues_frequency;
     }
-    if (pad_start) {
-        qWarning() << "Corruption applied-> Padded start of file with" << pad_start_symbols << "random t-value symbols";
+    if (corrupt_start) {
+        qWarning() << "Corruption applied-> Padded start of file with" << corrupt_start_symbols << "random t-value symbols";
+    }
+    if (corrupt_f3sync) {
+        qWarning() << "Corruption applied-> Corrupted F3 Frame 24-bit sync patterns with a frame frequency of" << corrupt_f3sync_frequency;
+    }
+    if (corrupt_subcode_sync) {
+        qWarning() << "Corruption applied-> Corrupted subcode sync0 and sync1 patterns with a section frequency of" << corrupt_subcode_sync_frequency;
     }
 
     qInfo() << "Encoding complete";
 
     return true;
+}
+
+void EfmProcessor::set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data, bool _qmode_copy, bool _qmode_nocopy) {
+    if (_qmode_1 && _qmode_4) {
+        qFatal("You can only specify one Q-Channel mode with --qmode-1 or --qmode-4");
+    }
+    if (_qmode_audio && _qmode_data) {
+        qFatal("You can only specify one Q-Channel data type with --qmode-audio or --qmode-data");
+    }
+    if (_qmode_copy && _qmode_nocopy) {
+        qFatal("You can only specify one Q-Channel copy type with --qmode-copy or --qmode-nocopy");
+    }
+
+    if (_qmode_1) qmode = Qchannel::QModes::QMODE_1;
+    else if (_qmode_4) qmode = Qchannel::QModes::QMODE_4;
+
+    if (_qmode_audio && _qmode_copy) qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED;
+    else if (_qmode_audio && _qmode_nocopy) qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED;
+    else if (_qmode_data && _qmode_copy) qcontrol = Qchannel::Control::DIGITAL_COPY_PERMITTED;
+    else if (_qmode_data && _qmode_nocopy) qcontrol = Qchannel::Control::DIGITAL_COPY_PROHIBITED;
+    else {
+        qFatal("Invalid Q-Channel control options");
+    }
 }
 
 void EfmProcessor::set_show_data(bool _showInput, bool _showF1, bool _showF2, bool _showF3) {
@@ -296,10 +329,16 @@ void EfmProcessor::set_input_type(bool _wavInput) {
 // used to verify the decoder.  They are not intended to be used in
 // normal operation.
 void EfmProcessor::set_corruption(bool _corrupt_tvalues,
-        uint32_t _corrupt_tvalues_frequency, bool _pad_start, uint32_t _pad_start_symbols) {
+        uint32_t _corrupt_tvalues_frequency, bool _pad_start, uint32_t _pad_start_symbols,
+        bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency,
+        bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency) {
 
     corrupt_tvalues = _corrupt_tvalues;
     corrupt_tvalues_frequency = _corrupt_tvalues_frequency;
-    pad_start = _pad_start;
-    pad_start_symbols = _pad_start_symbols;
+    corrupt_start = _pad_start;
+    corrupt_start_symbols = _pad_start_symbols;
+    corrupt_f3sync = _corrupt_f3sync;
+    corrupt_f3sync_frequency = _corrupt_f3sync_frequency;
+    corrupt_subcode_sync = _corrupt_subcode_sync;
+    corrupt_subcode_sync_frequency = _corrupt_subcode_sync_frequency;
 }
