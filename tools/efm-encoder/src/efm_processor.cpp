@@ -158,7 +158,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         data24_count++;
 
         // Adjust the frame time if required
-        if (data24_count % 98 == 0) {
+        if (data24_count % 98 == 0  && data24_count >= 98) {
             frame_time.increment_frame();
         }
 
