@@ -351,6 +351,20 @@ F3Frame::F3FrameType F3Frame::get_f3_frame_type() const {
     return f3_frame_type;
 }
 
+// Get the F3 frame type as a QString
+QString F3Frame::get_f3_frame_type_as_string() const {
+    switch (f3_frame_type) {
+        case SUBCODE:
+            return "SUBCODE";
+        case SYNC0:
+            return "SYNC0";
+        case SYNC1:
+            return "SYNC1";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 // Get the subcode value
 uint8_t F3Frame::get_subcode_byte() const {
     return subcode_byte;

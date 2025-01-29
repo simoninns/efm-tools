@@ -178,6 +178,7 @@ public:
     void set_frame_type_as_sync1();
 
     F3FrameType get_f3_frame_type() const;
+    QString get_f3_frame_type_as_string() const;
     uint8_t get_subcode_byte() const;
 
     void show_data();

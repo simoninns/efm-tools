@@ -99,7 +99,7 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[7] = int_to_bcd2(ap_time.get_min());
         q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
-        generate_crc();
+        q_channel_data = generate_crc(q_channel_data);
     }
  
     if (frame_type == FrameType::USER_DATA) {
@@ -117,7 +117,7 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[7] = int_to_bcd2(ap_time.get_min());
         q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
-        generate_crc();
+        q_channel_data = generate_crc(q_channel_data);
     }
 
     if (frame_type == FrameType::LEAD_OUT) {
@@ -135,7 +135,7 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[7] = int_to_bcd2(ap_time.get_min());
         q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
-        generate_crc();
+        q_channel_data = generate_crc(q_channel_data);
     }
 }
     
@@ -240,8 +240,12 @@ void Qchannel::set_bit(uint8_t index, bool value) {
 
 void Qchannel::refresh_q_channel_from_data() {
     // Firstly compute the CRC and check the q-channel data is valid
-    if (!is_crc_valid()) {
-        qFatal("Qchannel::refresh_q_channel_from_data(): CRC is invalid");
+    if (!is_crc_valid(q_channel_data)) {
+        // Attempt to repair the data
+        repair_data();
+
+        if (!is_crc_valid(q_channel_data)) qFatal("Qchannel::refresh_q_channel_from_data(): CRC is invalid");
+        else qWarning("Qchannel::refresh_q_channel_from_data(): CRC was invalid but has been repaired");
     }
 
     // Set q-mode, control, track number, frame time, ap time, frame type by reading the q-channel data
@@ -336,7 +340,29 @@ void Qchannel::refresh_q_channel_from_data() {
     //     "Track:" << track_number << "Frame Time:" << f_time.to_string() << "AP Time:" << ap_time.to_string() << "Frame Type:" << frame_type.to_string();
 }
 
-void Qchannel::generate_crc() {
+// Because of the way Q-channel data is spread over many frames, the most
+// likely cause of a CRC error is a single bit error in the data. We can
+// attempt to repair the data by flipping each bit in turn and checking
+// the CRC.
+//
+// Perhaps there is some more effective way to repair the data, but this
+// will do for now.
+void Qchannel::repair_data() {
+    QByteArray data_copy = q_channel_data;
+
+    for (int i = 0; i < 96; i++) {
+        data_copy = q_channel_data;
+        data_copy[i / 8] = static_cast<uchar>(data_copy[i / 8] ^ (1 << (7 - (i % 8))));
+
+        if (is_crc_valid(data_copy)) {
+            q_channel_data = data_copy;
+            qDebug() << "Qchannel::repair_data(): Repaired data by flipping bit" << i;
+            return;
+        }
+    }
+}
+
+QByteArray Qchannel::generate_crc(QByteArray data) {
     // Generate the CRC for the channel data
     // CRC is on control+mode+data 4+4+72 = 80 bits with 16-bit CRC (96 bits total)
     uint16_t crc = crc16(q_channel_data.mid(0, 10));
@@ -345,25 +371,27 @@ void Qchannel::generate_crc() {
     crc = ~crc & 0xFFFF;
 
     // CRC is 2 bytes
-    q_channel_data[10] = crc >> 8;
-    q_channel_data[11] = crc & 0xFF;
+    data[10] = crc >> 8;
+    data[11] = crc & 0xFF;
+
+    return data;
 }
 
-bool Qchannel::is_crc_valid() {
+bool Qchannel::is_crc_valid(QByteArray data) {
     // Check the CRC for the channel data
     // CRC is on control+mode+data 4+4+72 = 80 bits with 16-bit CRC (96 bits total)
-    uint16_t crc = crc16(q_channel_data.mid(0, 10));
+    uint16_t crc = crc16(data.mid(0, 10));
 
     // Invert the CRC
     crc = ~crc & 0xFFFF;
 
     // Get the CRC from the data
-    uint16_t data_crc = static_cast<uchar>(q_channel_data[10]) << 8 | static_cast<uchar>(q_channel_data[11]);
+    uint16_t data_crc = static_cast<uchar>(data[10]) << 8 | static_cast<uchar>(data[11]);
 
     // Compare the CRCs...
     if (crc != data_crc) {
-        qDebug() << "Qchannel::is_crc_valid(): Calculated CRC:" << QString::number(crc, 16).toUpper() << "Data CRC:" << QString::number(data_crc, 16).toUpper();
-        qDebug() << "Qchannel::is_crc_valid(): Data:" << q_channel_data.toHex();
+        // qDebug() << "Qchannel::is_crc_valid(): Calculated CRC:" << QString::number(crc, 16).toUpper() << "Data CRC:" << QString::number(data_crc, 16).toUpper();
+        // qDebug() << "Qchannel::is_crc_valid(): Data:" << data.toHex();
         return false;
     }
     return true;

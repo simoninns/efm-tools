@@ -42,6 +42,7 @@ private:
     QQueue<F3Frame> input_buffer;
     QQueue<Section> output_buffer;
 
+    // Statistics
     uint32_t valid_sync0_frames;
     uint32_t valid_sync1_frames;
     uint32_t valid_subcode_frames;
@@ -51,6 +52,10 @@ private:
     uint32_t invalid_subcode_frames;
     uint32_t invalid_sections;
     uint32_t sync_lost_count;
+
+    // Sync loss tracking
+    uint32_t missed_sync_frames;
+    uint32_t missed_subcode_frames;
 
     // State machine states
     enum State {

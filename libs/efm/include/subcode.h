@@ -87,8 +87,9 @@ private:
 
     void set_conmode();
     void set_control(Control _control);
-    void generate_crc();
-    bool is_crc_valid();
+    void repair_data();
+    QByteArray generate_crc(QByteArray data);
+    bool is_crc_valid(QByteArray data);
     uint16_t crc16(const QByteArray &data);
     void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
     uint16_t int_to_bcd2(uint16_t value);
