@@ -33,6 +33,8 @@ ChannelToF3Frame::ChannelToF3Frame() {
     current_state = WAITING_FOR_INITIAL_SYNC;
     sync_lost_count = 0;
     sync_lost_flag = false;
+
+    missing_sync_header_count = 0;
 }
 
 void ChannelToF3Frame::push_frame(QString data) {
@@ -128,22 +130,47 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_sync() {
 
         // Is the frame data a reasonable length?
         if (frame_data.size() > 580 && frame_data.size() < 590+24) {
+            missing_sync_header_count = 0; // reset
             return PROCESS_FRAME;
         }
 
         // The frame data is not a reasonable length
         qDebug() << "ChannelToF3Frame::state_waiting_for_sync - Frame data not a reasonable length: " << frame_data.size();
+        invalid_channel_frames_count++;
         return WAITING_FOR_INITIAL_SYNC;
     }
 
     // Have we lost sync?
-    if (internal_buffer.size() > 590) {
-        qDebug() << "ChannelToF3Frame::state_waiting_for_sync - no sync after 590 bits";
-        // Discard the data (apart from the last 24 bits) and
-        // wait for more data
-        internal_buffer = internal_buffer.right(sync_header.size());
+    if (internal_buffer.size() > 590+24) {
+        qDebug() << "ChannelToF3Frame::state_waiting_for_sync - no sync after 590+24 bits";
 
-        return SYNC_LOST;
+        // Unless we have lost too many syncs, we can continue by assuming the
+        // frame data is 588 bit including the initial sync header
+        missing_sync_header_count++;
+        invalid_channel_frames_count++;
+
+        if (missing_sync_header_count > 4) {
+            // Discard the data (apart from the last 24 bits) and
+            // wait for more data
+            internal_buffer = internal_buffer.right(sync_header.size());
+            qDebug() << "ChannelToF3Frame::state_waiting_for_sync - Too many missing sync headers" << missing_sync_header_count << "- sync lost";
+            return SYNC_LOST;
+        }
+
+        // Take 588 bits of data from the start of the internal buffer
+        qDebug() << "ChannelToF3Frame::state_waiting_for_sync - F3 sync missing/corrupt - Assuming 588 bits of data";
+        frame_data = internal_buffer.left(588);
+
+        // Remove the extracted frame data from the internal buffer
+        internal_buffer = internal_buffer.right(internal_buffer.size() - 588);
+
+        // Replace the first 24 bits of the internal data with the sync header
+        // Here we are assuming that the previous frame was 588 bits long and it's
+        // the sync header of the next frame that was corrupted
+        internal_buffer.replace(0, sync_header.size(), sync_header);
+
+        // Process the frame
+        return PROCESS_FRAME;
     }
 
     // Keep waiting for the sync header
@@ -209,6 +236,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_sync_lost() {
     qDebug() << "ChannelToF3Frame::state_sync_lost - Sync lost";
     sync_lost_count++;
     sync_lost_flag = true;
+    missing_sync_header_count = 0; // reset
     return WAITING_FOR_INITIAL_SYNC;
 }
 

@@ -68,6 +68,7 @@ private:
     QString frame_data;
     uint32_t sync_lost_count;
     bool sync_lost_flag;
+    uint32_t missing_sync_header_count;
 
     // State machine state processing functions
     State state_waiting_for_initial_sync();

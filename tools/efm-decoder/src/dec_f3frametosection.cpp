@@ -211,7 +211,7 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_subcode() {
     }
 
     // Keep waiting for more subcode frames
-    qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got subcode frame" << internal_buffer.size() << "/97";
+    //qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got subcode frame" << internal_buffer.size() << "/97";
     return WAITING_FOR_SUBCODE;
 }
 
