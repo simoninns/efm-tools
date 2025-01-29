@@ -102,9 +102,10 @@ void F2FrameToF1Frame::process_queue() {
         if (!error_detected) valid_f2_frames_count++;
         else invalid_f2_frames_count++;
 
-        // Put the resulting data into an F1 frame and push it to the output buffer
+        // Put the resulting data (and error data) into an F1 frame and push it to the output buffer
         F1Frame f1_frame;
         f1_frame.set_data(data);
+        f1_frame.set_error_data(error_data);
         f1_frame.set_frame_type(f2_frame.get_frame_type());
         f1_frame.set_frame_time(f2_frame.get_frame_time());
         f1_frame.set_track_number(f2_frame.get_track_number());

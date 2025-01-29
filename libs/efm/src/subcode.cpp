@@ -51,6 +51,9 @@ Qchannel::Qchannel() {
     set_control(AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED);
     frame_type = FrameType::USER_DATA;
     track_number = 1;
+
+    // Default as invalid
+    q_channel_data_valid = false;
 }
 
 void Qchannel::set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
@@ -137,6 +140,9 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
         q_channel_data = generate_crc(q_channel_data);
     }
+
+    // Set as valid
+    q_channel_data_valid = true;
 }
     
 void Qchannel::set_control(Control _control) {
@@ -234,18 +240,22 @@ void Qchannel::set_bit(uint8_t index, bool value) {
     // If the index is 95 (0-97, -2), then we assume that we have all the required q-channel data
     // and we have to refresh the q-channel parameters based on the data.
     if (index == 95) {
-        refresh_q_channel_from_data();
+        q_channel_data_valid = refresh_q_channel_from_data();
     }
 }
 
-void Qchannel::refresh_q_channel_from_data() {
+bool Qchannel::refresh_q_channel_from_data() {
     // Firstly compute the CRC and check the q-channel data is valid
     if (!is_crc_valid(q_channel_data)) {
         // Attempt to repair the data
         repair_data();
 
-        if (!is_crc_valid(q_channel_data)) qFatal("Qchannel::refresh_q_channel_from_data(): CRC is invalid");
-        else qWarning("Qchannel::refresh_q_channel_from_data(): CRC was invalid but has been repaired");
+        if (!is_crc_valid(q_channel_data)) {
+            qWarning("Qchannel::refresh_q_channel_from_data(): CRC is invalid");
+            return false;
+        } else {
+            qWarning("Qchannel::refresh_q_channel_from_data(): CRC was invalid but has been repaired");
+        }
     }
 
     // Set q-mode, control, track number, frame time, ap time, frame type by reading the q-channel data
@@ -338,6 +348,12 @@ void Qchannel::refresh_q_channel_from_data() {
 
     // qDebug() << "Qchannel::refresh_q_channel_from_data()" << q_channel_data.toHex() << "Qmode:" << q_mode << "Control:" << control <<
     //     "Track:" << track_number << "Frame Time:" << f_time.to_string() << "AP Time:" << ap_time.to_string() << "Frame Type:" << frame_type.to_string();
+
+    return true;
+}
+
+bool Qchannel::is_valid() {
+    return q_channel_data_valid;
 }
 
 // Because of the way Q-channel data is spread over many frames, the most

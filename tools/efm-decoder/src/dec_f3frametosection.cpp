@@ -246,6 +246,12 @@ F3FrameToSection::State F3FrameToSection::state_section_complete() {
     for (uint32_t index = 0; index < 98; index++) {
         F2Frame f2_frame;
         f2_frame.set_data(internal_buffer[index].get_data());
+
+        // Ensure the q-channel is valid
+        if (!subcode.q_channel.is_valid()) {
+            qDebug() << "F3FrameToSection::state_section_complete() - Q channel is invalid, skipping frame";
+            qFatal("F3FrameToSection::state_section_complete() - Q channel is invalid - More coding required here");
+        }
         
         // Now we have to extract the section data and add it to the F2 frame
         // Note: The F2 Frame doesn't support AP time at the moment - to-do

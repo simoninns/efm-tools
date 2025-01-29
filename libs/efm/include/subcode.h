@@ -76,6 +76,8 @@ public:
     FrameTime get_ap_time() const { return ap_time; }
     uint8_t get_track_number() const { return track_number; }
 
+    bool is_valid();
+
 private:
     QModes q_mode;
     Control control;
@@ -84,6 +86,7 @@ private:
     uint8_t track_number;
     FrameTime f_time;
     FrameTime ap_time;
+    bool q_channel_data_valid;
 
     void set_conmode();
     void set_control(Control _control);
@@ -94,7 +97,7 @@ private:
     void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
     uint16_t int_to_bcd2(uint16_t value);
     uint16_t bcd2_to_int(uint16_t bcd);
-    void refresh_q_channel_from_data();
+    bool refresh_q_channel_from_data();
 };
 
 class Subcode {

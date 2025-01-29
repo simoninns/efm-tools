@@ -134,6 +134,9 @@ public:
     int get_frame_size() const override;
     void show_data();
 
+    void set_error_data(const QVector<uint8_t>& error_data);
+    QVector<uint8_t> get_error_data() const;
+
     void set_frame_type(FrameType _frame_type);
     FrameType get_frame_type() const;
     void set_frame_time(const FrameTime& _frame_time);
@@ -145,6 +148,8 @@ private:
     uint8_t track_number;
     FrameTime frame_time;
     FrameType frame_type;
+
+    QVector<uint8_t> frame_error_data;
 };
 
 class F2Frame : public Frame {
