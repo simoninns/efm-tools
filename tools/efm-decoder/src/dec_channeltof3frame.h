@@ -34,6 +34,7 @@ public:
     void push_frame(QString data);
     F3Frame pop_frame();
     bool is_ready() const;
+    bool is_sync_lost();
 
     void show_statistics();
 
@@ -66,6 +67,7 @@ private:
     State current_state;
     QString frame_data;
     uint32_t sync_lost_count;
+    bool sync_lost_flag;
 
     // State machine state processing functions
     State state_waiting_for_initial_sync();

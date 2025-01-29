@@ -32,6 +32,7 @@ ChannelToF3Frame::ChannelToF3Frame() {
     // Set the initial state
     current_state = WAITING_FOR_INITIAL_SYNC;
     sync_lost_count = 0;
+    sync_lost_flag = false;
 }
 
 void ChannelToF3Frame::push_frame(QString data) {
@@ -93,7 +94,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_initial_sync() {
     if (internal_buffer.contains(sync_header)) {
         // Remove any data before the sync header
         internal_buffer = internal_buffer.right(internal_buffer.size() - internal_buffer.indexOf(sync_header));
-        qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Found initial F3 sync header";
+        qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Found initial F3 24-bit sync header";
         return WAITING_FOR_SYNC;
     }
 
@@ -101,7 +102,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_initial_sync() {
     // Discard the data (apart from the last 24 bits) and
     // wait for more data
     internal_buffer = internal_buffer.right(sync_header.size());
-    qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Initial F3 sync header not found - throwing away data";
+    qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Initial F3 24-bit sync header not found - throwing away data";
     return WAITING_FOR_INITIAL_SYNC;
 }
 
@@ -194,6 +195,12 @@ ChannelToF3Frame::State ChannelToF3Frame::state_processing_frame() {
     return WAITING_FOR_SYNC;
 }
 
+ bool ChannelToF3Frame::is_sync_lost() {
+    bool flag = sync_lost_flag;
+    sync_lost_flag = false;
+    return flag;
+ }
+
 // In this state we have lost sync with the data stream.  This can happen if the
 // data source is corrupt or if the data stream is not aligned correctly.  The 
 // purpose of this state is to allow for statistics to be gathered on the number
@@ -201,6 +208,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_processing_frame() {
 ChannelToF3Frame::State ChannelToF3Frame::state_sync_lost() {
     qDebug() << "ChannelToF3Frame::state_sync_lost - Sync lost";
     sync_lost_count++;
+    sync_lost_flag = true;
     return WAITING_FOR_INITIAL_SYNC;
 }
 

@@ -108,16 +108,16 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_initial_sync0() {
 
     // Is the first frame a sync0 frame?
     if (f3_frame.get_f3_frame_type() != F3Frame::F3FrameType::SYNC0) {
-        qDebug() << "F3FrameToSection::state_waiting_for_initial_sync0(): F3 Frame was not a sync0 frame - discarding";
+        //qDebug() << "F3FrameToSection::state_waiting_for_initial_sync0(): F3 Frame was not a sync0 frame - discarding";
         invalid_sync0_frames++;
         return WAITING_FOR_INITIAL_SYNC0;
     }
 
-    // Add the frame to the current section
+    // Add the sync0 frame to the current section
     internal_buffer.append(f3_frame);
     valid_sync0_frames++;
 
-    qDebug() << "F3FrameToSection::state_waiting_for_initial_sync0 - Got sync0 frame";
+    qDebug() << "F3FrameToSection::state_waiting_for_initial_sync0 - Got initial sync0 frame, waiting for sync1";
     return WAITING_FOR_SYNC1;
 }
 
@@ -136,16 +136,16 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_sync0() {
             qDebug() << "F3FrameToSection::state_waiting_for_sync0(): Missed too many sync frames - sync lost";
             return SYNC_LOST;
         }
-        qDebug() << "F3FrameToSection::state_waiting_for_sync0(): F3 Frame was not a sync0 frame - missed sync frames = " << missed_sync_frames;
+        qDebug() << "F3FrameToSection::state_waiting_for_sync0(): F3 Frame at position" << internal_buffer.size() << "was not a sync0 frame - missed sync frames = " << missed_sync_frames;
     } else {
         missed_sync_frames = 0; // Reset counter
         valid_sync0_frames++;
     }
 
-    // Add the frame to the current section
+    // Add the sync0 frame to the current section
     internal_buffer.append(f3_frame);
 
-    //qDebug() << "F3FrameToSection::state_waiting_for_sync0() - Got sync0 frame";
+    qDebug() << "F3FrameToSection::state_waiting_for_sync0() - Got sync0 frame, waiting for sync1";
     // Now wait for sync1
     return WAITING_FOR_SYNC1;
 }
@@ -166,17 +166,17 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_sync1() {
             
             return SYNC_LOST;
         }
-        qDebug() << "F3FrameToSection::state_waiting_for_sync1(): F3 Frame was not a sync1 frame - missed sync frames = " << missed_sync_frames;
+        qDebug() << "F3FrameToSection::state_waiting_for_sync1(): F3 Frame at position" << internal_buffer.size() << "was not a sync1 frame - missed sync frames = " << missed_sync_frames;
     } else {
         missed_sync_frames = 0; // Reset counter
         valid_sync1_frames++;
     }
 
-    // Add the frame to the current section
+    // Add the sync1 frame to the current section
     internal_buffer.append(f3_frame);
 
-    // Keep waiting for the sync header
-    //qDebug() << "F3FrameToSection::state_waiting_for_sync1() - Got sync1 frame";
+    // Now wait for subcode frames
+    qDebug() << "F3FrameToSection::state_waiting_for_sync1() - Got sync1 frame, waiting for subcode";
     return WAITING_FOR_SUBCODE;
 }
 
@@ -195,22 +195,23 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_subcode() {
             qDebug() << "F3FrameToSection::state_waiting_for_subcode(): Missed too many subcode frames - sync lost";
             return SYNC_LOST;
         }
-        qDebug() << "F3FrameToSection::state_waiting_for_subcode(): F3 Frame was not a subcode frame - missed subcode frames = " << missed_subcode_frames;
+        qDebug() << "F3FrameToSection::state_waiting_for_subcode(): F3 Frame at position" << internal_buffer.size() << "was not a subcode frame - missed subcode frames = " << missed_subcode_frames;
     } else {
         missed_subcode_frames = 0; // Reset counter
         valid_subcode_frames++;
     }
 
-    // Add the frame to the current section
+    // Add the subcode frame to the current section
     internal_buffer.append(f3_frame);
 
     // Do we have enough frames to create a section?
-    if (internal_buffer.size() == 98) {
+    if (internal_buffer.size() >= 98) {
+        qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got last subcode frame, section complete";
         return SECTION_COMPLETE;
     }
 
     // Keep waiting for more subcode frames
-    //qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got subcode frame" << internal_buffer.size() << "/98";
+    qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got subcode frame" << internal_buffer.size() << "/97";
     return WAITING_FOR_SUBCODE;
 }
 
@@ -281,6 +282,13 @@ F3FrameToSection::State F3FrameToSection::state_sync_lost() {
     internal_buffer.clear();
 
     return WAITING_FOR_INITIAL_SYNC0;
+}
+
+// Clear the internal buffers and reset the state machine (F3 Frame sync lost)
+void F3FrameToSection::clear() {
+    qDebug() << "F3FrameToSection::clear() - Upstream sync loss flagged, clearing section buffers and changing state to sync lost";
+    internal_buffer.clear();
+    current_state = SYNC_LOST;
 }
 
 void F3FrameToSection::show_statistics() {

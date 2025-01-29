@@ -108,12 +108,20 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             channel_to_f3.push_frame(channel_data);
         }
 
+        // If we loose sync at the F3 frame level, we need to reset the f3 frame
+        // to section decoder, otherwise we will get out of sync down-stream
+
         // Are there any F3 frames ready?
         if (channel_to_f3.is_ready()) {
             F3Frame f3_frame = channel_to_f3.pop_frame();
             if (showF3) f3_frame.show_data();
-            f3_frame_to_section.push_frame(f3_frame);
-            f3_frame_count++;
+
+            if (channel_to_f3.is_sync_lost()) {
+                f3_frame_to_section.clear();
+            } else {
+                f3_frame_to_section.push_frame(f3_frame);
+                f3_frame_count++;
+            }
         }
 
         // Are there any sections ready?

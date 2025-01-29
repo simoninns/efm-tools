@@ -33,6 +33,7 @@ public:
     void push_frame(F3Frame data);
     Section pop_section();
     bool is_ready() const;
+    void clear();
     
     void show_statistics();
 
