@@ -28,6 +28,9 @@ F2FrameToF1Frame::F2FrameToF1Frame()
     : delay_line1({0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1}),
       delay_line2({0,0,0,0,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,2,2,2,2}),
       delay_lineM({108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16, 12, 8, 4, 0}),
+      delay_line1_err({0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1}),
+      delay_line2_err({0,0,0,0,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,2,2,2,2}),
+      delay_lineM_err({108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16, 12, 8, 4, 0}),
       invalid_f2_frames_count(0),
       valid_f2_frames_count(0) 
 {}
@@ -58,8 +61,11 @@ void F2FrameToF1Frame::process_queue() {
     while (!input_buffer.isEmpty()) {
         F2Frame f2_frame = input_buffer.dequeue();
         QVector<uint8_t> data = f2_frame.get_data();
+
+        // Make an error data vector the same size as the data vector
         QVector<uint8_t> error_data;
         error_data.resize(data.size());
+        error_data.fill(0);
 
         data = delay_line1.push(data);
         if (data.isEmpty()) continue;
@@ -71,17 +77,17 @@ void F2FrameToF1Frame::process_queue() {
         circ.c1_decode(data, error_data);
 
         data = delay_lineM.push(data);
-        error_data = delay_lineM.push(error_data);
+        error_data = delay_lineM_err.push(error_data);
         if (data.isEmpty()) continue;
 
         // Only perform C2 decode if delay line 1 is full and delay line M is full
         circ.c2_decode(data, error_data);
 
         data = interleave.deinterleave(data);
-        error_data = interleave.deinterleave(error_data);
+        error_data = interleave_err.deinterleave(error_data);
 
         data = delay_line2.push(data);
-        error_data = delay_line2.push(error_data);
+        error_data = delay_line2_err.push(error_data);
         if (data.isEmpty()) continue;
 
         // Check if any value in the F2 error_data is not 0

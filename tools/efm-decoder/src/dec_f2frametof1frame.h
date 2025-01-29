@@ -52,8 +52,14 @@ private:
     DelayLines delay_line2;
     DelayLines delay_lineM;
 
+    DelayLines delay_line1_err;
+    DelayLines delay_line2_err;
+    DelayLines delay_lineM_err;
+
     Interleave interleave;
     Inverter inverter;
+
+    Interleave interleave_err;
 
     uint32_t invalid_f2_frames_count;
     uint32_t valid_f2_frames_count;

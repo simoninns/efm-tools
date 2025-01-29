@@ -91,9 +91,8 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     std::vector<int> erasures; // 0-based indices of "missing" input bytes i.e. {12, 13, 14, 15}
     std::vector<int> position; // 0-based indices of corrected bytes in the output
 
-    int result = -1;
-
     // Decode the data
+    int result = -1;
     result = c1rs.decode(tmp_data, erasures, &position);
 
     // Convert the std::vector back to a QVector and strip the parity bytes
@@ -102,7 +101,7 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
 
     // If result == 0, then the Reed-Solomon decode was successful
     if (result == 0) {
-        qDebug() << "ReedSolomon::c1_decode - C1 Decoded successfully";
+        //qDebug() << "ReedSolomon::c1_decode - C1 Decoded successfully";
         error_data.fill(0);
         valid_c1s++;
         return;
@@ -193,6 +192,10 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
         qFatal("ReedSolomon::c2_decode - Input data must be 28 bytes long");
     }
 
+    if (error_data.size() != 28) {
+        qFatal("ReedSolomon::c2_decode - Error data must be 28 bytes long");
+    }
+
     // Check for potential overflow
     if (static_cast<uint64_t>(input_data.size()) > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
         qFatal("ReedSolomon::c2_decode - Input data size exceeds maximum allowable size.  Input data size: %d", input_data.size());
@@ -203,34 +206,80 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     std::vector<int> position;
     std::vector<int> erasures;
 
-    int result = -1;
+    // Convert the error_data into a list of erasure positions
+    for (int index = 0; index < error_data.size(); index++) {
+        if (error_data[index] == 1) {
+            erasures.push_back(index);
+        }
+    }
+
+    if (erasures.size() > 0) {
+        qDebug() << "ReedSolomon::c2_decode - Input data erasures reported at positions:" << erasures;
+    }
+
+    // Since we know the erasure positions, we can correct a maximum of 4 errors.  If the number
+    // of know input erasures is greater than 4, then we can't correct the data.
+    if (erasures.size() > 4) {
+        qDebug().nospace() << "ReedSolomon::c2_decode - Too many erasures to correct (" << erasures.size() << ") C2 is unrecoverable";
+    
+        // Convert the std::vector back to a QVector and remove the parity bytes
+        // by copying bytes 0-11 and 16-27 to the output data
+        input_data = QVector<uint8_t>(tmp_data.begin(), tmp_data.begin() + 12) + QVector<uint8_t>(tmp_data.begin() + 16, tmp_data.end());
+        error_data.resize(input_data.size());
+        error_data.fill(1);
+        error_c2s++;
+        return;
+    }
 
     // Decode the data
+    int result = -1;
     result = c2rs.decode(tmp_data, erasures, &position);
-
-    if (result != 0) {
-        if (result > 0 && result <= 3) {
-            qDebug() << "ReedSolomon::c2_decode - Fixed" << result << "errors";
-            qDebug() << "ReedSolomon::c2_decode - Original data:" << input_data;
-            qDebug() << "ReedSolomon::c2_decode - Corrected data:" << QVector<uint8_t>(tmp_data.begin(), tmp_data.end());
-            fixed_c2s++;
-        } else {
-            if (result > 3) {
-                qDebug() << "ReedSolomon::c2_decode - Too many errors to correct (" << result << ") C2 is unrecoverable";
-                qDebug() << "ReedSolomon::c2_decode - Original data:" << input_data;
-            } else {
-                qDebug() << "ReedSolomon::c2_decode - ezpwd returned -1";
-                qDebug() << "ReedSolomon::c2_decode - Original data:" << input_data;
-            }
-            error_c2s++;
-        }
-    } else {
-        valid_c2s++;
-    }
 
     // Convert the std::vector back to a QVector and remove the parity bytes
     // by copying bytes 0-11 and 16-27 to the output data
     input_data = QVector<uint8_t>(tmp_data.begin(), tmp_data.begin() + 12) + QVector<uint8_t>(tmp_data.begin() + 16, tmp_data.end());
+    error_data.resize(input_data.size());
+
+    // If result == 0, then the Reed-Solomon decode was successful
+    if (result == 0) {
+        //qDebug() << "ReedSolomon::c2_decode - C2 Decoded successfully";
+        error_data.fill(0);
+        valid_c2s++;
+        return;
+    }
+
+    // If result < 0, then the Reed-Solomon decode completely failed
+    // If result > 4, then there were too many errors for the Reed-Solomon decode to fix
+    if (result < 0 || result > 4) {
+        qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed: result" << result;
+        // Make every byte in the error data 1 - i.e. all errors
+        error_data.fill(1);
+        error_c2s++;
+        return;
+    }
+
+    // If result > 0 && result <= 2, then the Reed-Solomon decode fixed some errors
+    // and the data is now correct
+    if (result > 0 && result <= 2) {
+        QString s_positions;
+        for (int pos : position) {
+            s_positions += QString::number(pos);
+            if (pos != position.back()) {
+                s_positions += " and ";
+            } else {
+                s_positions += ", ";
+            }
+        }
+        if (position.size() != 1) qDebug().noquote() << "ReedSolomon::c2_decode - C2 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
+        else qDebug().noquote() << "ReedSolomon::c2_decode - C2 Fixed" << result << "error at byte position" << s_positions.trimmed();
+
+        error_data.fill(0);
+        fixed_c2s++;
+        return;
+    }
+
+    qDebug() << "ReedSolomon::c2_decode - C2 result unknown - a bug perhaps?";
+    return;   
 }
 
 // Getter functions for the statistics
