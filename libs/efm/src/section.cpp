@@ -45,3 +45,11 @@ bool Section::is_complete() const {
 uint8_t Section::get_subcode_byte(int index) const {
     return subcode.get_subcode_byte(index);
 }
+
+void Section::clear() {
+    f2_frames.clear();
+
+    // Set some sane defaults for the subcode channels
+    subcode.p_channel.set_flag(false);
+    subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1, FrameTime(0, 0, 0), FrameTime(0, 0, 0), FrameType::USER_DATA);
+}

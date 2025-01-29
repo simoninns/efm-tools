@@ -37,13 +37,41 @@ public:
     void show_statistics();
 
 private:
-    void process_queue();
+    void process_state_machine();
 
     QQueue<F3Frame> input_buffer;
     QQueue<Section> output_buffer;
 
-    uint32_t invalid_f3_frames_count;
-    uint32_t valid_f3_frames_count;
+    uint32_t valid_sync0_frames;
+    uint32_t valid_sync1_frames;
+    uint32_t valid_subcode_frames;
+    uint32_t valid_sections;
+    uint32_t invalid_sync0_frames;
+    uint32_t invalid_sync1_frames;
+    uint32_t invalid_subcode_frames;
+    uint32_t invalid_sections;
+    uint32_t sync_lost_count;
+
+    // State machine states
+    enum State {
+        WAITING_FOR_INITIAL_SYNC0,
+        WAITING_FOR_SYNC0,
+        WAITING_FOR_SYNC1,
+        WAITING_FOR_SUBCODE,
+        SECTION_COMPLETE,
+        SYNC_LOST
+    };
+
+    State current_state;
+    QVector<F3Frame> internal_buffer;
+
+    // State machine state processing functions
+    State state_waiting_for_initial_sync0();
+    State state_waiting_for_sync0();
+    State state_waiting_for_sync1();
+    State state_waiting_for_subcode();
+    State state_section_complete();
+    State state_sync_lost();
 };
 
 #endif // DEC_F3FRAMETOSECTION_H

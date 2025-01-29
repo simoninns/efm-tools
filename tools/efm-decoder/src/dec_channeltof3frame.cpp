@@ -93,7 +93,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_initial_sync() {
     if (internal_buffer.contains(sync_header)) {
         // Remove any data before the sync header
         internal_buffer = internal_buffer.right(internal_buffer.size() - internal_buffer.indexOf(sync_header));
-        qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Found initial sync header";
+        qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Found initial F3 sync header";
         return WAITING_FOR_SYNC;
     }
 
@@ -101,7 +101,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_initial_sync() {
     // Discard the data (apart from the last 24 bits) and
     // wait for more data
     internal_buffer = internal_buffer.right(sync_header.size());
-    qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Initial sync header not found - throwing away data";
+    qDebug() << "ChannelToF3Frame::state_waiting_for_initial_sync - Initial F3 sync header not found - throwing away data";
     return WAITING_FOR_INITIAL_SYNC;
 }
 
