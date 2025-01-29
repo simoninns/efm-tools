@@ -58,28 +58,43 @@ void F2FrameToF1Frame::process_queue() {
     while (!input_buffer.isEmpty()) {
         F2Frame f2_frame = input_buffer.dequeue();
         QVector<uint8_t> data = f2_frame.get_data();
+        QVector<uint8_t> error_data;
+        error_data.resize(data.size());
 
         data = delay_line1.push(data);
         if (data.isEmpty()) continue;
 
         // Process the data
+        // Note: We will only get valid data if the delay lines are all full
         data = inverter.invert_parity(data);
 
-        data = circ.c1_decode(data);
+        circ.c1_decode(data, error_data);
 
         data = delay_lineM.push(data);
+        error_data = delay_lineM.push(error_data);
         if (data.isEmpty()) continue;
 
         // Only perform C2 decode if delay line 1 is full and delay line M is full
-        data = circ.c2_decode(data);
+        circ.c2_decode(data, error_data);
 
         data = interleave.deinterleave(data);
+        error_data = interleave.deinterleave(error_data);
 
         data = delay_line2.push(data);
+        error_data = delay_line2.push(error_data);
         if (data.isEmpty()) continue;
 
-        // We will only get valid data if the delay lines are all full
-        valid_f2_frames_count++;
+        // Check if any value in the F2 error_data is not 0
+        bool error_detected = false;
+        for (auto byte : error_data) {
+            if (byte != 0) {
+                error_detected = true;
+                break;
+            }
+        }
+
+        if (!error_detected) valid_f2_frames_count++;
+        else invalid_f2_frames_count++;
 
         // Put the resulting data into an F1 frame and push it to the output buffer
         F1Frame f1_frame;

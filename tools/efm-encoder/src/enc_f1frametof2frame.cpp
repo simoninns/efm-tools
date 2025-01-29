@@ -63,12 +63,12 @@ void F1FrameToF2Frame::process_queue() {
         if (data.isEmpty()) continue;
 
         data = interleave.interleave(data); // 24
-        data = circ.c2_encode(data); // 24 + 4 = 28
+        circ.c2_encode(data); // 24 + 4 = 28
 
         data = delay_lineM.push(data); // 28
         if (data.isEmpty()) continue;
 
-        data = circ.c1_encode(data); // 28 + 4 = 32
+        circ.c1_encode(data); // 28 + 4 = 32
 
         data = delay_line1.push(data); // 32     
         if (data.isEmpty()) continue;

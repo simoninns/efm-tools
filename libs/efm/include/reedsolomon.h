@@ -51,11 +51,11 @@ class ReedSolomon {
 public:
     ReedSolomon();
 
-    QVector<uint8_t> c1_encode(QVector<uint8_t> input_data);
-    QVector<uint8_t> c1_decode(QVector<uint8_t> input_data);
+    void c1_encode(QVector<uint8_t>& input_data);
+    void c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data);
 
-    QVector<uint8_t> c2_encode(QVector<uint8_t> input_data);
-    QVector<uint8_t> c2_decode(QVector<uint8_t> input_data);
+    void c2_encode(QVector<uint8_t>& input_data);
+    void c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data);
 
     int32_t get_valid_c1s();
     int32_t get_fixed_c1s();
