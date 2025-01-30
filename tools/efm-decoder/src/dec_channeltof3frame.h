@@ -69,6 +69,7 @@ private:
     uint32_t sync_lost_count;
     bool sync_lost_flag;
     uint32_t missing_sync_header_count;
+    uint32_t max_buffer_size;
 
     // State machine state processing functions
     State state_waiting_for_initial_sync();

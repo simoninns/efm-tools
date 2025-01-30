@@ -35,6 +35,8 @@ ChannelToF3Frame::ChannelToF3Frame() {
     sync_lost_flag = false;
 
     missing_sync_header_count = 0;
+
+    max_buffer_size = 590+24; // 590 bits of data plus 24 bits of sync header
 }
 
 void ChannelToF3Frame::push_frame(QString data) {
@@ -66,7 +68,7 @@ void ChannelToF3Frame::process_queue() {
 void ChannelToF3Frame::process_state_machine() {
     // Check if the internal buffer is long enough to process
     // "long enough" means 588 bits plus the 24 bits of the next frame's sync header
-    while(internal_buffer.size() > 588+24) {
+    while(internal_buffer.size() > max_buffer_size) {
         switch(current_state) {
             case WAITING_FOR_INITIAL_SYNC:
                 current_state = state_waiting_for_initial_sync();
@@ -129,7 +131,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_sync() {
         internal_buffer = internal_buffer.right(internal_buffer.size() - second_sync_header_index);
 
         // Is the frame data a reasonable length?
-        if (frame_data.size() > 580 && frame_data.size() < 590+24) {
+        if (frame_data.size() > 580 && frame_data.size() < max_buffer_size) {
             missing_sync_header_count = 0; // reset
             return PROCESS_FRAME;
         }
@@ -141,8 +143,8 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_sync() {
     }
 
     // Have we lost sync?
-    if (internal_buffer.size() > 590+24) {
-        qDebug() << "ChannelToF3Frame::state_waiting_for_sync - no sync after 590+24 bits";
+    if (internal_buffer.size() > max_buffer_size) {
+        qDebug() << "ChannelToF3Frame::state_waiting_for_sync - no sync after" << max_buffer_size << "bits";
 
         // Unless we have lost too many syncs, we can continue by assuming the
         // frame data is 588 bit including the initial sync header
@@ -174,6 +176,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_sync() {
     }
 
     // Keep waiting for the sync header
+    //qDebug() << "ChannelToF3Frame::state_waiting_for_sync - Waiting for sync header";
     return WAITING_FOR_SYNC;
 }
 
