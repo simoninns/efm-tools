@@ -58,6 +58,10 @@ private:
     uint32_t missed_sync_frames;
     uint32_t missed_subcode_frames;
 
+    // Known-good subcode tracking
+    Subcode last_known_good_subcode;
+    uint32_t known_good_subcode_count;
+
     // State machine states
     enum State {
         WAITING_FOR_INITIAL_SYNC0,

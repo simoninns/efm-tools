@@ -258,9 +258,9 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
         return;
     }
 
-    // If result > 0 && result <= 2, then the Reed-Solomon decode fixed some errors
+    // If result > 0 && result <= 4, then the Reed-Solomon decode fixed some errors
     // and the data is now correct
-    if (result > 0 && result <= 2) {
+    if (result > 0 && result <= 4) {
         QString s_positions;
         for (int pos : position) {
             s_positions += QString::number(pos);

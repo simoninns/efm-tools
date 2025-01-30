@@ -40,6 +40,11 @@ bool Pchannel::get_bit(uint8_t index) const {
     return flag;
 }
 
+bool Pchannel::is_valid() const {
+    // The P-channel is always valid
+    return true;
+}
+
 // Q-channel class -----------------------------------------------------------------------------------------------------
 Qchannel::Qchannel() {
     // The Q-channel data is 12 bytes long (96 bits)
@@ -464,12 +469,24 @@ uint16_t Qchannel::bcd2_to_int(uint16_t bcd) {
     return value;
 }
 
+// Set the frame time
+void Qchannel::set_frame_time(FrameTime _f_time) {
+    f_time = _f_time;
+
+    // Note: This doesn't change the AP time at the moment - could be an issue in the future?
+    set_q_mode_1or4(track_number, f_time, ap_time, frame_type);
+}
+
 // Subcode class -------------------------------------------------------------------------------------------------------
 Subcode::Subcode() {
     // Set the Q-channel to default (Q-mode 1, audio 2-channel, no preemphasis, copy permitted)
     p_channel.set_flag(false);
     q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1,
         FrameTime(0, 0, 0), FrameTime(0, 0, 0), FrameType::USER_DATA);
+}
+
+bool Subcode::is_valid() {
+    return q_channel.is_valid() && p_channel.is_valid();
 }
 
 uint8_t Subcode::get_subcode_byte(uint8_t index) const {

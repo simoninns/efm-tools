@@ -42,6 +42,11 @@ F3FrameToSection::F3FrameToSection() {
 
     // Set the initial state
     current_state = WAITING_FOR_INITIAL_SYNC0;
+
+    // Track known-good subcodes in case we need
+    // to replace invalid subcodes with known-good
+    last_known_good_subcode = Subcode();
+    known_good_subcode_count = 0;
 }
 
 void F3FrameToSection::push_frame(F3Frame data) {
@@ -239,6 +244,30 @@ F3FrameToSection::State F3FrameToSection::state_section_complete() {
             // Get the subcode byte from the F3 frame and set it in the subcode object
             subcode.set_subcode_byte(index, internal_buffer[index].get_subcode_byte());
         }
+    }
+
+    // Check the generated subcode is valid
+    if (!subcode.is_valid()) {
+        qDebug() << "F3FrameToSection::state_section_complete() - Subcode is invalid";
+        invalid_sections++;
+        
+        // Can we replace the subcode with a known-good subcode?
+        if (known_good_subcode_count > 0) {
+            qDebug() << "F3FrameToSection::state_section_complete() - Replacing invalid subcode with known-good subcode (from a sequence of" << known_good_subcode_count << "known-good subcodes)";
+            subcode = last_known_good_subcode;
+
+            // Increment the frame time by 1 frame
+            subcode.q_channel.set_frame_time(subcode.q_channel.get_frame_time() + FrameTime(0, 0, 1));
+
+            known_good_subcode_count = 0;
+        } else {
+            qDebug() << "F3FrameToSection::state_section_complete() - No known-good subcode to replace invalid subcode - using default subcode";
+            subcode = Subcode();
+        }
+    } else {
+        // Save the last known-good subcode
+        last_known_good_subcode = subcode;
+        known_good_subcode_count++;
     }
 
     // Now we have 98 F3 Frames and the subcode, we can create a new section

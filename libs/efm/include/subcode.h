@@ -35,6 +35,7 @@ public:
     Pchannel();
     void set_flag(bool _flag);
     bool get_bit(uint8_t index) const;
+    bool is_valid() const;
 
 private:
     bool flag;
@@ -77,6 +78,7 @@ public:
     uint8_t get_track_number() const { return track_number; }
 
     bool is_valid();
+    void set_frame_time(FrameTime _f_time);
 
 private:
     QModes q_mode;
@@ -105,6 +107,7 @@ public:
     Subcode();
     uint8_t get_subcode_byte(uint8_t index) const;
     void set_subcode_byte(uint8_t index, uint8_t value);
+    bool is_valid();
 
     Pchannel p_channel;
     Qchannel q_channel;
