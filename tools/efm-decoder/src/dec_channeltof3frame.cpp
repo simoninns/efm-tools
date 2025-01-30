@@ -132,6 +132,7 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_sync() {
 
         // Is the frame data a reasonable length?
         if (frame_data.size() > 580 && frame_data.size() < max_buffer_size) {
+            //qDebug() << "ChannelToF3Frame::state_waiting_for_sync - Got frame with data size:" << frame_data.size();
             missing_sync_header_count = 0; // reset
             return PROCESS_FRAME;
         }
@@ -158,26 +159,23 @@ ChannelToF3Frame::State ChannelToF3Frame::state_waiting_for_sync() {
             qDebug() << "ChannelToF3Frame::state_waiting_for_sync - Too many missing sync headers" << missing_sync_header_count << "- sync lost";
             return SYNC_LOST;
         }
-
-        // Take 588 bits of data from the start of the internal buffer
-        qDebug() << "ChannelToF3Frame::state_waiting_for_sync - F3 sync missing/corrupt - Assuming 588 bits of data";
-        frame_data = internal_buffer.left(588);
-
-        // Remove the extracted frame data from the internal buffer
-        internal_buffer = internal_buffer.right(internal_buffer.size() - 588);
-
-        // Replace the first 24 bits of the internal data with the sync header
-        // Here we are assuming that the previous frame was 588 bits long and it's
-        // the sync header of the next frame that was corrupted
-        internal_buffer.replace(0, sync_header.size(), sync_header);
-
-        // Process the frame
-        return PROCESS_FRAME;
     }
 
-    // Keep waiting for the sync header
-    //qDebug() << "ChannelToF3Frame::state_waiting_for_sync - Waiting for sync header";
-    return WAITING_FOR_SYNC;
+    // Assume we have a sync header missing or corrupt in the right place
+    // and take 588 bits of data
+    qDebug() << "ChannelToF3Frame::state_waiting_for_sync - F3 sync missing/corrupt - Assuming 588 bits of data";
+    frame_data = internal_buffer.left(588);
+
+    // Remove the leading 588 bits of data from the internal buffer
+    internal_buffer = internal_buffer.right(internal_buffer.size() - 588);
+
+    // Replace the first 24 bits of the internal data with the sync header
+    // Here we are assuming that the previous frame was 588 bits long and it's
+    // the sync header of the next frame that was corrupted
+    internal_buffer.replace(0, sync_header.size(), sync_header);
+
+    // Process the frame
+    return PROCESS_FRAME;
 }
 
 // In this state we have received a channel frame which is reasonable in length
@@ -186,8 +184,18 @@ ChannelToF3Frame::State ChannelToF3Frame::state_processing_frame() {
     //qDebug() << "ChannelToF3Frame::state_processing_frame - Processing frame of size: " << frame_data.size();
 
     // Count the number of valid and invalid channel frames based on length
-    if (frame_data.size() == 588) valid_channel_frames_count++;
-    else invalid_channel_frames_count++;
+    if (frame_data.size() == 588) {
+        valid_channel_frames_count++;
+    } else {
+        invalid_channel_frames_count++;
+
+        // Pad or truncate the frame data to 588 bits (filling with zeros)
+        if (frame_data.size() < 588) {
+            frame_data.append(QString(588 - frame_data.size(), '0'));
+        } else {
+            frame_data = frame_data.left(588);
+        }
+    }
 
     // The channel frame data is:
     //   Sync Header: 24 bits
