@@ -150,7 +150,7 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_sync0() {
     // Add the sync0 frame to the current section
     internal_buffer.append(f3_frame);
 
-    qDebug() << "F3FrameToSection::state_waiting_for_sync0() - Got sync0 frame, waiting for sync1";
+    //qDebug() << "F3FrameToSection::state_waiting_for_sync0() - Got sync0 frame, waiting for sync1";
     // Now wait for sync1
     return WAITING_FOR_SYNC1;
 }
@@ -181,7 +181,7 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_sync1() {
     internal_buffer.append(f3_frame);
 
     // Now wait for subcode frames
-    qDebug() << "F3FrameToSection::state_waiting_for_sync1() - Got sync1 frame, waiting for subcode";
+    //qDebug() << "F3FrameToSection::state_waiting_for_sync1() - Got sync1 frame, waiting for subcode";
     return WAITING_FOR_SUBCODE;
 }
 
@@ -211,7 +211,7 @@ F3FrameToSection::State F3FrameToSection::state_waiting_for_subcode() {
 
     // Do we have enough frames to create a section?
     if (internal_buffer.size() >= 98) {
-        qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got last subcode frame, section complete";
+        //qDebug() << "F3FrameToSection::state_waiting_for_subcode() - Got last subcode frame, section complete";
         return SECTION_COMPLETE;
     }
 

@@ -120,7 +120,7 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     // If result < 0, then the Reed-Solomon decode completely failed
     // If result > 2, then there were too many errors for the Reed-Solomon decode to fix
     if (result < 0 || result > 2) {
-        qDebug().noquote() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
+        //qDebug().noquote() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
         // Make every byte in the error data 1 - i.e. all errors
         error_data.fill(1);
         error_c1s++;
@@ -137,8 +137,8 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
                 s_positions += " and ";
             }
         }
-        if (position.size() == 2) qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
-        else qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "error at byte position" << s_positions.trimmed();
+        // if (position.size() == 2) qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
+        // else qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "error at byte position" << s_positions.trimmed();
 
         error_data.fill(0);
         fixed_c1s++;
@@ -213,22 +213,17 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
         }
     }
 
-    if (erasures.size() > 0) {
-        qDebug() << "ReedSolomon::c2_decode - Input data erasures reported at positions:" << erasures;
-    }
+    // if (erasures.size() > 0) {
+    //     qDebug() << "ReedSolomon::c2_decode - Input data erasures reported at positions:" << erasures;
+    // }
 
     // Since we know the erasure positions, we can correct a maximum of 4 errors.  If the number
     // of know input erasures is greater than 4, then we can't correct the data.
     if (erasures.size() > 4) {
-        qDebug().nospace() << "ReedSolomon::c2_decode - Too many erasures to correct (" << erasures.size() << ") C2 is unrecoverable";
-    
-        // Convert the std::vector back to a QVector and remove the parity bytes
-        // by copying bytes 0-11 and 16-27 to the output data
-        input_data = QVector<uint8_t>(tmp_data.begin(), tmp_data.begin() + 12) + QVector<uint8_t>(tmp_data.begin() + 16, tmp_data.end());
-        error_data.resize(input_data.size());
-        error_data.fill(1);
-        error_c2s++;
-        return;
+        // If there are more than 4 erasures, then we can't correct the data - however, since the C1 marks all bytes as erasures if it fails,
+        // there is a chance the C2 only has 1 or 2 errors... so it's worth trying to fix the data without erasures
+        //qDebug().nospace() << "ReedSolomon::c2_decode - Too many erasures to correct (" << erasures.size() << ") - Attempting to fix without erasures";
+        erasures.clear();
     }
 
     // Decode the data
@@ -251,7 +246,7 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     // If result < 0, then the Reed-Solomon decode completely failed
     // If result > 4, then there were too many errors for the Reed-Solomon decode to fix
     if (result < 0 || result > 4) {
-        qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed: result" << result;
+        //qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed: result" << result;
         // Make every byte in the error data 1 - i.e. all errors
         error_data.fill(1);
         error_c2s++;
@@ -270,8 +265,8 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
                 s_positions += ", ";
             }
         }
-        if (position.size() != 1) qDebug().noquote() << "ReedSolomon::c2_decode - C2 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
-        else qDebug().noquote() << "ReedSolomon::c2_decode - C2 Fixed" << result << "error at byte position" << s_positions.trimmed();
+        // if (position.size() != 1) qDebug().noquote() << "ReedSolomon::c2_decode - C2 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
+        // else qDebug().noquote() << "ReedSolomon::c2_decode - C2 Fixed" << result << "error at byte position" << s_positions.trimmed();
 
         error_data.fill(0);
         fixed_c2s++;

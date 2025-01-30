@@ -283,11 +283,8 @@ bool Qchannel::refresh_q_channel_from_data() {
         case 0x4:
             q_mode = QMODE_4;
             break;
-    }
-
-    // Check the Q-mode is valid according to what we support
-    if (q_mode != QMODE_1 && q_mode != QMODE_4) {
-        qFatal("Qchannel::refresh_q_channel_from_data(): Unsupported Q-mode! Must be 1 or 4");
+        default:
+            qFatal("Qchannel::refresh_q_channel_from_data(): Invalid Q-mode nybble! Must be 1, 2, 3 or 4 not %d", mode_nybble);
     }
 
     switch (control_nybble) {
@@ -321,6 +318,8 @@ bool Qchannel::refresh_q_channel_from_data() {
         case 0xB:
             control = AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED;
             break;
+        default:
+            qFatal("Qchannel::refresh_q_channel_from_data(): Invalid control nybble! Must be 0-3, 4-7 or 8-11 not %d", control_nybble);
     }
 
     // Set the track number q_data_channel[1]
@@ -371,7 +370,8 @@ bool Qchannel::is_valid() {
 void Qchannel::repair_data() {
     QByteArray data_copy = q_channel_data;
 
-    for (int i = 0; i < 96; i++) {
+    // 96-16 = Don't repair CRC bits
+    for (int i = 0; i < 96-16; i++) {
         data_copy = q_channel_data;
         data_copy[i / 8] = static_cast<uchar>(data_copy[i / 8] ^ (1 << (7 - (i % 8))));
 
