@@ -109,7 +109,6 @@ void F2FrameToF1Frame::process_queue() {
         f1_frame.set_frame_type(f2_frame.get_frame_type());
         f1_frame.set_frame_time(f2_frame.get_frame_time());
         f1_frame.set_track_number(f2_frame.get_track_number());
-        valid_f2_frames_count++;
         output_buffer.enqueue(f1_frame);
     }
 }
@@ -118,7 +117,7 @@ void F2FrameToF1Frame::show_statistics() {
     qInfo() << "F2 frame to F1 frame statistics:";
     qInfo() << "  Frames:";
     qInfo() << "    Valid F2 frames:" << valid_f2_frames_count;
-    qInfo() << "    Invalid F2 frames:" << invalid_f2_frames_count;
+    qInfo() << "    Invalid F2 frames:" << invalid_f2_frames_count << "(error_data shows 1 or more errors)";
     qInfo() << "  C1 decoder:";
     qInfo() << "    Valid C1s:" << circ.get_valid_c1s();
     qInfo() << "    Fixed C1s:" << circ.get_fixed_c1s();

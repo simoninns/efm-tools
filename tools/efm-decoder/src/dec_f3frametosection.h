@@ -33,7 +33,6 @@ public:
     void push_frame(F3Frame data);
     Section pop_section();
     bool is_ready() const;
-    void clear();
     
     void show_statistics();
 
@@ -43,45 +42,25 @@ private:
     QQueue<F3Frame> input_buffer;
     QQueue<Section> output_buffer;
 
-    // Statistics
-    uint32_t valid_sync0_frames;
-    uint32_t valid_sync1_frames;
-    uint32_t valid_subcode_frames;
-    uint32_t valid_sections;
-    uint32_t invalid_sync0_frames;
-    uint32_t invalid_sync1_frames;
-    uint32_t invalid_subcode_frames;
-    uint32_t invalid_sections;
-    uint32_t sync_lost_count;
-
-    // Sync loss tracking
-    uint32_t missed_sync_frames;
-    uint32_t missed_subcode_frames;
-
-    // Known-good subcode tracking
-    Subcode last_known_good_subcode;
-    uint32_t known_good_subcode_count;
-
     // State machine states
     enum State {
-        WAITING_FOR_INITIAL_SYNC0,
-        WAITING_FOR_SYNC0,
-        WAITING_FOR_SYNC1,
-        WAITING_FOR_SUBCODE,
-        SECTION_COMPLETE,
-        SYNC_LOST
+        WAITING_FOR_SYNC,
+        GATHER_SECTION_FRAMES,
+        PROCESS_SECTION
     };
 
     State current_state;
-    QVector<F3Frame> internal_buffer;
+    QVector<F3Frame> section_buffer;
 
     // State machine state processing functions
-    State state_waiting_for_initial_sync0();
-    State state_waiting_for_sync0();
-    State state_waiting_for_sync1();
-    State state_waiting_for_subcode();
-    State state_section_complete();
-    State state_sync_lost();
+    State state_waiting_for_sync();
+    State gather_section_frames();
+    State process_section();
+
+    // Statistics
+    uint32_t valid_sections;
+    uint32_t invalid_sections;
+    uint32_t discarded_f3_frames;
 };
 
 #endif // DEC_F3FRAMETOSECTION_H

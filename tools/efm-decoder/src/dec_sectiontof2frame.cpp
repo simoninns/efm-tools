@@ -25,7 +25,6 @@
 #include "dec_sectiontof2frame.h"
 
 SectionToF2Frame::SectionToF2Frame() {
-    invalid_sections_count = 0;
     valid_sections_count = 0;
 }
 
@@ -65,6 +64,6 @@ void SectionToF2Frame::process_queue() {
 
 void SectionToF2Frame::show_statistics() {
     qInfo() << "Section to F2 frame statistics:";
-    qInfo() << "  Valid sections:" << valid_sections_count;
-    qInfo() << "  Invalid sections:" << invalid_sections_count;
+    qInfo() << "  Processed sections:" << valid_sections_count;
+    qInfo() << "  Total F2 frames:" << valid_sections_count * 98;
 }

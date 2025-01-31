@@ -291,6 +291,7 @@ QVector<uint8_t> F1Frame::get_error_data() const {
 // Constructor for F2Frame, initializes data to the frame size
 F2Frame::F2Frame() {
     frame_data.resize(get_frame_size());
+    
 
     // Set defaults
     frame_type = FrameType::USER_DATA;

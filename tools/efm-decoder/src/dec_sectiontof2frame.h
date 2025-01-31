@@ -42,7 +42,6 @@ private:
     QQueue<Section> input_buffer;
     QQueue<QVector<F2Frame>> output_buffer;
 
-    uint32_t invalid_sections_count;
     uint32_t valid_sections_count;
 };
 
