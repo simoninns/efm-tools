@@ -52,7 +52,6 @@ private:
     DelayLines delay_line2;
     DelayLines delay_lineM;
 
-    DelayLines delay_line1_err;
     DelayLines delay_line2_err;
     DelayLines delay_lineM_err;
 

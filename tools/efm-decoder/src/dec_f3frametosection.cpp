@@ -125,12 +125,12 @@ F3FrameToSection::State F3FrameToSection::gather_section_frames() {
     if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC0) {
         //qDebug() << "F3FrameToSection::gather_section_frames(): Got sync0 frame (end of section) with" << section_buffer.size() << "frames";
         // Push the F3 frame back into the input buffer
-        input_buffer.prepend(f3_frame); // Push it back onto the section buffer
+        input_buffer.append(f3_frame); // Push it back onto the section buffer
         return PROCESS_SECTION;
     }
 
-    if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC1) {
-        if (section_buffer.size() == 0 || section_buffer[section_buffer.size()-1].get_f3_frame_type() != F3Frame::F3FrameType::SYNC0) {
+    if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC1 && section_buffer.size() > 0) {
+        if (section_buffer[section_buffer.size()-1].get_f3_frame_type() != F3Frame::F3FrameType::SYNC0) {
             qDebug() << "F3FrameToSection::gather_section_frames(): Got sync1 frame with no preceeding sync0 frame (end of section) with" << section_buffer.size() << "frames";
 
             // Mark the preceding flag as sync0
@@ -141,10 +141,10 @@ F3FrameToSection::State F3FrameToSection::gather_section_frames() {
             }
 
             // Push the sync0 F3 frame back into the input buffer
-            input_buffer.prepend(section_buffer[section_buffer.size()-1]);
+            input_buffer.append(section_buffer[section_buffer.size()-1]);
 
             // Push the sync1 F3 frame back into the input buffer
-            input_buffer.prepend(f3_frame);
+            input_buffer.append(f3_frame);
 
             // Remove the sync0 frame from the section buffer
             section_buffer.remove(section_buffer.size()-1);
@@ -166,9 +166,9 @@ F3FrameToSection::State F3FrameToSection::gather_section_frames() {
     // Check for overflow
     if (section_buffer.size() > 98) {
         // Overflow - discard the section
+        discarded_f3_frames += section_buffer.size();
+        qDebug() << "F3FrameToSection::gather_section_frames(): Section buffer overflow - discarding" << section_buffer.size() << "F3 frames";
         section_buffer.clear();
-        invalid_sections++;
-        qDebug() << "F3FrameToSection::gather_section_frames(): Section buffer overflow - discarding section";
         return WAITING_FOR_SYNC;
     }
 
@@ -214,9 +214,7 @@ F3FrameToSection::State F3FrameToSection::process_section() {
 
             // Check the validity of the subcode
             if (!subcode.is_valid()) {
-                qDebug() << "F3FrameToSection::process_section(): Subcode is invalid";
-                //qFatal("F3FrameToSection::process_section(): Subcode is invalid - this is a bug");
-                subcode = Subcode(); // Reset the subcode
+                
             }
 
             // Now we have 98 F3 Frames and a valid subcode, we can create a new section
@@ -230,6 +228,16 @@ F3FrameToSection::State F3FrameToSection::process_section() {
                 f2_frame.set_frame_type(subcode.q_channel.get_frame_type());
                 f2_frame.set_track_number(subcode.q_channel.get_track_number());
                 f2_frame.set_frame_time(subcode.q_channel.get_frame_time());
+                
+                // Check the section's subcode data is valid
+                if (subcode.q_channel.is_valid()) {
+                    valid_sections++;
+                    f2_frame.set_subcode_data_valid(true);
+                } else {
+                    invalid_sections++;
+                    qDebug() << "F3FrameToSection::process_section(): Subcode data is invalid";
+                    f2_frame.set_subcode_data_valid(false);
+                }
 
                 section.push_frame(f2_frame);
             }
@@ -239,7 +247,7 @@ F3FrameToSection::State F3FrameToSection::process_section() {
 
             // Add the section to the output buffer
             output_buffer.enqueue(section);
-            valid_sections++;
+            
             //qDebug() << "F3FrameToSection::process_section(): Section processed - section added to output buffer";
         }
 

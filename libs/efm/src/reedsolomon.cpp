@@ -120,7 +120,8 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     // If result < 0, then the Reed-Solomon decode completely failed
     // If result > 2, then there were too many errors for the Reed-Solomon decode to fix
     if (result < 0 || result > 2) {
-        //qDebug().noquote() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
+        qDebug().noquote() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
+
         // Make every byte in the error data 1 - i.e. all errors
         error_data.fill(1);
         error_c1s++;
@@ -137,8 +138,8 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
                 s_positions += " and ";
             }
         }
-        // if (position.size() == 2) qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
-        // else qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "error at byte position" << s_positions.trimmed();
+        if (position.size() == 2) qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
+        else qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "error at byte position" << s_positions.trimmed();
 
         error_data.fill(0);
         fixed_c1s++;
