@@ -44,8 +44,9 @@ private:
 
     // State machine states
     enum State {
-        WAITING_FOR_SYNC,
-        GATHER_SECTION_FRAMES,
+        EXPECTING_SYNC0,
+        EXPECTING_SYNC1,
+        EXPECTING_SUBCODE,
         PROCESS_SECTION
     };
 
@@ -53,14 +54,17 @@ private:
     QVector<F3Frame> section_buffer;
 
     // State machine state processing functions
-    State state_waiting_for_sync();
-    State gather_section_frames();
+    State expecting_sync0();
+    State expecting_sync1();
+    State expecting_subcode();
     State process_section();
 
     // Statistics
+    uint32_t missed_sync0s;
+    uint32_t missed_sync1s;
+    uint32_t missed_subcodes;
     uint32_t valid_sections;
     uint32_t invalid_sections;
-    uint32_t discarded_f3_frames;
 };
 
 #endif // DEC_F3FRAMETOSECTION_H
