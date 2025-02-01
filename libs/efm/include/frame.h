@@ -167,16 +167,11 @@ public:
     void set_track_number(uint8_t _track_number);
     uint8_t get_track_number() const;
 
-    void set_subcode_data_valid(bool valid);
-    bool is_subcode_data_valid() const;
-
 private:
     // Subcode data
     uint8_t track_number;
     FrameTime frame_time;
     FrameType frame_type;
-
-    bool subcode_data_valid;
 };
 
 class F3Frame : public Frame {

@@ -291,7 +291,6 @@ QVector<uint8_t> F1Frame::get_error_data() const {
 // Constructor for F2Frame, initializes data to the frame size
 F2Frame::F2Frame() {
     frame_data.resize(get_frame_size());
-    subcode_data_valid = true;
 
     // Set defaults
     frame_type = FrameType::USER_DATA;
@@ -339,14 +338,6 @@ void F2Frame::set_track_number(uint8_t _track_number) {
 uint8_t F2Frame::get_track_number() const {
     return track_number;
 }
-
-void F2Frame::set_subcode_data_valid(bool valid) {
-    subcode_data_valid = valid;
-}
-
-bool F2Frame::is_subcode_data_valid() const {
-    return subcode_data_valid;
-}  
 
 // Constructor for F3Frame, initializes data to the frame size
 F3Frame::F3Frame() {

@@ -34,22 +34,15 @@ public:
     void push_frame(QString data);
     F3Frame pop_frame();
     bool is_ready() const;
-    bool is_sync_lost();
 
     void show_statistics();
 
 private:
-    void process_queue();
     void process_state_machine();
-    void process_channel_frame(QString frame_data);
+    F3Frame convert_frame_data_to_f3_frame(const QString frame_data);
 
     QQueue<QString> input_buffer;
     QQueue<F3Frame> output_buffer;
-
-    QString internal_buffer;
-
-    uint32_t invalid_channel_frames_count;
-    uint32_t valid_channel_frames_count;
 
     // Define the 24-bit sync header for the F3 frame
     const QString sync_header = "100000000001000000000010";
@@ -58,24 +51,26 @@ private:
 
     // State machine states
     enum State {
-        WAITING_FOR_INITIAL_SYNC,
-        WAITING_FOR_SYNC,
-        PROCESS_FRAME,
-        SYNC_LOST
+        EXPECTING_SYNC,
+        EXPECTING_DATA,
+        PROCESS_FRAME
     };
 
     State current_state;
+    QString internal_buffer;
     QString frame_data;
-    uint32_t sync_lost_count;
-    bool sync_lost_flag;
-    uint32_t missing_sync_header_count;
-    uint32_t max_buffer_size;
+    uint32_t missed_sync;
 
     // State machine state processing functions
-    State state_waiting_for_initial_sync();
-    State state_waiting_for_sync();
-    State state_processing_frame();
-    State state_sync_lost();
+    State expecting_sync();
+    State expecting_data();
+    State process_frame();
+
+    // Statistics
+    uint32_t valid_channel_frames_count;
+    uint32_t undershoot_channel_frames_count;
+    uint32_t overshoot_channel_frames_count;
+    uint32_t discarded_bits_count;
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H
