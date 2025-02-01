@@ -185,8 +185,9 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
         } else {
             undershoot_channel_frames_count++;
             // The frame data is too short, pad with zeros to 588 bits
+            uint8_t padding_bits = 588 - frame_data.size();
             frame_data.append(QString(588 - frame_data.size(), '0'));
-            qDebug() << "ChannelToF3Frame::process_frame - Frame data is too short - padding with zeros";
+            qDebug() << "ChannelToF3Frame::process_frame - Frame data is too short - padding with" << padding_bits << "zero bits";
 
             // Create an F3 frame
             F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);

@@ -116,7 +116,7 @@ void F2FrameToF1Frame::show_statistics() {
     qInfo() << "F2 frame to F1 frame statistics:";
     qInfo() << "  Frames:";
     qInfo() << "    Valid F2 frames:" << valid_f2_frames_count;
-    qInfo() << "    Invalid F2 frames:" << invalid_f2_frames_count << "(error_data shows 1 or more errors)";
+    qInfo() << "    Corrupt F2 frames:" << invalid_f2_frames_count; // 1 or more errors in the frame data
     qInfo() << "  C1 decoder:";
     qInfo() << "    Valid C1s:" << circ.get_valid_c1s();
     qInfo() << "    Fixed C1s:" << circ.get_fixed_c1s();
