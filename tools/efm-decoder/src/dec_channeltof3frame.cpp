@@ -118,13 +118,16 @@ ChannelToF3Frame::State ChannelToF3Frame::expecting_data() {
         next_state = EXPECTING_DATA;
     } else {
         // There is enough data for a frame, but is there a terminating sync header?
-        if (internal_buffer.contains(sync_header)) {
+        // Note: Here we look at the sync header position once, as it takes quite a bit of processing
+        // we also use CaseSensitive to avoid the overhead of converting the data to lower case
+        uint32_t sync_header_index = internal_buffer.indexOf(sync_header, 0, Qt::CaseSensitive);
+        if (sync_header_index != -1) {
             //qDebug() << "ChannelToF3Frame::expecting_data - Terminating sync header found at position" << internal_buffer.indexOf(sync_header);
             // There is a terminating sync header
-            frame_data = internal_buffer.left(internal_buffer.indexOf(sync_header));
+            frame_data = internal_buffer.left(sync_header_index);
 
             // Remove the data from the internal buffer
-            internal_buffer = internal_buffer.right(internal_buffer.size() - internal_buffer.indexOf(sync_header));
+            internal_buffer = internal_buffer.right(internal_buffer.size() - sync_header_index);
 
             // Clear the missing sync counter
             missed_sync = 0;

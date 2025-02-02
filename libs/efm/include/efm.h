@@ -29,6 +29,7 @@
 #include <QString>
 #include <QStringList>
 #include <QDebug>
+#include <QHash>
 
 class Efm {
 public:
@@ -38,6 +39,8 @@ public:
     QString eight_to_fourteen(uint16_t value);
 
 private:
+    QHash<QString, uint16_t> efmHash;
+
     // Note: The EFM LUT is a list of 257 EFM symbols, each represented as a 14-bit string
     // The EFM symbols are indexed from 0 to 257 with the first 256 symbols representing
     // the 8-bit data values from 0 to 255 and the last symbols representing the sync header

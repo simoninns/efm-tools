@@ -83,11 +83,11 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     qint64 processed_size = 0;
     int last_progress = 0;
 
-    // Process the EFM data in chunks of 100 T-values
+    // Process the EFM data in chunks of 1024 T-values
     bool end_of_data = false;
     while (!end_of_data) {
-        // Read 100 T-values from the input file
-        QByteArray t_values = input_file.read(100);
+        // Read 1024 T-values from the input file
+        QByteArray t_values = input_file.read(1024);
         processed_size += t_values.size();
 
         int progress = static_cast<int>((processed_size * 100) / total_size);

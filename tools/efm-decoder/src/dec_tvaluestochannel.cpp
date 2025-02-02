@@ -50,6 +50,7 @@ bool TvaluesToChannel::is_ready() const {
 void TvaluesToChannel::process_queue() {
     // Process the input buffer
     QString bit_string;
+    bit_string.reserve(input_buffer.size() * 11); // Reserve enough space to avoid frequent reallocations
 
     while (!input_buffer.isEmpty()) {
         QByteArray t_values = input_buffer.dequeue();
@@ -58,21 +59,20 @@ void TvaluesToChannel::process_queue() {
             // Convert the T-value to a bit string
             
             // Range check
-            if (static_cast<int>(t_values[i]) > 11) {
+            int t_value = static_cast<int>(t_values[i]);
+            if (t_value > 11) {
                 invalid_t_values_count++;
-                t_values[i] = 11;
-            } else if (static_cast<int>(t_values[i]) < 3) {
+                t_value = 11;
+            } else if (t_value < 3) {
                 invalid_t_values_count++;
-                t_values[i] = 3;
+                t_value = 3;
             } else {
                 valid_t_values_count++;
             }
 
             // T3 = 100, T4 = 1000, ... , T11 = 10000000000
-            bit_string += "1";
-            for (int32_t j = 1; j < t_values[i]; j++) {
-                bit_string += "0";
-            }   
+            bit_string += '1';
+            bit_string += QString(t_value - 1, '0');
         }
     }
 
