@@ -1,12 +1,13 @@
 # Set the target name
 set(TARGET_NAME efm-decoder)
 
+# Find the Qt library
+set(CMAKE_AUTOMOC ON)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+
 # Add the source files
 file(GLOB_RECURSE SRC_FILES ${CMAKE_SOURCE_DIR}/tools/efm-decoder/src/*.cpp)
 add_executable(${TARGET_NAME} ${SRC_FILES})
-
-# Find the Qt library
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
 
 # Add the include directories for Qt
 target_include_directories(${TARGET_NAME} PRIVATE ${Qt5Core_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
