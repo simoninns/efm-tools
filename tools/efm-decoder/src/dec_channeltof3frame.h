@@ -71,6 +71,9 @@ private:
     uint32_t undershoot_channel_frames_count;
     uint32_t overshoot_channel_frames_count;
     uint32_t discarded_bits_count;
+
+    uint32_t valid_efm_symbols_count;
+    uint32_t invalid_efm_symbols_count;
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H

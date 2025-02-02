@@ -138,8 +138,8 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
                 s_positions += " and ";
             }
         }
-        if (position.size() == 2) qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
-        else qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "error at byte position" << s_positions.trimmed();
+        // if (position.size() == 2) qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "errors at byte positions" << s_positions.trimmed();
+        // else qDebug().noquote() << "ReedSolomon::c1_decode - C1 Fixed" << result << "error at byte position" << s_positions.trimmed();
 
         error_data.fill(0);
         fixed_c1s++;

@@ -38,7 +38,8 @@ uint16_t Efm::fourteen_to_eight(QString efm) {
     if (efmHash.contains(efm)) {
         return efmHash[efm];
     } else {
-        qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found - " << efm;
+        if (efm != "00000000000000") qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found -" << efm;
+        else qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found - looks like zero padding";
         return 300; // Return an invalid value
     }
 }

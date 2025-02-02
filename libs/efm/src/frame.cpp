@@ -217,6 +217,8 @@ uint8_t Data24::get_track_number() const {
 // Constructor for F1Frame, initializes data to the frame size
 F1Frame::F1Frame() {
     frame_data.resize(get_frame_size());
+    frame_error_data.resize(get_frame_size());
+    frame_error_data.fill(0);
 
     // Set defaults
     frame_type = FrameType::USER_DATA;
@@ -285,7 +287,7 @@ QVector<uint8_t> F1Frame::get_error_data() const {
         qDebug() << "Frame::get_error_data(): Error frame is empty, returning zero-filled vector";
         return QVector<uint8_t>(get_frame_size(), 0);
     }
-    return frame_data;
+    return frame_error_data;
 }
 
 // Constructor for F2Frame, initializes data to the frame size

@@ -33,6 +33,9 @@ ChannelToF3Frame::ChannelToF3Frame() {
     undershoot_channel_frames_count = 0;
     discarded_bits_count = 0;
 
+    valid_efm_symbols_count = 0;
+    invalid_efm_symbols_count = 0;
+
     // State machine tracking variables
     missed_sync = 0;
 }
@@ -166,8 +169,7 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
 
         // Create an F3 frame
         F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
-        frame_data.clear();
-
+        
         // Add the frame to the output buffer
         output_buffer.enqueue(f3_frame);
     } else {
@@ -176,20 +178,31 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
             overshoot_channel_frames_count++;
             // The frame data is too long, discard the extra bits
             discarded_bits_count += frame_data.size() - 564;
-            qDebug() << "ChannelToF3Frame::process_frame - Frame data is too long - throwing away" << frame_data.size() - 564 << "bits";
-            frame_data = frame_data.left(588);
+            qDebug() << "ChannelToF3Frame::process_frame - Frame data is too long - expected 564 bits, got" << frame_data.size() << "bits";
 
-            // Create an F3 frame
-            F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
-            frame_data.clear();
+            // Create an F3 frame from the first 564 bits
+            F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data.left(564));
+            output_buffer.enqueue(f3_frame); // Add the frame to the output buffer
 
-            // Add the frame to the output buffer
-            output_buffer.enqueue(f3_frame);
+            // Remove the left-most 564+24 bits from frame_data
+            frame_data = frame_data.mid(564 + 24);
+
+            // If it's a reasonable size, treat it as a second frame
+            if (frame_data.size() == 564) {
+                F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
+                output_buffer.enqueue(f3_frame); // Add the frame to the output buffer
+                qDebug() << "ChannelToF3Frame::process_frame - Split too long data - Processing 564 bit frame from remaining data";
+            } else {
+                // If it's not a reasonable size, discard it
+                discarded_bits_count += frame_data.size();
+                qDebug() << "ChannelToF3Frame::process_frame - Discarding" << frame_data.size() << "bits of data (too long)";
+            }
+
         } else {
             undershoot_channel_frames_count++;
-            // The frame data is too short, pad with zeros to 588 bits
-            uint8_t padding_bits = 588 - frame_data.size();
-            frame_data.append(QString(588 - frame_data.size(), '0'));
+            // The frame data is too short, pad with zeros to 564 bits
+            uint8_t padding_bits = 564 - frame_data.size();
+            frame_data.append(QString(564 - frame_data.size(), '0'));
             qDebug() << "ChannelToF3Frame::process_frame - Frame data is too short - padding with" << padding_bits << "zero bits";
 
             // Create an F3 frame
@@ -200,6 +213,9 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
             output_buffer.enqueue(f3_frame);
         }
     }
+
+    // Clear the internal buffer
+    frame_data.clear();
 
     if (missed_sync > 0 && missed_sync < 3) {
         // Terminating sync header was missing, start collecting data again
@@ -232,10 +248,21 @@ F3Frame ChannelToF3Frame::convert_frame_data_to_f3_frame(const QString frame_dat
 
     // Note: the subcode could be 256 (sync0 symbol) or 257 (sync1 symbol)
     uint16_t subcode = efm.fourteen_to_eight(frame_data.mid(3, 14));
+    if (subcode == 300) {
+        subcode = 0; // Invalid subcode, treat as 0
+        invalid_efm_symbols_count++;
+    } else valid_efm_symbols_count++;
 
     QVector<uint8_t> frame_data_bytes;
     for (int i = 0; i < 32; i++) {
-        frame_data_bytes.append(efm.fourteen_to_eight(frame_data.mid(3+14+3+(17*i), 14)));
+        uint16_t data = efm.fourteen_to_eight(frame_data.mid(3+14+3+(17*i), 14));
+
+        if (data == 300) {
+            data = 0; // Invalid subcode, treat as 0
+            invalid_efm_symbols_count++;
+        } else valid_efm_symbols_count++;
+
+        frame_data_bytes.append(data);
     }
 
     // Create a new F3 frame
@@ -254,8 +281,12 @@ F3Frame ChannelToF3Frame::convert_frame_data_to_f3_frame(const QString frame_dat
 
 void ChannelToF3Frame::show_statistics() {
     qInfo() << "Channel to F3 frame statistics:";
-    qInfo() << "  Valid channel frames:" << valid_channel_frames_count;
-    qInfo() << "  Overshoot channel frames:" << overshoot_channel_frames_count;
-    qInfo() << "  Undershoot channel frames:" << undershoot_channel_frames_count;
-    qInfo() << "  Discarded bits:" << discarded_bits_count;
+    qInfo() << "  Channel Frames:";
+    qInfo() << "    Valid:" << valid_channel_frames_count;
+    qInfo() << "    Overshoot:" << overshoot_channel_frames_count;
+    qInfo() << "    Undershoot:" << undershoot_channel_frames_count;
+    qInfo() << "    Discarded bits:" << discarded_bits_count;
+    qInfo() << "  EFM symbols:";
+    qInfo() << "    Valid EFM symbols:" << valid_efm_symbols_count;
+    qInfo() << "    Invalid EFM symbols:" << invalid_efm_symbols_count;
 }

@@ -25,8 +25,8 @@
 #include "dec_f1frametodata24.h"
 
 F1FrameToData24::F1FrameToData24() {
-    invalid_f1_frames_count = 0;
     valid_f1_frames_count = 0;
+    invalid_f1_frames_count = 0;
 }
 
 void F1FrameToData24::push_frame(F1Frame data) {
@@ -52,6 +52,7 @@ void F1FrameToData24::process_queue() {
     while (!input_buffer.isEmpty()) {
         F1Frame f1_frame = input_buffer.dequeue();
         QVector<uint8_t> data = f1_frame.get_data();
+        QVector<uint8_t> error_data = f1_frame.get_error_data();
 
         // ECMA-130 issue 2 page 16 - Clause 16
         // All byte pairs are swapped by the F1 Frame encoder
@@ -60,6 +61,18 @@ void F1FrameToData24::process_queue() {
                 std::swap(data[i], data[i + 1]);
             }
         }
+        
+        // Check the error data
+        bool error_flag = false;
+        for (int i = 0; i < error_data.size(); i++) {
+            if (error_data[i] != 0) {
+                error_flag = true;
+                break;
+            }
+        }
+
+        if (error_flag) invalid_f1_frames_count++;
+        else valid_f1_frames_count++;
 
         // Put the resulting data into a Data24 frame and push it to the output buffer
         Data24 data24;
@@ -78,8 +91,6 @@ void F1FrameToData24::process_queue() {
 
         // Add the data to the output buffer
         output_buffer.enqueue(data24);
-        
-        valid_f1_frames_count++;
     }
 }
 
