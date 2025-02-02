@@ -42,7 +42,19 @@ private:
     QQueue<Section> input_buffer;
     QQueue<QVector<F2Frame>> output_buffer;
 
-    uint32_t valid_sections_count;
+    // Tracking variables
+    uint32_t current_track;
+    FrameTime current_frame_time;
+    FrameTime current_absolute_time;
+    uint32_t missed_subcodes;
+
+    // Time statistics
+    FrameTime absolute_start_time;
+    FrameTime absolute_end_time;
+
+    QVector<uint8_t> track_numbers;
+    QVector<FrameTime> track_start_times;
+    QVector<FrameTime> track_end_times;
 };
 
 #endif // DEC_SECTIONTOF2FRAME_H

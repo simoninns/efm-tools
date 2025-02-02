@@ -141,6 +141,8 @@ public:
     FrameType get_frame_type() const;
     void set_frame_time(const FrameTime& _frame_time);
     FrameTime get_frame_time() const;
+    void set_absolute_frame_time(const FrameTime& _frame_time);
+    FrameTime get_absolute_frame_time() const;
     void set_track_number(uint8_t _track_number);
     uint8_t get_track_number() const;
 
@@ -148,6 +150,7 @@ private:
     // Subcode data
     uint8_t track_number;
     FrameTime frame_time;
+    FrameTime absolute_frame_time;
     FrameType frame_type;
 
     // Error data
@@ -164,6 +167,8 @@ public:
     FrameType get_frame_type() const;
     void set_frame_time(const FrameTime& _frame_time);
     FrameTime get_frame_time() const;
+    void set_absolute_frame_time(const FrameTime& _frame_time);
+    FrameTime get_absolute_frame_time() const;
     void set_track_number(uint8_t _track_number);
     uint8_t get_track_number() const;
 
@@ -171,6 +176,7 @@ private:
     // Subcode data
     uint8_t track_number;
     FrameTime frame_time;
+    FrameTime absolute_frame_time;
     FrameType frame_type;
 };
 

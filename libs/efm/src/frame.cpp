@@ -225,6 +225,10 @@ F1Frame::F1Frame() {
     frame_time.set_min(0);
     frame_time.set_sec(0);
     frame_time.set_frame(0);
+
+    absolute_frame_time.set_min(0);
+    absolute_frame_time.set_sec(0);
+    absolute_frame_time.set_frame(0);
 }
 
 // Get the frame size for F1Frame
@@ -258,6 +262,14 @@ void F1Frame::set_frame_time(const FrameTime& _frame_time) {
 
 FrameTime F1Frame::get_frame_time() const {
     return frame_time;
+}
+
+void F1Frame::set_absolute_frame_time(const FrameTime& _frame_time) {
+    absolute_frame_time = _frame_time;
+}
+
+FrameTime F1Frame::get_absolute_frame_time() const {
+    return absolute_frame_time;
 }
 
 void F1Frame::set_track_number(uint8_t _track_number) {
@@ -299,6 +311,10 @@ F2Frame::F2Frame() {
     frame_time.set_min(0);
     frame_time.set_sec(0);
     frame_time.set_frame(0);
+
+    absolute_frame_time.set_min(0);
+    absolute_frame_time.set_sec(0);
+    absolute_frame_time.set_frame(0);
 }
 
 // Get the frame size for F2Frame
@@ -328,6 +344,14 @@ void F2Frame::set_frame_time(const FrameTime& _frame_time) {
 
 FrameTime F2Frame::get_frame_time() const {
     return frame_time;
+}
+
+void F2Frame::set_absolute_frame_time(const FrameTime& _frame_time) {
+    absolute_frame_time = _frame_time;
+}
+
+FrameTime F2Frame::get_absolute_frame_time() const {
+    return absolute_frame_time;
 }
 
 void F2Frame::set_track_number(uint8_t _track_number) {

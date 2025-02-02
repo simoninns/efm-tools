@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "cstdint": "cpp",
-        "bch_test.C": "cpp"
+        "bch_test.C": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp"
     }
 }
