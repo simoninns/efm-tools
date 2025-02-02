@@ -103,13 +103,13 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Are there any T-values ready?
-        if (t_values_to_channel.is_ready()) {
+        while(t_values_to_channel.is_ready()) {
             QString channel_data = t_values_to_channel.pop_frame();
             channel_to_f3.push_frame(channel_data);
         }
 
         // Are there any F3 frames ready?
-        if (channel_to_f3.is_ready()) {
+        while(channel_to_f3.is_ready()) {
             F3Frame f3_frame = channel_to_f3.pop_frame();
             if (showF3) f3_frame.show_data();
             f3_frame_to_section.push_frame(f3_frame);
@@ -117,14 +117,14 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Are there any sections ready?
-        if (f3_frame_to_section.is_ready()) {
+        while(f3_frame_to_section.is_ready()) {
             Section section = f3_frame_to_section.pop_section();
             section_to_f2.push_frame(section);
             section_count++;
         }
 
         // Are there any F2 frames ready?
-        if (section_to_f2.is_ready()) {
+        while(section_to_f2.is_ready()) {
             QVector<F2Frame> f2_frames = section_to_f2.pop_frames();
 
             for (int i = 0; i < f2_frames.size(); i++) {
@@ -135,7 +135,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Are there any F1 frames ready?
-        if (f2_frame_to_f1.is_ready()) {
+        while(f2_frame_to_f1.is_ready()) {
             F1Frame f1_frame = f2_frame_to_f1.pop_frame();
             if (showF1) f1_frame.show_data();
             f1_frame_to_data24.push_frame(f1_frame);
@@ -143,7 +143,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Are there any data frames ready?
-        if (f1_frame_to_data24.is_ready()) {
+        while(f1_frame_to_data24.is_ready()) {
             Data24 data24 = f1_frame_to_data24.pop_frame();
             output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
             data24_count += 1;

@@ -32,12 +32,13 @@ Efm::Efm() {
 }
 
 // Note: There are 257 EFM symbols: 0 to 255 and two additional sync0 and sync1 symbols
+// A value of 300 is returned for an invalid EFM symbol
 uint16_t Efm::fourteen_to_eight(QString efm) {
     // Convert the EFM symbol to an 8-bit value using a hash table for faster lookup
     if (efmHash.contains(efm)) {
         return efmHash[efm];
     } else {
-        qDebug() << "Efm::fourteen_to_eight(): EFM symbol not found - " << efm;
+        qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found - " << efm;
         return 300; // Return an invalid value
     }
 }
