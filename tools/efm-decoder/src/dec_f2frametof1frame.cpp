@@ -105,9 +105,8 @@ void F2FrameToF1Frame::process_queue() {
         F1Frame f1_frame;
         f1_frame.set_data(data);
         f1_frame.set_error_data(error_data);
-        f1_frame.set_frame_type(f2_frame.get_frame_type());
-        f1_frame.set_frame_time(f2_frame.get_frame_time());
-        f1_frame.set_track_number(f2_frame.get_track_number());
+        f1_frame.frame_metadata = f2_frame.frame_metadata;
+
         output_buffer.enqueue(f1_frame);
     }
 }

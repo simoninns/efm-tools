@@ -26,6 +26,7 @@
 #define DEC_F3FRAMETOSECTION_H
 
 #include "decoders.h"
+#include "subcode.h"
 
 class F3FrameToSection : Decoder {
 public:

@@ -54,9 +54,7 @@ void Data24ToF1Frame::process_queue() {
 
         F1Frame f1_frame;
         f1_frame.set_data(data);
-        f1_frame.set_frame_type(data24.get_frame_type());
-        f1_frame.set_frame_time(data24.get_frame_time());
-        f1_frame.set_track_number(data24.get_track_number());
+        f1_frame.frame_metadata = data24.frame_metadata;
 
         valid_f1_frames_count++;
         output_buffer.enqueue(f1_frame);

@@ -51,26 +51,6 @@ void F2FrameToSection::process_queue() {
         
         for (uint32_t symbol = 0; symbol < 98; ++symbol) {
             F2Frame f2_frame = input_buffer.dequeue();
-
-            // Set the overall section information based on the first F2 frame of the section
-            if (symbol == 0) {
-                section.subcode.p_channel.set_flag(false);
-                if (qmode == Qchannel::QModes::QMODE_1) {
-                    section.subcode.q_channel.set_q_mode_1(qcontrol, f2_frame.get_track_number(),
-                        f2_frame.get_frame_time(),
-                        f2_frame.get_frame_time(), // Note: This sets absolute time to time, which isn't correct
-                        f2_frame.get_frame_type());
-                }
-                else if (qmode == Qchannel::QModes::QMODE_4) {
-                    section.subcode.q_channel.set_q_mode_4(qcontrol, f2_frame.get_track_number(),
-                        f2_frame.get_frame_time(),
-                        f2_frame.get_frame_time(), // Note: This sets absolute time to time, which isn't correct
-                        f2_frame.get_frame_type());
-                } else {
-                    qFatal("F2FrameToSection::process_queue(): Invalid Q-Channel mode");
-                }
-            }
-
             section.push_frame(f2_frame);
         }
 
@@ -82,9 +62,4 @@ void F2FrameToSection::process_queue() {
 
 bool F2FrameToSection::is_ready() const {
     return !output_buffer.isEmpty();
-}
-
-void F2FrameToSection::set_qmode_options(Qchannel::QModes _qmode, Qchannel::Control _qcontrol) {
-    qmode = _qmode;
-    qcontrol = _qcontrol;
 }

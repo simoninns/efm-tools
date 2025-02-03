@@ -2,7 +2,7 @@
 
     subcode.cpp
 
-    EFM-library - Subcode channel functions
+    EFM-library - Convert subcode data to FrameMetadata and back
     Copyright (C) 2025 Simon Inns
 
     This file is part of EFM-Tools.
@@ -22,74 +22,241 @@
 
 ************************************************************************/
 
-#include <QDebug>
 #include "subcode.h"
 
-// P-channel class -----------------------------------------------------------------------------------------------------
-Pchannel::Pchannel() {
-    flag = false;
-}
-
-void Pchannel::set_flag(bool _flag) {
-    flag = _flag;
-}
-
-bool Pchannel::get_bit(uint8_t index) const {
-    // Since the p-channel has the same value for
-    // all bits, we can just return the flag value here
-    return flag;
-}
-
-bool Pchannel::is_valid() const {
-    // The P-channel is always valid
-    return true;
-}
-
-// Q-channel class -----------------------------------------------------------------------------------------------------
-Qchannel::Qchannel() {
-    // The Q-channel data is 12 bytes long (96 bits)
-    q_channel_data.resize(12);
-    q_channel_data.fill(0);
-    
-    // q Channel defaults
-    q_mode = QMODE_1;
-    set_control(AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED);
-    frame_type = FrameType::USER_DATA;
-    track_number = 1;
-
-    // Default as invalid
-    q_channel_data_valid = false;
-}
-
-void Qchannel::set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
-    q_mode = QMODE_1;
-    set_control(_control);
-    set_q_mode_1or4(_track_number, _f_time, _ap_time, _frame_type);
-}
-
-// To-Do: Implement the set_q_mode_2, set_q_mode_3 functions
-
-void Qchannel::set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
-    q_mode = QMODE_4;
-    set_control(_control);
-    set_q_mode_1or4(_track_number, _f_time, _ap_time, _frame_type);
-}
-
-// The only difference between Q-mode 1 and 4 is the control bits, so we can use the same function for both
-// to save code duplication
-void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type) {
-    if (frame_type == FrameType::LEAD_IN) track_number = 0;
-    if (frame_type == FrameType::LEAD_OUT) track_number = 0;
-    if ((frame_type == FrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
-        qFatal("Qchannel::generate_frame(): Track number must be in the range 1 to 98.");
-    }
-    if ((frame_type == FrameType::USER_DATA) && (track_number > 0 || track_number < 99)) {
-        track_number = _track_number;
+// Takes 98 bytes of subcode data and returns a FrameMetadata object
+FrameMetadata Subcode::from_data(const QByteArray& data) {
+    // Ensure the data is 98 bytes long
+    if (data.size() != 98) {
+        qFatal("Subcode::from_data(): Data size of %d does not match 98 bytes", data.size());
     }
 
-    frame_type = _frame_type;
-    f_time = _f_time;
-    ap_time = _ap_time;
+    // Extract the p-channel data and q-channel data
+    QByteArray p_channel;
+    QByteArray q_channel;
+    p_channel.resize(12);
+    q_channel.resize(12);
+
+    // Note: index 0 and 1 are sync0 and sync1 bytes
+    // so we get 96 bits of data per channel from 98 bytes input
+    for (uint32_t index = 2; index < data.size(); index++) {
+        set_bit(p_channel, index-2, data[index] & 0x80);
+        set_bit(q_channel, index-2, data[index] & 0x40);
+    }
+
+    // Create the FrameMetadata object
+    FrameMetadata frame_metadata;
+
+    // Set the p-channel (p-channel is just repeating flag)
+    if (static_cast<char>(p_channel[0]) == 0) frame_metadata.set_p_flag(false);
+    else frame_metadata.set_p_flag(true);
+
+    // Set the q-channel
+    // If the q-channel CRC is not valid, attempt to repair the data
+    if (!is_crc_valid(q_channel)) repair_data(q_channel);
+
+    if (is_crc_valid(q_channel)) {
+        // Set the q-channel data from the subcode data
+
+        // Get the address and control nybbles
+        uint8_t control_nybble = q_channel[0] >> 4;
+        uint8_t mode_nybble = q_channel[0] & 0x0F;
+
+        // Set the q-channel mode
+        switch (mode_nybble) {
+            case 0x1:
+                frame_metadata.set_q_mode(FrameMetadata::QMODE_1);
+                break;
+            case 0x2:
+                frame_metadata.set_q_mode(FrameMetadata::QMODE_2);
+                break;
+            case 0x3:
+                frame_metadata.set_q_mode(FrameMetadata::QMODE_3);
+                break;
+            case 0x4:
+                frame_metadata.set_q_mode(FrameMetadata::QMODE_4);
+                break;
+            default:
+                qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
+                qFatal("Subcode::from_data(): Invalid Q-mode nybble! Must be 1, 2, 3 or 4 not %d", mode_nybble);
+        }
+
+        // Set the q-channel control settings
+        switch (control_nybble) {
+            case 0x0:
+                // AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(true);
+                frame_metadata.set_preemphasis(false);
+                frame_metadata.set_2_channel(true);
+                break;
+            case 0x1:
+                // AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(true);
+                frame_metadata.set_preemphasis(true);
+                frame_metadata.set_2_channel(true);
+                break;
+            case 0x2:
+                // AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(false);
+                frame_metadata.set_preemphasis(false);
+                frame_metadata.set_2_channel(true);
+                break;
+            case 0x3:
+                // AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(false);
+                frame_metadata.set_preemphasis(true);
+                frame_metadata.set_2_channel(true);
+                break;
+            case 0x4:
+                // DIGITAL_COPY_PROHIBITED
+                frame_metadata.set_audio(false);
+                frame_metadata.set_copy_prohibited(true);
+                frame_metadata.set_preemphasis(false);
+                frame_metadata.set_2_channel(true);
+                break;
+            case 0x6:
+                // DIGITAL_COPY_PERMITTED
+                frame_metadata.set_audio(false);
+                frame_metadata.set_copy_prohibited(false);
+                frame_metadata.set_preemphasis(false);
+                frame_metadata.set_2_channel(true);
+                break;
+            case 0x8:
+                // AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(true);
+                frame_metadata.set_preemphasis(false);
+                frame_metadata.set_2_channel(false);
+                break;
+            case 0x9:
+                // AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(true);
+                frame_metadata.set_preemphasis(true);
+                frame_metadata.set_2_channel(false);
+                break;
+            case 0xA:
+                // AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(false);
+                frame_metadata.set_preemphasis(false);
+                frame_metadata.set_2_channel(false);
+                break;
+            case 0xB:
+                // AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED
+                frame_metadata.set_audio(true);
+                frame_metadata.set_copy_prohibited(false);
+                frame_metadata.set_preemphasis(true);
+                frame_metadata.set_2_channel(false);
+                break;
+            default:
+                qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
+                qFatal("Subcode::from_data(): Invalid control nybble! Must be 0-3, 4-7 or 8-11 not %d", control_nybble);
+        }
+        frame_metadata.set_valid(true);
+    } else {
+        // Set the q-channel data to invalid leaving the rest of 
+        // the metadata as default values
+        qDebug() << "Subcode::from_data(): Invalid CRC in Q-channel data - expected:" << QString::number(get_q_channel_crc(q_channel), 16) <<
+            "calculated:" << QString::number(calculate_q_channel_crc16(q_channel), 16);
+        qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
+        frame_metadata.set_valid(false);
+    }
+
+    // Get the track number
+    uint8_t track_number = bcd2_to_int(q_channel[1]);
+
+    // If the track number is 0, then this is a lead-in frame
+    // If the track number is 0xAA, then this is a lead-out frame
+    // If the track number is 1-99, then this is a user data frame
+    if (track_number == 0) {
+        frame_metadata.set_frame_type(FrameType::LEAD_IN);
+    } else if (track_number == 0xAA) {
+        frame_metadata.set_frame_type(FrameType::LEAD_OUT);
+    } else {
+        frame_metadata.set_frame_type(FrameType::USER_DATA);
+    }
+
+    // Now set the track number
+    frame_metadata.set_track_number(track_number);
+
+    // Set the frame time q_data_channel[3-5]
+    frame_metadata.set_frame_time(FrameTime(bcd2_to_int(q_channel[3]), bcd2_to_int(q_channel[4]), bcd2_to_int(q_channel[5])));
+
+    // Set the zero byte q_data_channel[6] - Not used at the moment
+
+    // Set the ap time q_data_channel[7-9]
+    frame_metadata.set_absolute_frame_time(FrameTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9])));
+
+    // All done!
+    return frame_metadata;
+}
+
+// Takes a FrameMetadata object and returns 98 bytes of subcode data
+QByteArray Subcode::to_data(const FrameMetadata& frame_metadata) {
+    QByteArray p_channel_data(12,0);
+    QByteArray q_channel_data(12,0);
+
+    // Set the p-channel data
+    for (int i = 0; i < 12; i++) {
+        if (frame_metadata.is_p_flag()) p_channel_data[i] = 0xFF;
+        else p_channel_data[i] = 0x00;
+    }
+
+    // Create the control and address nybbles
+    uint8_t control_nybble = 0;
+    uint8_t mode_nybble = 0;
+
+    switch (frame_metadata.get_q_mode()) {
+        case FrameMetadata::QMODE_1:
+            mode_nybble = 0x1; // 0b0001
+            break;
+        case FrameMetadata::QMODE_2:
+            mode_nybble = 0x2; // 0b0010
+            break;
+        case FrameMetadata::QMODE_3:
+            mode_nybble = 0x3; // 0b0011
+            break;
+        case FrameMetadata::QMODE_4:
+            mode_nybble = 0x4; // 0b0100
+            break;
+        default:
+            qFatal("Subcode::to_data(): Invalid Q-mode %d", frame_metadata.get_q_mode());
+    }
+
+    bool audio = frame_metadata.is_audio();
+    bool copy_prohibited = frame_metadata.is_copy_prohibited();
+    bool preemphasis = frame_metadata.is_preemphasis();
+    bool channels2 = frame_metadata.is_2_channel();
+
+    // These are the valid combinations of control nybble flags
+    if (audio && channels2 && !preemphasis && copy_prohibited) control_nybble = 0x0; // 0b0000 = AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED
+    else if (audio && channels2 && preemphasis && copy_prohibited) control_nybble = 0x1; // 0b0001 = AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED
+    else if (audio && channels2 && !preemphasis && !copy_prohibited) control_nybble = 0x2; // 0b0010 = AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED
+    else if (audio && channels2 && preemphasis && !copy_prohibited) control_nybble = 0x3; // 0b0011 = AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED
+    else if (!audio && copy_prohibited) control_nybble = 0x4; // 0b0100 = DIGITAL_COPY_PROHIBITED
+    else if (!audio && !copy_prohibited) control_nybble = 0x6; // 0b0110 = DIGITAL_COPY_PERMITTED
+    else if (audio && !channels2 && !preemphasis && copy_prohibited) control_nybble = 0x8; // 0b1000 = AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED
+    else if (audio && !channels2 && preemphasis && copy_prohibited) control_nybble = 0x9; // 0b1001 = AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED
+    else if (audio && !channels2 && !preemphasis && !copy_prohibited) control_nybble = 0xA; // 0b1010 = AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED
+    else if (audio && !channels2 && preemphasis && !copy_prohibited) control_nybble = 0xB; // 0b1011 = AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED
+    else {
+        qFatal("Subcode::to_data(): Invalid control nybble! Must be 0-3, 4-7 or 8-11");
+    }
+
+    // The Q-channel data is constructed from the Q-mode (4 bits) and control bits (4 bits)
+    // Q-mode is 0-3 and control is 4-7
+    q_channel_data[0] = control_nybble << 4 | mode_nybble;
+
+    // Get the frame metadata
+    FrameType frame_type = frame_metadata.get_frame_type();
+    FrameTime f_time = frame_metadata.get_frame_time();
+    FrameTime ap_time = frame_metadata.get_absolute_frame_time();
+    uint8_t track_number = frame_metadata.get_track_number();
 
     // Set the Q-channel data
     if (frame_type == FrameType::LEAD_IN) {
@@ -97,7 +264,6 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         uint16_t pointer = 0x00;
         uint8_t zero = 0;
 
-        set_conmode(); // Set the control and mode bits q_data_channel[0]
         q_channel_data[1] = tno;
         q_channel_data[2] = pointer;
         q_channel_data[3] = int_to_bcd2(f_time.get_min());
@@ -107,15 +273,13 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[7] = int_to_bcd2(ap_time.get_min());
         q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
-        q_channel_data = generate_crc(q_channel_data);
     }
  
     if (frame_type == FrameType::USER_DATA) {
         uint8_t tno = int_to_bcd2(track_number);
-        uint8_t index = 01; // Not correct
+        uint8_t index = 01; // Not correct?
         uint8_t zero = 0;
 
-        set_conmode(); // Set the control and mode bits q_data_channel[0]
         q_channel_data[1] = tno;
         q_channel_data[2] = index;
         q_channel_data[3] = int_to_bcd2(f_time.get_min());
@@ -125,7 +289,6 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[7] = int_to_bcd2(ap_time.get_min());
         q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
-        q_channel_data = generate_crc(q_channel_data);
     }
 
     if (frame_type == FrameType::LEAD_OUT) {
@@ -133,7 +296,6 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         uint16_t index = 01; // Must be 01 for lead-out
         uint8_t zero = 0;
 
-        set_conmode(); // Set the control and mode bits q_data_channel[0]
         q_channel_data[1] = tno;
         q_channel_data[2] = index;
         q_channel_data[3] = int_to_bcd2(f_time.get_min());
@@ -143,287 +305,95 @@ void Qchannel::set_q_mode_1or4(uint8_t _track_number, FrameTime _f_time, FrameTi
         q_channel_data[7] = int_to_bcd2(ap_time.get_min());
         q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
-        q_channel_data = generate_crc(q_channel_data);
     }
 
-    // Set as valid
-    q_channel_data_valid = true;
-}
-    
-void Qchannel::set_control(Control _control) {
-    control = _control;
-    set_conmode();
-}
+    // Set the CRC
+    set_q_channel_crc(q_channel_data); // Sets data[10] and data[11]
 
-void Qchannel::set_conmode() {
-    uint8_t mode_nybble = 0;
-    uint8_t control_nybble = 0;
+    // Now we need to convert the p-channel and q-channel data into a 98 byte array
+    QByteArray data;
+    data.resize(98);
+    data[0] = 0x00; // Sync0
+    data[1] = 0x00; // Sync1
 
-    switch (q_mode) {
-        case QMODE_1:
-            mode_nybble = 0x1; // 0b0001
-            break;
-        case QMODE_2:
-            mode_nybble = 0x2; // 0b0010
-            break;
-        case QMODE_3:
-            mode_nybble = 0x3; // 0b0011
-            break;
-        case QMODE_4:
-            mode_nybble = 0x4; // 0b0100
-            break;
+    for (int index = 2; index < 98; index++) {
+        uint8_t subcode_byte = 0x00;
+        if (get_bit(p_channel_data, index-2)) subcode_byte |= 0x80;
+        if (get_bit(q_channel_data, index-2)) subcode_byte |= 0x40;
+        data[index] = subcode_byte;
     }
-
-    switch (control) {
-        case AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED:
-            control_nybble = 0x0; // 0b0000 = 0x0
-            break;
-        case AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED:
-            control_nybble = 0x1; // 0b0001 = 0x1
-            break;
-        case AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED:
-            control_nybble = 0x2; // 0b0010 = 0x2
-            break;
-        case AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED:
-            control_nybble = 0x3; // 0b0011 = 0x3
-            break;
-        case DIGITAL_COPY_PROHIBITED:
-            control_nybble = 0x4; // 0b0100 = 0x4
-            break;
-        case DIGITAL_COPY_PERMITTED:
-            control_nybble = 0x6; // 0b0110 = 0x6
-            break;
-        case AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED:
-            control_nybble = 0x8; // 0b1000 = 0x8
-            break;
-        case AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED:
-            control_nybble = 0x9; // 0b1001 = 0x9
-            break;
-        case AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED:
-            control_nybble = 0xA; // 0b1010 = 0xA
-            break;
-        case AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED:
-            control_nybble = 0xB; // 0b1011 = 0xB
-            break;
-    }
-
-    // The Q-channel data is constructed from the Q-mode (4 bits) and control bits (4 bits)
-    // Q-mode is 0-3 and control is 4-7
-    q_channel_data[0] = control_nybble << 4 | mode_nybble;
-}
-
-bool Qchannel::get_bit(uint8_t index) const {
-    if (index < 2) qFatal("Qchannel::get_bit(): Invalid index (must be greater than 2 due to sync0 and sync1 bytes)");
-    index -= 2; // This is due to the sync0 and sync1 bytes at the start of the subcode
-
-    // The symbol number is the bit position in the 96-bit subcode data
-    // We need to convert this to a byte number and bit number within that byte
-    uint8_t byte_number = index / 8;
-    uint8_t bit_number = 7 - (index % 8); // Change to make MSB at the other end
-
-    uint8_t sc_byte = q_channel_data[byte_number];
-
-    // Return true or false based on the required bit
-    return (sc_byte & (1 << bit_number)) != 0;   
-}
-
-void Qchannel::set_bit(uint8_t index, bool value) {
-    if (index < 2) qFatal("Qchannel::set_bit(): Invalid index (must be greater than 2 due to sync0 and sync1 bytes)");
-    index -= 2; // This is due to the sync0 and sync1 bytes at the start of the subcode
-
-    // The symbol number is the bit position in the 96-bit subcode data
-    // We need to convert this to a byte number and bit number within that byte
-    uint8_t byte_number = index / 8;
-    uint8_t bit_number = 7 - (index % 8); // Change to make MSB at the other end
-
-    if (value) {
-        q_channel_data[byte_number] = static_cast<uchar>(q_channel_data[byte_number] | (1 << bit_number)); // Set bit
-    } else {
-        q_channel_data[byte_number] = static_cast<uchar>(q_channel_data[byte_number] & ~(1 << bit_number)); // Clear bit
-    }
-
-    // If the index is 95 (0-97, -2), then we assume that we have all the required q-channel data
-    // and we have to refresh the q-channel parameters based on the data.
-    if (index == 95) {
-        q_channel_data_valid = refresh_q_channel_from_data();
-    }
-}
-
-bool Qchannel::refresh_q_channel_from_data() {
-    // Firstly compute the CRC and check the q-channel data is valid
-    if (!is_crc_valid(q_channel_data)) {
-        // Attempt to repair the data
-        repair_data();
-
-        if (!is_crc_valid(q_channel_data)) {
-            qWarning("Qchannel::refresh_q_channel_from_data(): CRC is invalid");
-            return false;
-        } else {
-            qWarning("Qchannel::refresh_q_channel_from_data(): CRC was invalid but has been repaired");
-        }
-    }
-
-    // Set q-mode, control, track number, frame time, ap time, frame type by reading the q-channel data
-    // This is the reverse of the set_q_mode_1or4 function
-
-    // Set the control and mode bits q_data_channel[0]
-    uint8_t control_nybble = q_channel_data[0] >> 4;
-    uint8_t mode_nybble = q_channel_data[0] & 0x0F;
-
-    switch (mode_nybble) {
-        case 0x1:
-            q_mode = QMODE_1;
-            break;
-        case 0x2:
-            q_mode = QMODE_2;
-            break;
-        case 0x3:
-            q_mode = QMODE_3;
-            break;
-        case 0x4:
-            q_mode = QMODE_4;
-            break;
-        default:
-            qFatal("Qchannel::refresh_q_channel_from_data(): Invalid Q-mode nybble! Must be 1, 2, 3 or 4 not %d", mode_nybble);
-    }
-
-    switch (control_nybble) {
-        case 0x0:
-            control = AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED;
-            break;
-        case 0x1:
-            control = AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED;
-            break;
-        case 0x2:
-            control = AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED;
-            break;
-        case 0x3:
-            control = AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED;
-            break;
-        case 0x4:
-            control = DIGITAL_COPY_PROHIBITED;
-            break;
-        case 0x6:
-            control = DIGITAL_COPY_PERMITTED;
-            break;
-        case 0x8:
-            control = AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED;
-            break;
-        case 0x9:
-            control = AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED;
-            break;
-        case 0xA:
-            control = AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED;
-            break;
-        case 0xB:
-            control = AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED;
-            break;
-        default:
-            qFatal("Qchannel::refresh_q_channel_from_data(): Invalid control nybble! Must be 0-3, 4-7 or 8-11 not %d", control_nybble);
-    }
-
-    // Set the track number q_data_channel[1]
-    track_number = bcd2_to_int(q_channel_data[1]);
-
-    // If the track number is 0, then this is a lead-in frame
-    // If the track number is 0xAA, then this is a lead-out frame
-    // If the track number is 1-99, then this is a user data frame
-    if (track_number == 0) {
-        frame_type = FrameType::LEAD_IN;
-    } else if (track_number == 0xAA) {
-        frame_type = FrameType::LEAD_OUT;
-    } else {
-        frame_type = FrameType::USER_DATA;
-    }
-
-    // Set the index/pointer q_data_channel[2] - Not used at the moment
-
-    // Set the frame time q_data_channel[3-5]
-    f_time.set_min(bcd2_to_int(q_channel_data[3]));
-    f_time.set_sec(bcd2_to_int(q_channel_data[4]));
-    f_time.set_frame(bcd2_to_int(q_channel_data[5]));
-
-    // Set the zero byte q_data_channel[6] - Not used at the moment
-
-    // Set the ap time q_data_channel[7-9]
-    ap_time.set_min(bcd2_to_int(q_channel_data[7]));
-    ap_time.set_sec(bcd2_to_int(q_channel_data[8]));
-    ap_time.set_frame(bcd2_to_int(q_channel_data[9]));
-
-    // qDebug() << "Qchannel::refresh_q_channel_from_data()" << q_channel_data.toHex() << "Qmode:" << q_mode << "Control:" << control <<
-    //     "Track:" << track_number << "Frame Time:" << f_time.to_string() << "AP Time:" << ap_time.to_string() << "Frame Type:" << frame_type.to_string();
-
-    return true;
-}
-
-bool Qchannel::is_valid() {
-    return q_channel_data_valid;
-}
-
-// Because of the way Q-channel data is spread over many frames, the most
-// likely cause of a CRC error is a single bit error in the data. We can
-// attempt to repair the data by flipping each bit in turn and checking
-// the CRC.
-//
-// Perhaps there is some more effective way to repair the data, but this
-// will do for now.
-void Qchannel::repair_data() {
-    QByteArray data_copy = q_channel_data;
-
-    // 96-16 = Don't repair CRC bits
-    for (int i = 0; i < 96-16; i++) {
-        data_copy = q_channel_data;
-        data_copy[i / 8] = static_cast<uchar>(data_copy[i / 8] ^ (1 << (7 - (i % 8))));
-
-        if (is_crc_valid(data_copy)) {
-            q_channel_data = data_copy;
-            qDebug() << "Qchannel::repair_data(): Repaired data by flipping bit" << i;
-            return;
-        }
-    }
-}
-
-QByteArray Qchannel::generate_crc(QByteArray data) {
-    // Generate the CRC for the channel data
-    // CRC is on control+mode+data 4+4+72 = 80 bits with 16-bit CRC (96 bits total)
-    uint16_t crc = crc16(q_channel_data.mid(0, 10));
-
-    // Invert the CRC
-    crc = ~crc & 0xFFFF;
-
-    // CRC is 2 bytes
-    data[10] = crc >> 8;
-    data[11] = crc & 0xFF;
 
     return data;
 }
 
-bool Qchannel::is_crc_valid(QByteArray data) {
-    // Check the CRC for the channel data
-    // CRC is on control+mode+data 4+4+72 = 80 bits with 16-bit CRC (96 bits total)
-    uint16_t crc = crc16(data.mid(0, 10));
-
-    // Invert the CRC
-    crc = ~crc & 0xFFFF;
-
-    // Get the CRC from the data
-    uint16_t data_crc = static_cast<uchar>(data[10]) << 8 | static_cast<uchar>(data[11]);
-
-    // Compare the CRCs...
-    if (crc != data_crc) {
-        // qDebug() << "Qchannel::is_crc_valid(): Calculated CRC:" << QString::number(crc, 16).toUpper() << "Data CRC:" << QString::number(data_crc, 16).toUpper();
-        // qDebug() << "Qchannel::is_crc_valid(): Data:" << data.toHex();
-        return false;
+// Set a bit in a byte array
+void Subcode::set_bit(QByteArray& data, uint8_t bit_position, bool value) {
+    // Check to ensure the bit position is valid
+    if (bit_position >= data.size() * 8) {
+        qFatal("Subcode::set_bit(): Bit position %d is out of range for data size %d", bit_position, data.size());
     }
-    return true;
+
+    // We need to convert this to a byte number and bit number within that byte
+    uint8_t byte_number = bit_position / 8;
+    uint8_t bit_number = 7 - (bit_position % 8);
+
+    // Set the bit
+    if (value) {
+        data[byte_number] = static_cast<uchar>(data[byte_number] | (1 << bit_number)); // Set bit
+    } else {
+        data[byte_number] = static_cast<uchar>(data[byte_number] & ~(1 << bit_number)); // Clear bit
+    }
+}
+
+// Get a bit from a byte array
+bool Subcode::get_bit(const QByteArray& data, uint8_t bit_position) {
+    // Check to ensure we don't overflow the data array
+    if (bit_position >= data.size() * 8) {
+        qFatal("Subcode::get_bit(): Bit position %d is out of range for data size %d", bit_position, data.size());
+    }
+
+    // We need to convert this to a byte number and bit number within that byte
+    uint8_t byte_number = bit_position / 8;
+    uint8_t bit_number = 7 - (bit_position % 8);
+
+    // Get the bit
+    return (data[byte_number] & (1 << bit_number)) != 0;
+}
+
+bool Subcode::is_crc_valid(QByteArray q_channel_data) {
+    // Get the CRC from the data
+    uint16_t data_crc = get_q_channel_crc(q_channel_data);
+
+    // Calculate the CRC
+    uint16_t calculated_crc = calculate_q_channel_crc16(q_channel_data);
+
+    // Check if the CRC is valid
+    return data_crc == calculated_crc;
+}
+
+uint16_t Subcode::get_q_channel_crc(QByteArray q_channel_data) {
+    // Get the CRC from the data
+    return static_cast<uint16_t>(static_cast<uchar>(q_channel_data[10]) << 8 | static_cast<uchar>(q_channel_data[11]));
+}
+
+void Subcode::set_q_channel_crc(QByteArray& q_channel_data) {
+    // Calculate the CRC
+    uint16_t calculated_crc = calculate_q_channel_crc16(q_channel_data);
+
+    // Set the CRC in the data
+    q_channel_data[10] = static_cast<uint8_t>(calculated_crc >> 8);
+    q_channel_data[11] = static_cast<uint8_t>(calculated_crc & 0xFF);
 }
 
 // Generate a 16-bit CRC for the subcode data
 // Adapted from http://mdfs.net/Info/Comp/Comms/CRC16.htm
-uint16_t Qchannel::crc16(const QByteArray &data)
+uint16_t Subcode::calculate_q_channel_crc16(const QByteArray &q_channel_data)
 {
     int32_t i;
     uint32_t crc = 0;
+
+    // Remove the last 2 bytes
+    QByteArray data = q_channel_data.left(q_channel_data.size() - 2);
 
     for (int pos = 0; pos < data.size(); pos++) {
         crc = crc ^ static_cast<uint32_t>(static_cast<uchar>(data[pos]) << 8);
@@ -433,14 +403,42 @@ uint16_t Qchannel::crc16(const QByteArray &data)
         }
     }
 
+    // Invert the CRC
+    crc = ~crc & 0xFFFF;
+
     return static_cast<uint16_t>(crc);
 }
 
+// Because of the way Q-channel data is spread over many frames, the most
+// likely cause of a CRC error is a single bit error in the data. We can
+// attempt to repair the data by flipping each bit in turn and checking
+// the CRC.
+//
+// Perhaps there is some more effective way to repair the data, but this
+// will do for now.
+bool Subcode::repair_data(QByteArray &q_channel_data) {
+    QByteArray data_copy = q_channel_data;
+
+    // 96-16 = Don't repair CRC bits
+    for (int i = 0; i < 96-16; i++) {
+        data_copy = q_channel_data;
+        data_copy[i / 8] = static_cast<uchar>(data_copy[i / 8] ^ (1 << (7 - (i % 8))));
+
+        if (is_crc_valid(data_copy)) {
+            q_channel_data = data_copy;
+            qDebug() << "Subcode::repair_data(): Repaired data by flipping bit" << i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Convert integer to BCD (Binary Coded Decimal)
-// Output is always 2 bytes (00-99)
-uint16_t Qchannel::int_to_bcd2(uint16_t value) {
+// Output is always 2 nybbles (00-99)
+uint8_t Subcode::int_to_bcd2(uint8_t value) {
     if (value > 99) {
-        qFatal("Qchannel::int_to_bcd2(): Value must be in the range 0 to 99.");
+        qFatal("Subcode::int_to_bcd2(): Value must be in the range 0 to 99.");
     }
 
     uint16_t bcd = 0;
@@ -456,7 +454,8 @@ uint16_t Qchannel::int_to_bcd2(uint16_t value) {
     return bcd & 0xFF;
 }
 
-uint16_t Qchannel::bcd2_to_int(uint16_t bcd) {
+// Convert BCD (Binary Coded Decimal) to integer
+uint8_t Subcode::bcd2_to_int(uint8_t bcd) {
     uint16_t value = 0;
     uint16_t factor = 1;
 
@@ -467,48 +466,4 @@ uint16_t Qchannel::bcd2_to_int(uint16_t bcd) {
     }
 
     return value;
-}
-
-// Set the frame time
-void Qchannel::set_frame_time(FrameTime _f_time) {
-    f_time = _f_time;
-
-    // Note: This doesn't change the AP time at the moment - could be an issue in the future?
-    set_q_mode_1or4(track_number, f_time, ap_time, frame_type);
-}
-
-// Subcode class -------------------------------------------------------------------------------------------------------
-Subcode::Subcode() {
-    // Set the Q-channel to default (Q-mode 1, audio 2-channel, no preemphasis, copy permitted)
-    p_channel.set_flag(false);
-    q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1,
-        FrameTime(0, 0, 0), FrameTime(0, 0, 0), FrameType::USER_DATA);
-}
-
-bool Subcode::is_valid() {
-    return q_channel.is_valid() && p_channel.is_valid();
-}
-
-uint8_t Subcode::get_subcode_byte(uint8_t index) const {
-    if (index < 2) return 0; // The first two subcode bytes are always zero (sync0 and sync1)
-
-    uint8_t subcode_byte = 0;
-    if (p_channel.get_bit(index)) subcode_byte |= 0x80;
-    if (q_channel.get_bit(index)) subcode_byte |= 0x40;
-
-    // Note: channels R through W are reserved and always zero
-    
-    return subcode_byte;
-}
-
-void Subcode::set_subcode_byte(uint8_t index, uint8_t value) {
-    if (index < 2) qFatal("Subcode::set_subcode_byte(): Invalid index (must be greater than 2 due to sync0 and sync1 bytes)");
-
-    // The P-channel is the MSB of the subcode byte
-    p_channel.set_flag(value & 0x80);
-
-    // The Q-channel is the next bit
-    q_channel.set_bit(index, value & 0x40);
-
-    // Note: channels R through W are reserved and always zero
 }

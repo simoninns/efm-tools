@@ -28,89 +28,28 @@
 #include <cstdint>
 #include <QByteArray>
 #include <QString>
-#include "frame.h"
+#include <QDebug>
 
-class Pchannel {
-public:
-    Pchannel();
-    void set_flag(bool _flag);
-    bool get_bit(uint8_t index) const;
-    bool is_valid() const;
-
-private:
-    bool flag;
-};
-
-class Qchannel {
-public:
-    enum QModes {
-        QMODE_1,
-        QMODE_2,
-        QMODE_3,
-        QMODE_4
-    };
-    enum Control {
-        AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED,
-        AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED,
-        AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED,
-        AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED,
-        AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED,
-        AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED,
-        AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED,
-        AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED,
-        DIGITAL_COPY_PROHIBITED,
-        DIGITAL_COPY_PERMITTED,
-    };
-
-    Qchannel();
-    bool get_bit(uint8_t index) const;
-    void set_bit(uint8_t index, bool value);
-
-    void set_q_mode_1(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type);
-    void set_q_mode_4(Control _control, uint8_t _track_number, FrameTime _f_time, FrameTime _ap_time, FrameType _frame_type);
-
-    QModes get_q_mode() const { return q_mode; }
-    Control get_control() const { return control; }
-
-    FrameType get_frame_type() const { return frame_type; }
-    FrameTime get_frame_time() const { return f_time; }
-    FrameTime get_ap_time() const { return ap_time; }
-    uint8_t get_track_number() const { return track_number; }
-
-    bool is_valid();
-    void set_frame_time(FrameTime _f_time);
-
-private:
-    QModes q_mode;
-    Control control;
-    QByteArray q_channel_data; // 12 bytes (96 bits)
-    FrameType frame_type;
-    uint8_t track_number;
-    FrameTime f_time;
-    FrameTime ap_time;
-    bool q_channel_data_valid;
-
-    void set_conmode();
-    void set_control(Control _control);
-    void repair_data();
-    QByteArray generate_crc(QByteArray data);
-    bool is_crc_valid(QByteArray data);
-    uint16_t crc16(const QByteArray &data);
-    void set_q_mode_1or4(uint8_t track_number, FrameTime f_time, FrameTime ap_time, FrameType frame_type);
-    uint16_t int_to_bcd2(uint16_t value);
-    uint16_t bcd2_to_int(uint16_t bcd);
-    bool refresh_q_channel_from_data();
-};
+#include "frame_metadata.h"
 
 class Subcode {
 public:
-    Subcode();
-    uint8_t get_subcode_byte(uint8_t index) const;
-    void set_subcode_byte(uint8_t index, uint8_t value);
-    bool is_valid();
+    Subcode() {};
 
-    Pchannel p_channel;
-    Qchannel q_channel;
+    FrameMetadata from_data(const QByteArray& data);
+    QByteArray to_data(const FrameMetadata& frame_metadata);
+
+private:
+    void set_bit(QByteArray& data, uint8_t bit_position, bool value);
+    bool get_bit(const QByteArray& data, uint8_t bit_position);
+    bool is_crc_valid(QByteArray q_channel_data);
+    uint16_t get_q_channel_crc(QByteArray q_channel_data);
+    void set_q_channel_crc(QByteArray& q_channel_data);
+    uint16_t calculate_q_channel_crc16(const QByteArray &data);
+    bool repair_data(QByteArray &q_channel_data);
+
+    uint8_t int_to_bcd2(uint8_t value);
+    uint8_t bcd2_to_int(uint8_t bcd);
 };
 
 #endif // SUBCODE_H

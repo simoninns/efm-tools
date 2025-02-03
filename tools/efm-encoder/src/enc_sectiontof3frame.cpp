@@ -46,6 +46,10 @@ void SectionToF3Frame::process_queue() {
         Section section = input_buffer.dequeue();
         QVector<F3Frame> f3_frames;
 
+        // Take the metadata information from the first F2 frame in the section
+        Subcode subcode;
+        QByteArray subcode_data = subcode.to_data(section.get_f2_frame(10).frame_metadata);
+
         for (uint32_t symbol_number = 0; symbol_number < 98; ++symbol_number) {
             F2Frame f2_frame = section.get_f2_frame(symbol_number);
             F3Frame f3_frame;
@@ -56,7 +60,7 @@ void SectionToF3Frame::process_queue() {
                 f3_frame.set_frame_type_as_sync1();
             } else {
                 // Generate the subcode byte
-                f3_frame.set_frame_type_as_subcode(section.get_subcode_byte(symbol_number));
+                f3_frame.set_frame_type_as_subcode(subcode_data[symbol_number]);
             }
 
             f3_frame.set_data(f2_frame.get_data());

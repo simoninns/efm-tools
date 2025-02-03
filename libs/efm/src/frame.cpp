@@ -26,101 +26,9 @@
 #include <QVector>
 #include <QDebug>
 
-// Frame time class ---------------------------------------------------------------------------------------------------
-void FrameTime::set_min(uint8_t _min) {
-    if (_min > 59) {
-        qFatal("FrameTime::set_min(): Invalid minute value of %d", _min);
-    }
-    min = _min;
-}
 
-void FrameTime::set_sec(uint8_t _sec) {
-    if (_sec > 59) {
-        qFatal("FrameTime::set_sec(): Invalid second value of %d", _sec);
-    }
-    sec = _sec;
-}
 
-void FrameTime::set_frame(uint8_t _frame) {
-    if (_frame > 74) {
-        qFatal("FrameTime::set_frame(): Invalid frame value of %d", _frame);
-    }
-    frame = _frame;
-}
-
-QByteArray FrameTime::to_bcd() const {
-    QByteArray bcd;
-    bcd.append((min / 10) << 4 | (min % 10));
-    bcd.append((sec / 10) << 4 | (sec % 10));
-    bcd.append((frame / 10) << 4 | (frame % 10));
-    return bcd;
-}
-
-// Increment the frame time by one frame, wrapping around as needed
-void FrameTime::increment_frame() {
-    frame++;
-    if (frame > 74) {
-        frame = 0;
-        sec++;
-        if (sec > 59) {
-            sec = 0;
-            min++;
-            if (min > 59) {
-                min = 0;
-                qWarning("FrameTime::increment_frame(): Frame time has exceeded 60 minutes - wrapping around");
-            }
-        }
-    }
-}
-
-bool FrameTime::operator==(const FrameTime& other) const {
-    return min == other.min && sec == other.sec && frame == other.frame;
-}
-
-bool FrameTime::operator!=(const FrameTime& other) const {
-    return !(*this == other);
-}
-
-bool FrameTime::operator<(const FrameTime& other) const {
-    if (min != other.min) return min < other.min;
-    if (sec != other.sec) return sec < other.sec;
-    return frame < other.frame;
-}
-
-bool FrameTime::operator>(const FrameTime& other) const {
-    return other < *this;
-}
-
-FrameTime FrameTime::operator+(const FrameTime& other) const {
-    FrameTime result = *this;
-    result.frame += other.frame;
-    result.sec += other.sec + result.frame / 75;
-    result.frame %= 75;
-    result.min += other.min + result.sec / 60;
-    result.sec %= 60;
-    result.min %= 60;
-    return result;
-}
-
-FrameTime FrameTime::operator-(const FrameTime& other) const {
-    FrameTime result = *this;
-    int totalFrames1 = (min * 60 + sec) * 75 + frame;
-    int totalFrames2 = (other.min * 60 + other.sec) * 75 + other.frame;
-    int diffFrames = totalFrames1 - totalFrames2;
-
-    if (diffFrames < 0) {
-        qFatal("FrameTime::operator-(): Resulting frame time is negative");
-    }
-
-    result.min = (diffFrames / 75) / 60;
-    result.sec = (diffFrames / 75) % 60;
-    result.frame = diffFrames % 75;
-    return result;
-}
-
-QString FrameTime::to_string() const {
-    return QString("%1:%2.%3").arg(min, 2, 10, QChar('0')).arg(sec, 2, 10, QChar('0')).arg(frame, 2, 10, QChar('0'));
-}
+// Frame class --------------------------------------------------------------------------------------------------------
 
 // Set the data for the frame, ensuring it matches the frame size
 void Frame::set_data(const QVector<uint8_t>& data) {
@@ -152,12 +60,6 @@ bool Frame::is_empty() const {
 // Constructor for Data24, initializes data to the frame size
 Data24::Data24() {
     frame_data.resize(get_frame_size());
-
-    // Set defaults
-    frame_type = FrameType::USER_DATA;
-    frame_time.set_min(0);
-    frame_time.set_sec(0);
-    frame_time.set_frame(0);
 }
 
 // We override the set_data function to ensure the data is 24 bytes
@@ -184,34 +86,7 @@ void Data24::show_data() {
     for (int i = 0; i < frame_data.size(); ++i) {
         dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
     }
-    qInfo().noquote() << "Data24 data:" << dataString.trimmed() << "-" << frame_time.to_string() << "Track:" << track_number;
-}
-
-void Data24::set_frame_type(FrameType _frame_type) {
-    frame_type = _frame_type;
-}
-
-FrameType Data24::get_frame_type() const {
-    return frame_type;
-}
-
-void Data24::set_frame_time(const FrameTime& _frame_time) {
-    frame_time = _frame_time;
-}
-
-FrameTime Data24::get_frame_time() const {
-    return frame_time;
-}
-
-void Data24::set_track_number(uint8_t _track_number) {
-    if (_track_number > 99) {
-        qFatal("Data24::set_track_number(): Invalid track number of %d", _track_number);
-    }
-    track_number = _track_number;
-}
-
-uint8_t Data24::get_track_number() const {
-    return track_number;
+    qInfo().noquote() << "Data24 data:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
 }
 
 // Constructor for F1Frame, initializes data to the frame size
@@ -219,16 +94,6 @@ F1Frame::F1Frame() {
     frame_data.resize(get_frame_size());
     frame_error_data.resize(get_frame_size());
     frame_error_data.fill(0);
-
-    // Set defaults
-    frame_type = FrameType::USER_DATA;
-    frame_time.set_min(0);
-    frame_time.set_sec(0);
-    frame_time.set_frame(0);
-
-    absolute_frame_time.set_min(0);
-    absolute_frame_time.set_sec(0);
-    absolute_frame_time.set_frame(0);
 }
 
 // Get the frame size for F1Frame
@@ -245,42 +110,7 @@ void F1Frame::show_data() {
             dataString.append(QString("XX "));
         }
     }
-    qInfo().noquote() << "F1Frame data:" << dataString.trimmed() << "-" << frame_time.to_string() << "Track:" << track_number;
-}
-
-void F1Frame::set_frame_type(FrameType _frame_type) {
-    frame_type = _frame_type;
-}
-
-FrameType F1Frame::get_frame_type() const {
-    return frame_type;
-}
-
-void F1Frame::set_frame_time(const FrameTime& _frame_time) {
-    frame_time = _frame_time;
-}
-
-FrameTime F1Frame::get_frame_time() const {
-    return frame_time;
-}
-
-void F1Frame::set_absolute_frame_time(const FrameTime& _frame_time) {
-    absolute_frame_time = _frame_time;
-}
-
-FrameTime F1Frame::get_absolute_frame_time() const {
-    return absolute_frame_time;
-}
-
-void F1Frame::set_track_number(uint8_t _track_number) {
-    if (_track_number > 99) {
-        qFatal("F1Frame::set_track_number(): Invalid track number of %d", _track_number);
-    }
-    track_number = _track_number;
-}
-
-uint8_t F1Frame::get_track_number() const {
-    return track_number;
+    qInfo().noquote() << "F1Frame data:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
 }
 
 // Set the error data for the frame, ensuring it matches the frame size
@@ -305,16 +135,6 @@ QVector<uint8_t> F1Frame::get_error_data() const {
 // Constructor for F2Frame, initializes data to the frame size
 F2Frame::F2Frame() {
     frame_data.resize(get_frame_size());
-
-    // Set defaults
-    frame_type = FrameType::USER_DATA;
-    frame_time.set_min(0);
-    frame_time.set_sec(0);
-    frame_time.set_frame(0);
-
-    absolute_frame_time.set_min(0);
-    absolute_frame_time.set_sec(0);
-    absolute_frame_time.set_frame(0);
 }
 
 // Get the frame size for F2Frame
@@ -327,42 +147,7 @@ void F2Frame::show_data() {
     for (int i = 0; i < frame_data.size(); ++i) {
         dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
     }
-    qInfo().noquote() << "F2Frame data:" << dataString.trimmed() << "-" << frame_time.to_string() << "Track:" << track_number;
-}
-
-void F2Frame::set_frame_type(FrameType _frame_type) {
-    frame_type = _frame_type;
-}
-
-FrameType F2Frame::get_frame_type() const {
-    return frame_type;
-}
-
-void F2Frame::set_frame_time(const FrameTime& _frame_time) {
-    frame_time = _frame_time;
-}
-
-FrameTime F2Frame::get_frame_time() const {
-    return frame_time;
-}
-
-void F2Frame::set_absolute_frame_time(const FrameTime& _frame_time) {
-    absolute_frame_time = _frame_time;
-}
-
-FrameTime F2Frame::get_absolute_frame_time() const {
-    return absolute_frame_time;
-}
-
-void F2Frame::set_track_number(uint8_t _track_number) {
-    if (_track_number > 99) {
-        qFatal("F2Frame::set_track_number(): Invalid track number of %d", _track_number);
-    }
-    track_number = _track_number;
-}
-
-uint8_t F2Frame::get_track_number() const {
-    return track_number;
+    qInfo().noquote() << "F2Frame data:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
 }
 
 // Constructor for F3Frame, initializes data to the frame size

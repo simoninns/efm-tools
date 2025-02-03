@@ -27,7 +27,6 @@
 
 #include <QVector>
 #include "frame.h"
-#include "subcode.h"
 
 class Section {
 public:
@@ -36,10 +35,7 @@ public:
     void push_frame(F2Frame f2_frame);
     F2Frame get_f2_frame(int index) const;
     bool is_complete() const;
-    uint8_t get_subcode_byte(int index) const;
     void clear();
-
-    Subcode subcode;
 
 private:
     QVector<F2Frame> f2_frames;

@@ -26,6 +26,7 @@
 #define DEC_SECTIONTOF2FRAME_H
 
 #include "decoders.h"
+#include "frame_metadata.h"
 
 class SectionToF2Frame : Decoder {
 public:
@@ -43,6 +44,9 @@ private:
     QQueue<QVector<F2Frame>> output_buffer;
 
     // Tracking variables
+    bool has_last_good_frame;
+    F2Frame last_good_frame;
+
     uint32_t current_track;
     FrameTime current_frame_time;
     FrameTime current_absolute_time;

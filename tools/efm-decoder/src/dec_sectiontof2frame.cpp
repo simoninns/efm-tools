@@ -31,6 +31,8 @@ SectionToF2Frame::SectionToF2Frame() {
     // Time statistics
     absolute_start_time = FrameTime(59,59,74);
     absolute_end_time = FrameTime(0,0,0);
+
+    has_last_good_frame = false;
 }
 
 void SectionToF2Frame::push_frame(Section data) {
@@ -51,21 +53,61 @@ bool SectionToF2Frame::is_ready() const {
     return !output_buffer.isEmpty();
 }
 
+// We need to check for missing sections (time moves forward by more than one frame)
+// Total loss of sync (time moves backwards or by more than a few frames) - how many?
+//
+// Make this a state machine?
+// Get the starting subcode and track number
+// Check that the subcode is in sequence
+// Check that the track number is in sequence
+// Check that the frame time is in sequence
+// Check that the absolute time is in sequence
+// and stuff...
+
 void SectionToF2Frame::process_queue() {
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
         Section section = input_buffer.dequeue();
 
-        Subcode subcode = section.subcode;
+        // Since all frames in the section have the same subcode, we only need to check the first frame
+        FrameMetadata frame_metadata = section.get_f2_frame(0).frame_metadata;
 
-        if (subcode.is_valid()) {
-            uint32_t track_number = subcode.q_channel.get_track_number();
-            FrameTime frame_time = subcode.q_channel.get_frame_time();
-            FrameTime absolute_time = subcode.q_channel.get_ap_time();
+        if (frame_metadata.is_valid()) {
+            uint32_t track_number = frame_metadata.get_track_number();
+            FrameTime frame_time = frame_metadata.get_frame_time();
+            FrameTime absolute_time = frame_metadata.get_absolute_frame_time();
 
-            // qDebug() << "Processing section with track number:" << track_number;
-            // qDebug() << "  Section time:" << frame_time.to_string();
-            // qDebug() << "  Section absolute time:" << absolute_time.to_string();
+            // Do we have a valid current track?
+            if (has_last_good_frame) {
+                // Check that the current subcode is in sequence
+                if (track_number != current_track) {
+                    qDebug() << "SectionToF2Frame::process_queue - Track number has changed";
+
+                    // Track number should only increment by one, otherwise it's probably an error
+                    if (track_number != current_track + 1) {
+                        qWarning() << "SectionToF2Frame::process_queue - Track number increment is not one";
+                        track_number = current_track;
+                    } else {
+                        // Reset the frame time to the start of the next track
+                        frame_time = FrameTime(0,0,0);
+                    }
+                } else {
+                    FrameTime expected_frame_time = current_frame_time + FrameTime(0,0,1);
+                    
+                    if (frame_time != expected_frame_time) {
+                        qWarning() << "SectionToF2Frame::process_queue - Frame time mismatch.  Expected:" << expected_frame_time.to_string() << "Actual:" << frame_time.to_string();
+                        frame_time = expected_frame_time;
+                    }
+                }
+
+                // Check absolute time
+                FrameTime expected_absolute_time = current_absolute_time + FrameTime(0,0,1);
+
+                if (absolute_time != expected_absolute_time) {
+                    qWarning() << "SectionToF2Frame::process_queue - Absolute time mismatch.  Expected:" << expected_absolute_time.to_string() << "Actual:" << absolute_time.to_string();
+                    absolute_time = expected_absolute_time;
+                }
+            }
 
             // Set the absolute start and end times
             if (absolute_time < absolute_start_time) absolute_start_time = absolute_time;
@@ -83,23 +125,27 @@ void SectionToF2Frame::process_queue() {
                 if (frame_time < track_start_times[index]) track_start_times[index] = frame_time;
                 if (frame_time > track_end_times[index]) track_end_times[index] = frame_time;
             }
+
+            // Save the current track and frame time
+            current_track = track_number;
+            current_frame_time = frame_time;
+            current_absolute_time = absolute_time;
+
+            if (!has_last_good_frame) {
+                qDebug() << "SectionToF2Frame::process_queue - First valid subcode";
+                qDebug() << "  Track:" << track_number;
+                qDebug() << "  Frame time:" << frame_time.to_string();
+                qDebug() << "  Absolute time:" << absolute_time.to_string();
+            }
+
+            has_last_good_frame = true;
         } else {
             // Subcode is invalid...
             qWarning() << "SectionToF2Frame::process_queue - Invalid subcode";
         } 
 
         QVector<F2Frame> f2_frames;
-        uint32_t track_number = subcode.q_channel.get_track_number();
-        FrameTime frame_time = subcode.q_channel.get_frame_time();
-        FrameTime absolute_time = subcode.q_channel.get_ap_time();
-
         for (int i = 0; i < 98; i++) {
-            F2Frame f2_frame = section.get_f2_frame(i);
-
-            f2_frame.set_absolute_frame_time(absolute_time);
-            f2_frame.set_frame_time(frame_time);
-            f2_frame.set_track_number(track_number);
-
             f2_frames.append(section.get_f2_frame(i));
         }
 

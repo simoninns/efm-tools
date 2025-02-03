@@ -78,9 +78,7 @@ void F1FrameToF2Frame::process_queue() {
         // Put the resulting data into an F2 frame and push it to the output buffer
         F2Frame f2_frame;
         f2_frame.set_data(data);
-        f2_frame.set_frame_type(f1_frame.get_frame_type());
-        f2_frame.set_frame_time(f1_frame.get_frame_time());
-        f2_frame.set_track_number(f1_frame.get_track_number());
+        f2_frame.frame_metadata = f1_frame.frame_metadata;
         
         valid_f2_frames_count++;
         output_buffer.enqueue(f2_frame);

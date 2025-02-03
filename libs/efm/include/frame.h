@@ -27,70 +27,7 @@
 
 #include <QVector>
 #include <cstdint>
-
-// Frame time class - stores ECMA-130 frame time as minutes, seconds, and frames
-class FrameTime {
-public:
-    FrameTime() : min(0), sec(0), frame(0) {}
-    FrameTime(uint8_t _min, uint8_t _sec, uint8_t _frame) : min(_min), sec(_sec), frame(_frame) {}
-    virtual ~FrameTime() = default;
-
-    uint8_t get_min() const { return min; }
-    uint8_t get_sec() const { return sec; }
-    uint8_t get_frame() const { return frame; }
-
-    void set_min(uint8_t _min);
-    void set_sec(uint8_t _sec);
-    void set_frame(uint8_t _frame);
-
-    QByteArray to_bcd() const;
-    void increment_frame();
-    QString to_string() const;
-
-    bool operator==(const FrameTime& other) const;
-    bool operator!=(const FrameTime& other) const;
-    bool operator<(const FrameTime& other) const;
-    bool operator>(const FrameTime& other) const;
-    FrameTime operator+(const FrameTime& other) const;
-    FrameTime operator-(const FrameTime& other) const;
-
-private:
-    uint8_t min;
-    uint8_t sec;
-    uint8_t frame;    
-};
-
-// Frame type class - stores the type of frame (LEAD_IN, LEAD_OUT, USER_DATA)
-class FrameType {
-public:
-    enum Type { LEAD_IN, LEAD_OUT, USER_DATA };
-
-    FrameType() : type(USER_DATA) {}
-    FrameType(Type _type) : type(_type) {}
-
-    Type get_type() const { return type; }
-    void set_type(Type _type) { type = _type; }
-
-    QString to_string() const {
-        switch (type) {
-            case LEAD_IN: return "LEAD_IN";
-            case LEAD_OUT: return "LEAD_OUT";
-            case USER_DATA: return "USER_DATA";
-            default: return "UNKNOWN";
-        }
-    }
-
-    bool operator==(const FrameType& other) const {
-        return type == other.type;
-    }
-
-    bool operator!=(const FrameType& other) const {
-        return type != other.type;
-    }
-
-private:
-    Type type;
-};
+#include "frame_metadata.h"
 
 // Frame class - base class for F1, F2, and F3 frames
 class Frame {
@@ -115,17 +52,7 @@ public:
     void show_data();
     void set_data(const QVector<uint8_t>& data) override;
 
-    void set_frame_type(FrameType _frame_type);
-    FrameType get_frame_type() const;
-    void set_frame_time(const FrameTime& _frame_time);
-    FrameTime get_frame_time() const;
-    void set_track_number(uint8_t _track_number);
-    uint8_t get_track_number() const;
-
-private:
-    uint8_t track_number;
-    FrameTime frame_time;
-    FrameType frame_type;
+    FrameMetadata frame_metadata;
 };
 
 class F1Frame : public Frame {
@@ -137,22 +64,9 @@ public:
     void set_error_data(const QVector<uint8_t>& error_data);
     QVector<uint8_t> get_error_data() const;
 
-    void set_frame_type(FrameType _frame_type);
-    FrameType get_frame_type() const;
-    void set_frame_time(const FrameTime& _frame_time);
-    FrameTime get_frame_time() const;
-    void set_absolute_frame_time(const FrameTime& _frame_time);
-    FrameTime get_absolute_frame_time() const;
-    void set_track_number(uint8_t _track_number);
-    uint8_t get_track_number() const;
+    FrameMetadata frame_metadata;
 
 private:
-    // Subcode data
-    uint8_t track_number;
-    FrameTime frame_time;
-    FrameTime absolute_frame_time;
-    FrameType frame_type;
-
     // Error data
     QVector<uint8_t> frame_error_data;
 };
@@ -162,22 +76,8 @@ public:
     F2Frame();
     int get_frame_size() const override;
     void show_data();
-    
-    void set_frame_type(FrameType _frame_type);
-    FrameType get_frame_type() const;
-    void set_frame_time(const FrameTime& _frame_time);
-    FrameTime get_frame_time() const;
-    void set_absolute_frame_time(const FrameTime& _frame_time);
-    FrameTime get_absolute_frame_time() const;
-    void set_track_number(uint8_t _track_number);
-    uint8_t get_track_number() const;
 
-private:
-    // Subcode data
-    uint8_t track_number;
-    FrameTime frame_time;
-    FrameTime absolute_frame_time;
-    FrameType frame_type;
+    FrameMetadata frame_metadata;
 };
 
 class F3Frame : public Frame {

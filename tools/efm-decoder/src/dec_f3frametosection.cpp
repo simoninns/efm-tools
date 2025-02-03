@@ -271,27 +271,20 @@ F3FrameToSection::State F3FrameToSection::process_section() {
 
     // Generate the subcode
     Subcode subcode;
-    for (int i = 2; i < 98; i++) {
-        subcode.set_subcode_byte(i, section_buffer[i].get_subcode_byte());
+    QByteArray subcode_data;
+    for (int i = 0; i < 98; i++) {
+        subcode_data[i] = section_buffer[i].get_subcode_byte();
     }
+    FrameMetadata frame_metadata = subcode.from_data(subcode_data);
 
-    // Now we have 98 F3 Frames and a  subcode, we can create a new section
+    // Now we have 98 F3 Frames and a subcode for metadata, we can create a new section
     Section section;
     for (uint32_t index = 0; index < 98; index++) {
         F2Frame f2_frame;
         f2_frame.set_data(section_buffer[index].get_data());
-
-        // Now we have to extract the section data and add it to the F2 frame
-        // Note: The F2 Frame doesn't support AP time at the moment - to-do
-        f2_frame.set_frame_type(subcode.q_channel.get_frame_type());
-        f2_frame.set_track_number(subcode.q_channel.get_track_number());
-        f2_frame.set_frame_time(subcode.q_channel.get_frame_time());
-
+        f2_frame.frame_metadata = frame_metadata;
         section.push_frame(f2_frame);
     }
-
-    // Copy the subcode object to the section
-    section.subcode = subcode;
 
     // Add the section to the output buffer
     output_buffer.enqueue(section);

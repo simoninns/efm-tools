@@ -26,7 +26,7 @@
 #define EFMPROCESSOR_H
 
 #include <QString>
-#include "subcode.h"
+#include "frame_metadata.h"
 
 class EfmProcessor
 {
@@ -41,9 +41,7 @@ public:
         bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
 
 private:
-    // Show Q-Channel data flags
-    Qchannel::QModes qmode;
-    Qchannel::Control qcontrol;
+    FrameMetadata frame_metadata;
 
     // Show data flags
     bool showInput;

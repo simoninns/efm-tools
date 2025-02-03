@@ -43,8 +43,6 @@ private:
     QQueue<Section> input_buffer;
     QQueue<QVector<F3Frame>> output_buffer;
 
-    Subcode subcode;
-
     uint32_t valid_f3_frames_count;
 };
 

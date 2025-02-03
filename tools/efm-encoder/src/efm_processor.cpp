@@ -127,8 +127,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     SectionToF3Frame section_to_f3;
     F3FrameToChannel f3_frame_to_channel;
 
-    // Apply encoder options
-    f2_frame_to_section.set_qmode_options(qmode, qcontrol);
     f3_frame_to_channel.set_corruption(corrupt_f3sync, corrupt_f3sync_frequency, corrupt_subcode_sync, corrupt_subcode_sync_frequency);
 
     // Channel data counter
@@ -148,9 +146,13 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         // Create a Data24 object and set the data
         Data24 data24;
         data24.set_data(input_data);
-        data24.set_frame_type(frame_type);
-        data24.set_frame_time(frame_time);
-        data24.set_track_number(track_number);
+
+        frame_metadata.set_frame_type(frame_type);
+        frame_metadata.set_frame_time(frame_time);
+        frame_metadata.set_absolute_frame_time(frame_time);
+        frame_metadata.set_track_number(track_number);
+        data24.frame_metadata = frame_metadata;
+
         if (showInput) data24.show_data();
 
         // Push the data to the first converter
@@ -313,53 +315,79 @@ bool EfmProcessor::set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_a
     }
 
     if (_qmode_1) {
-        qmode = Qchannel::QModes::QMODE_1;
+        frame_metadata.set_q_mode(FrameMetadata::QMODE_1);
         qInfo() << "Q-Channel mode set to: QMODE_1";
     } else if (_qmode_4) {
-        qmode = Qchannel::QModes::QMODE_4;
+        frame_metadata.set_q_mode(FrameMetadata::QMODE_4);
         qInfo() << "Q-Channel mode set to: QMODE_4";
     }
 
     if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_2ch) {
-        qcontrol = Qchannel::Control::AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(false);
+        frame_metadata.set_preemphasis(true);
+        frame_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_2ch) {
-        qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(false);
+        frame_metadata.set_preemphasis(false);
+        frame_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_2ch) {
-        qcontrol = Qchannel::Control::AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(true);
+        frame_metadata.set_preemphasis(true);
+        frame_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_2ch) {
-        qcontrol = Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(true);
+        frame_metadata.set_preemphasis(false);
+        frame_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED";
     }
 
     if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_4ch) {
-        qcontrol = Qchannel::Control::AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(false);
+        frame_metadata.set_preemphasis(true);
+        frame_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_4ch) {
-        qcontrol = Qchannel::Control::AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(false);
+        frame_metadata.set_preemphasis(false);
+        frame_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_4ch) {
-        qcontrol = Qchannel::Control::AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(true);
+        frame_metadata.set_preemphasis(true);
+        frame_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_4ch) {
-        qcontrol = Qchannel::Control::AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED;
+        frame_metadata.set_audio(true);
+        frame_metadata.set_copy_prohibited(true);
+        frame_metadata.set_preemphasis(false);
+        frame_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED";
     }
 
     if (_qmode_data && _qmode_copy) {
-        qcontrol = Qchannel::Control::DIGITAL_COPY_PERMITTED;
+        frame_metadata.set_audio(false);
+        frame_metadata.set_copy_prohibited(false);
         qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PERMITTED";
     }
     if (_qmode_data && _qmode_nocopy) {
-        qcontrol = Qchannel::Control::DIGITAL_COPY_PROHIBITED;
+        frame_metadata.set_audio(false);
+        frame_metadata.set_copy_prohibited(true);
         qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PROHIBITED";
     }
 

@@ -25,9 +25,6 @@
 #include "section.h"
 
 Section::Section() {
-    // Set some sane defaults for the subcode channels
-    subcode.p_channel.set_flag(false);
-    subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1, FrameTime(0, 0, 0), FrameTime(0, 0, 0), FrameType::USER_DATA);
 }
 
 void Section::push_frame(F2Frame f2_frame) {
@@ -42,14 +39,6 @@ bool Section::is_complete() const {
     return f2_frames.size() == 98;
 }
 
-uint8_t Section::get_subcode_byte(int index) const {
-    return subcode.get_subcode_byte(index);
-}
-
 void Section::clear() {
     f2_frames.clear();
-
-    // Set some sane defaults for the subcode channels
-    subcode.p_channel.set_flag(false);
-    subcode.q_channel.set_q_mode_1(Qchannel::Control::AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED, 1, FrameTime(0, 0, 0), FrameTime(0, 0, 0), FrameType::USER_DATA);
 }

@@ -77,16 +77,14 @@ void F1FrameToData24::process_queue() {
         // Put the resulting data into a Data24 frame and push it to the output buffer
         Data24 data24;
         data24.set_data(data);
-        data24.set_frame_type(f1_frame.get_frame_type());
-        data24.set_frame_time(f1_frame.get_frame_time());
-        data24.set_track_number(f1_frame.get_track_number());
+        data24.frame_metadata = f1_frame.frame_metadata;
 
         if (valid_f1_frames_count == 0) {
-            start_time = f1_frame.get_frame_time();
+            start_time = f1_frame.frame_metadata.get_frame_time();
         }
 
-        if (f1_frame.get_frame_time() > end_time) {
-            end_time = f1_frame.get_frame_time();
+        if (f1_frame.frame_metadata.get_frame_time() > end_time) {
+            end_time = f1_frame.frame_metadata.get_frame_time();
         }
 
         // Add the data to the output buffer
