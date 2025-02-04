@@ -25,14 +25,17 @@
 #include "dec_sectiontof2frame.h"
 
 SectionToF2Frame::SectionToF2Frame() {
-    // Tracking variables
-    missed_subcodes = 0;
+    has_last_good_section = false;
+    window_size = 6;
+
+    total_sections = 0;
+    corrected_sections = 0;
+    uncorrectable_sections = 0;
+    total_f2_frames = 0;
 
     // Time statistics
     absolute_start_time = FrameTime(59,59,74);
     absolute_end_time = FrameTime(0,0,0);
-
-    has_last_good_frame = false;
 }
 
 void SectionToF2Frame::push_frame(Section data) {
@@ -53,109 +56,225 @@ bool SectionToF2Frame::is_ready() const {
     return !output_buffer.isEmpty();
 }
 
-// We need to check for missing sections (time moves forward by more than one frame)
-// Total loss of sync (time moves backwards or by more than a few frames) - how many?
-//
-// Make this a state machine?
-// Get the starting subcode and track number
-// Check that the subcode is in sequence
-// Check that the track number is in sequence
-// Check that the frame time is in sequence
-// Check that the absolute time is in sequence
-// and stuff...
-
 void SectionToF2Frame::process_queue() {
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
-        Section section = input_buffer.dequeue();
+        // Dequeue the next section
+        Section current_section = input_buffer.dequeue();
+        bool is_current_section_valid = current_section.get_f2_frame(0).frame_metadata.is_valid();
+        total_sections++;
 
-        // Since all frames in the section have the same subcode, we only need to check the first frame
-        FrameMetadata frame_metadata = section.get_f2_frame(0).frame_metadata;
-
-        if (frame_metadata.is_valid()) {
-            uint32_t track_number = frame_metadata.get_track_number();
-            FrameTime frame_time = frame_metadata.get_frame_time();
-            FrameTime absolute_time = frame_metadata.get_absolute_frame_time();
-
-            // Do we have a valid current track?
-            if (has_last_good_frame) {
-                // Check that the current subcode is in sequence
-                if (track_number != current_track) {
-                    qDebug() << "SectionToF2Frame::process_queue - Track number has changed";
-
-                    // Track number should only increment by one, otherwise it's probably an error
-                    if (track_number != current_track + 1) {
-                        qWarning() << "SectionToF2Frame::process_queue - Track number increment is not one";
-                        track_number = current_track;
-                    } else {
-                        // Reset the frame time to the start of the next track
-                        frame_time = FrameTime(0,0,0);
-                    }
-                } else {
-                    FrameTime expected_frame_time = current_frame_time + FrameTime(0,0,1);
-                    
-                    if (frame_time != expected_frame_time) {
-                        qWarning() << "SectionToF2Frame::process_queue - Frame time mismatch.  Expected:" << expected_frame_time.to_string() << "Actual:" << frame_time.to_string();
-                        frame_time = expected_frame_time;
-                    }
-                }
-
-                // Check absolute time
-                FrameTime expected_absolute_time = current_absolute_time + FrameTime(0,0,1);
-
-                if (absolute_time != expected_absolute_time) {
-                    qWarning() << "SectionToF2Frame::process_queue - Absolute time mismatch.  Expected:" << expected_absolute_time.to_string() << "Actual:" << absolute_time.to_string();
-                    absolute_time = expected_absolute_time;
-                }
-            }
-
-            // Set the absolute start and end times
-            if (absolute_time < absolute_start_time) absolute_start_time = absolute_time;
-            if (absolute_time > absolute_end_time) absolute_end_time = absolute_time;
-
-            // Do we have a new track?
-            if (!track_numbers.contains(track_number)) {
-                // Append a new track
-                track_numbers.append(track_number);
-                track_start_times.append(frame_time);
-                track_end_times.append(frame_time);
+        // If we haven't see a good section yet, try to use the first section
+        if (!has_last_good_section) {
+            // Is the metadata valid in the current section?
+            if (is_current_section_valid) {
+                // Use this section to start
+                has_last_good_section = true;
+                last_good_section = current_section;
+                output_section(current_section);
+                qDebug() << "SectionToF2Frame::process_queue - First good section:" <<
+                    current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
             } else {
-                // Update the end time for the existing track
-                int index = track_numbers.indexOf(track_number);
-                if (frame_time < track_start_times[index]) track_start_times[index] = frame_time;
-                if (frame_time > track_end_times[index]) track_end_times[index] = frame_time;
+                // If the first section is bad, add it to the window
+                window.enqueue(current_section);
+                if (window.size() >= window_size) {
+                    flush_window();
+                }
+                qDebug() << "SectionToF2Frame::process_queue - First bad section:" <<
+                    current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
             }
-
-            // Save the current track and frame time
-            current_track = track_number;
-            current_frame_time = frame_time;
-            current_absolute_time = absolute_time;
-
-            if (!has_last_good_frame) {
-                qDebug() << "SectionToF2Frame::process_queue - First valid subcode";
-                qDebug() << "  Track:" << track_number;
-                qDebug() << "  Frame time:" << frame_time.to_string();
-                qDebug() << "  Absolute time:" << absolute_time.to_string();
-            }
-
-            has_last_good_frame = true;
         } else {
-            // Subcode is invalid...
-            qWarning() << "SectionToF2Frame::process_queue - Invalid subcode";
-        } 
+            // We have a last known good section
+            if (is_current_section_valid && is_section_valid(current_section, last_good_section, window.size())) {
+                // If the incoming section is valid...
+                if (!window.isEmpty()) {
+                    // …and we have a buffered set of sections waiting for correction,
+                    // add the current section as the "good" end marker, then correct.
+                    window.enqueue(current_section);
+                    correct_and_flush_window();
+                } else {
+                    // No buffered sections; just output the section as is.
+                    output_section(current_section);
+                    last_good_section = current_section;
+                }
+            } else {
+                if (!is_current_section_valid) qDebug() << "SectionToF2Frame::process_queue - Section is invalid - Invalid metadata (bad CRC)";
+                //qDebug() << "Sections in window between last good section and current section:" << window.size();
 
-        QVector<F2Frame> f2_frames;
-        for (int i = 0; i < 98; i++) {
-            f2_frames.append(section.get_f2_frame(i));
+                if (!is_section_valid(current_section, last_good_section, window.size())) qDebug().noquote() << "SectionToF2Frame::process_queue - Section is invalid - current:" <<
+                    current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string() << "last good:" <<
+                    last_good_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
+
+                // The section is either marked invalid or fails our validity check.
+                // Add it to our sliding window.
+                window.enqueue(current_section);
+                // If we’ve reached our maximum window size, flush the window.
+                if (window.size() >= window_size)
+                    flush_window();
+            }
+        }
+    }
+}
+
+bool SectionToF2Frame::is_section_valid(Section current, Section last_good, uint32_t window_size) {
+    // For the current section to be good, it must be one absolute frame
+    // ahead of the last good section and have valid metadata (CRC passed)
+    FrameMetadata current_metadata = current.get_f2_frame(0).frame_metadata;
+    FrameMetadata last_good_metadata = last_good.get_f2_frame(0).frame_metadata;
+
+    // If the current section's metadata is invalid, it's invalid.
+    if (!current_metadata.is_valid()) {
+        qDebug() << "SectionToF2Frame::is_section_valid - Section is invalid - Invalid metadata (bad CRC)";
+        return false;
+    }
+
+    // If the current section is windows.size() frame(s) ahead of the last good section, it's valid.
+    // to avoid inter-track issues we use the absolute frame time.
+    if (current_metadata.get_absolute_frame_time() == last_good_metadata.get_absolute_frame_time() + FrameTime(0,0,window_size+1)) {
+        return true;
+    }
+
+    // Otherwise, the section is invalid
+    qDebug().noquote() << "SectionToF2Frame::is_section_valid - Section is invalid - current:" <<
+        current_metadata.get_absolute_frame_time().to_string() << "last good:" <<
+        last_good_metadata.get_absolute_frame_time().to_string();
+    return false;
+}
+
+// Correct sections in the window using linear interpolation between
+// last_good_section (the good section before the window) and the last
+// section in the window (which should be valid). After correction,
+// all sections are output.
+void SectionToF2Frame::correct_and_flush_window() {
+    qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Correcting window. Last good section:" <<
+        last_good_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
+    // The last section in the window is our “next good” section.
+    Section next_good_section = window.last();
+    FrameMetadata next_good_metadata = next_good_section.get_f2_frame(0).frame_metadata;
+    FrameMetadata last_good_metadata = last_good_section.get_f2_frame(0).frame_metadata;  
+    int total_buffered = window.size(); // number of frames in the window
+
+    // Determine the total gap in track time and track numbers.
+    int32_t deltaTime = next_good_metadata.get_absolute_frame_time().get_time_in_frames() - last_good_metadata.get_absolute_frame_time().get_time_in_frames();
+    uint8_t deltaTrack = next_good_metadata.get_track_number() - last_good_metadata.get_track_number();
+
+    // We now have last_good_section as “position 0” and next_good_section as
+    // “position totalBuffered”. We will update each buffered section
+    // (positions 1..totalBuffered) to have interpolated values.
+    QList<Section> temp_list;
+    while (!window.isEmpty())
+        temp_list.append(window.dequeue());
+
+    // Note: we update all sections in the window including the last one.
+    // (The last frame is already valid, but we reassign its values so that
+    // everything is consistent.)
+    for (int index = 0; index < temp_list.size(); ++index) {
+        // Compute the “position” of this section between the last good and the next good.
+        // (Position i+1 out of totalBuffered intervals.)
+        int pos = index + 1;
+
+        Section corrected = temp_list[index];
+        FrameMetadata corrected_metadata = corrected.get_f2_frame(0).frame_metadata;
+
+        // Linear interpolation for absolute track time and track number.
+        int32_t corrected_abs_time = last_good_metadata.get_absolute_frame_time().get_time_in_frames() + (deltaTime * pos) / total_buffered;
+        int32_t corrected_time = last_good_metadata.get_frame_time().get_time_in_frames() + (deltaTime * pos) / total_buffered;
+        uint8_t corrected_track = last_good_metadata.get_track_number() + (deltaTrack * pos) / total_buffered;
+
+        FrameTime abs_time;
+        abs_time.set_time_in_frames(corrected_abs_time);
+
+        FrameTime trk_time;
+        trk_time.set_time_in_frames(corrected_time);
+
+        if (corrected_metadata.get_absolute_frame_time().get_time_in_frames() != abs_time.get_time_in_frames()) {
+            qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected frame from abs:" <<
+                temp_list[index].get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string() << "to" << abs_time.to_string();
+            qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected track number from" <<
+                temp_list[index].get_f2_frame(0).frame_metadata.get_track_number() << "to" << corrected_track;
         }
 
-        // Add the F2 frames to the output buffer
-        output_buffer.enqueue(f2_frames);
+        // Set the corrected ABS time and track number in the section
+        // We also copy the frame type from the last good section.
+        for (int f2_index = 0; f2_index < 98; f2_index++) { 
+            F2Frame f2_frame = corrected.get_f2_frame(f2_index);
+
+            f2_frame.frame_metadata.set_frame_type(last_good_metadata.get_frame_type());
+            f2_frame.frame_metadata.set_track_number(corrected_track);
+            f2_frame.frame_metadata.set_absolute_frame_time(abs_time);
+            f2_frame.frame_metadata.set_frame_time(trk_time);
+
+            corrected.set_f2_frame(f2_index, f2_frame);
+        }
+
+        output_section(corrected);
+        corrected_sections++;
+
+        // Update the last good frame as we go.
+        last_good_section = corrected;
     }
+}
+
+// Flush the window without any correction - output all frames in order.
+void SectionToF2Frame::flush_window() {
+    qDebug() << "SectionToF2Frame::flush_window - Flushing window without correction";
+    while (!window.isEmpty()) {
+        Section section = window.dequeue();
+        uncorrectable_sections++;
+        output_section(section);
+        if (section.get_f2_frame(0).frame_metadata.is_valid())
+            last_good_section = section;
+    }
+}
+
+// Output the F2 frames in the section to the output buffer
+// and count the number of tracks, durations, etc.
+void SectionToF2Frame::output_section(Section section) {
+    QVector<F2Frame> f2_frames;
+    for (int i = 0; i < 98; i++) {
+        f2_frames.append(section.get_f2_frame(i));
+        total_f2_frames++;
+    }
+
+    // Add the F2 frames to the output buffer
+    output_buffer.enqueue(f2_frames);
+
+    // Statistics generation...
+    uint8_t track_number = section.get_f2_frame(0).frame_metadata.get_track_number();
+    FrameTime frame_time = section.get_f2_frame(0).frame_metadata.get_frame_time();
+    FrameTime absolute_time = section.get_f2_frame(0).frame_metadata.get_absolute_frame_time();
+
+    // Set the absolute start and end times
+    if (absolute_time < absolute_start_time) absolute_start_time = absolute_time;
+    if (absolute_time > absolute_end_time) absolute_end_time = absolute_time;
+
+    // Do we have a new track?
+    if (!track_numbers.contains(track_number)) {
+        // Append the new track to the statistics
+        track_numbers.append(track_number);
+        track_start_times.append(frame_time);
+        track_end_times.append(frame_time);
+    } else {
+        // Update the end time for the existing track
+        int index = track_numbers.indexOf(track_number);
+        if (frame_time < track_start_times[index]) track_start_times[index] = frame_time;
+        if (frame_time > track_end_times[index]) track_end_times[index] = frame_time;
+    }
+
+    // Save the current track and frame time
+    current_track = track_number;
+    current_frame_time = frame_time;
+    current_absolute_time = absolute_time;
 }
 
 void SectionToF2Frame::show_statistics() {
     qInfo() << "Section to F2 frame statistics:";
+    qInfo() << "  Sections:";
+    qInfo() << "    Total sections:" << total_sections;
+    qInfo() << "    Corrected sections:" << corrected_sections;
+    qInfo() << "    Uncorrectable sections:" << uncorrectable_sections;
+    qInfo() << "    Output F2 frames:" << total_f2_frames;
+
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << absolute_start_time.to_string();
     qInfo().noquote() << "    End time:" << absolute_end_time.to_string();

@@ -35,6 +35,10 @@ F2Frame Section::get_f2_frame(int index) const {
     return f2_frames.at(index);
 }
 
+void Section::set_f2_frame(int index, F2Frame f2_frame) {
+    f2_frames[index] = f2_frame;
+}
+
 bool Section::is_complete() const {
     return f2_frames.size() == 98;
 }

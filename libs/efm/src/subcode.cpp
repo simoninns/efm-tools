@@ -157,6 +157,32 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
                 qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
                 qFatal("Subcode::from_data(): Invalid control nybble! Must be 0-3, 4-7 or 8-11 not %d", control_nybble);
         }
+
+         // Get the track number
+        uint8_t track_number = bcd2_to_int(q_channel[1]);
+
+        // If the track number is 0, then this is a lead-in frame
+        // If the track number is 0xAA, then this is a lead-out frame
+        // If the track number is 1-99, then this is a user data frame
+        if (track_number == 0) {
+            frame_metadata.set_frame_type(FrameType::LEAD_IN);
+        } else if (track_number == 0xAA) {
+            frame_metadata.set_frame_type(FrameType::LEAD_OUT);
+        } else {
+            frame_metadata.set_frame_type(FrameType::USER_DATA);
+        }
+
+        // Now set the track number
+        frame_metadata.set_track_number(track_number);
+
+        // Set the frame time q_data_channel[3-5]
+        frame_metadata.set_frame_time(FrameTime(bcd2_to_int(q_channel[3]), bcd2_to_int(q_channel[4]), bcd2_to_int(q_channel[5])));
+
+        // Set the zero byte q_data_channel[6] - Not used at the moment
+
+        // Set the ap time q_data_channel[7-9]
+        frame_metadata.set_absolute_frame_time(FrameTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9])));
+
         frame_metadata.set_valid(true);
     } else {
         // Set the q-channel data to invalid leaving the rest of 
@@ -166,31 +192,6 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
         qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
         frame_metadata.set_valid(false);
     }
-
-    // Get the track number
-    uint8_t track_number = bcd2_to_int(q_channel[1]);
-
-    // If the track number is 0, then this is a lead-in frame
-    // If the track number is 0xAA, then this is a lead-out frame
-    // If the track number is 1-99, then this is a user data frame
-    if (track_number == 0) {
-        frame_metadata.set_frame_type(FrameType::LEAD_IN);
-    } else if (track_number == 0xAA) {
-        frame_metadata.set_frame_type(FrameType::LEAD_OUT);
-    } else {
-        frame_metadata.set_frame_type(FrameType::USER_DATA);
-    }
-
-    // Now set the track number
-    frame_metadata.set_track_number(track_number);
-
-    // Set the frame time q_data_channel[3-5]
-    frame_metadata.set_frame_time(FrameTime(bcd2_to_int(q_channel[3]), bcd2_to_int(q_channel[4]), bcd2_to_int(q_channel[5])));
-
-    // Set the zero byte q_data_channel[6] - Not used at the moment
-
-    // Set the ap time q_data_channel[7-9]
-    frame_metadata.set_absolute_frame_time(FrameTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9])));
 
     // All done!
     return frame_metadata;

@@ -47,6 +47,9 @@ public:
     void increment_frame();
     QString to_string() const;
 
+    int32_t get_time_in_frames() const { return (min * 60 + sec) * 75 + frame; }
+    void set_time_in_frames(int32_t time_in_frames);
+
     bool operator==(const FrameTime& other) const;
     bool operator!=(const FrameTime& other) const;
     bool operator<(const FrameTime& other) const;

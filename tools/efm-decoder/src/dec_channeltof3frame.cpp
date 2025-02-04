@@ -193,9 +193,13 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
                 output_buffer.enqueue(f3_frame); // Add the frame to the output buffer
                 qDebug() << "ChannelToF3Frame::process_frame - Split too long data - Processing 564 bit frame from remaining data";
             } else {
-                // If it's not a reasonable size, discard it
-                discarded_bits_count += frame_data.size();
-                qDebug() << "ChannelToF3Frame::process_frame - Discarding" << frame_data.size() << "bits of data (too long)";
+                if (frame_data.size() > 0) {
+                    // The remaining data is not a reasonable size, discard it
+                    discarded_bits_count += frame_data.size();
+                    qDebug() << "ChannelToF3Frame::process_frame - Discarding" << frame_data.size() << "bits of data (too long)";
+                } else {
+                    qDebug() << "ChannelToF3Frame::process_frame - No data left";
+                }
             }
 
         } else {

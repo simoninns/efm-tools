@@ -36,26 +36,35 @@ public:
     bool is_ready() const;
     
     void show_statistics();
+    void correct_invalid_sections(Section next_good_section);
 
 private:
     void process_queue();
+    bool is_section_valid(Section current, Section last_good, uint32_t window_size);
+    void output_section(Section section);
+    void flush_window();
+    void correct_and_flush_window();
 
     QQueue<Section> input_buffer;
     QQueue<QVector<F2Frame>> output_buffer;
 
-    // Tracking variables
-    bool has_last_good_frame;
-    F2Frame last_good_frame;
+    bool has_last_good_section;
+    Section last_good_section;
+    QQueue<Section> window;
+    uint32_t window_size;
 
-    uint32_t current_track;
-    FrameTime current_frame_time;
-    FrameTime current_absolute_time;
-    uint32_t missed_subcodes;
+    // Statistics
+    uint32_t total_sections;
+    uint32_t corrected_sections;
+    uint32_t uncorrectable_sections;
+    uint32_t total_f2_frames;
 
     // Time statistics
     FrameTime absolute_start_time;
     FrameTime absolute_end_time;
-
+    uint32_t current_track;
+    FrameTime current_frame_time;
+    FrameTime current_absolute_time;
     QVector<uint8_t> track_numbers;
     QVector<FrameTime> track_start_times;
     QVector<FrameTime> track_end_times;

@@ -34,6 +34,7 @@ public:
 
     void push_frame(F2Frame f2_frame);
     F2Frame get_f2_frame(int index) const;
+    void set_f2_frame(int index, F2Frame f2_frame);
     bool is_complete() const;
     void clear();
 

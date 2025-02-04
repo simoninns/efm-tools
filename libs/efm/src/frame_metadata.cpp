@@ -71,6 +71,16 @@ void FrameTime::increment_frame() {
     }
 }
 
+void FrameTime::set_time_in_frames(int32_t time_in_frames) {
+    if (time_in_frames < 0) {
+        qFatal("FrameTime::set_time_in_frames(): Negative time in frames");
+    }
+
+    min = time_in_frames / (60 * 75);
+    sec = (time_in_frames / 75) % 60;
+    frame = time_in_frames % 75;
+}
+
 bool FrameTime::operator==(const FrameTime& other) const {
     return min == other.min && sec == other.sec && frame == other.frame;
 }
