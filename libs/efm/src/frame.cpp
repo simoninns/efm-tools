@@ -51,6 +51,7 @@ void Frame::set_error_data(const QVector<uint8_t>& error_data) {
     if (error_data.size() != get_frame_size()) {
         qFatal("Frame::set_error_data(): Error sata size of %d does not match frame size of %d", error_data.size(), get_frame_size());
     }
+    frame_error_data = error_data;
 }
 
 // Get the error_data for the frame, returning a zero-filled vector if empty
@@ -60,7 +61,7 @@ QVector<uint8_t> Frame::get_error_data() const {
         qDebug() << "Frame::get_error_data(): Error frame is empty, returning zero-filled vector";
         return QVector<uint8_t>(get_frame_size(), 0);
     }
-    return QVector<uint8_t>(get_frame_size(), 0);
+    return frame_error_data;
 }
 
 // Check if the frame is full (i.e., has data)
@@ -94,6 +95,18 @@ void Data24::set_data(const QVector<uint8_t>& data) {
     }
 }
 
+void Data24::set_error_data(const QVector<uint8_t>& error_data) {
+    frame_error_data = error_data;
+
+    // If there are less than 24 bytes, pad data with zeros to 24 bytes
+    if (frame_error_data.size() < 24) {
+        frame_error_data.resize(24);
+        for (int i = frame_error_data.size(); i < 24; ++i) {
+            frame_error_data[i] = 0;
+        }
+    }
+}
+
 // Get the frame size for Data24
 int Data24::get_frame_size() const {
     return 24;
@@ -101,14 +114,20 @@ int Data24::get_frame_size() const {
 
 void Data24::show_data() {
     QString dataString;
+    bool has_error = false;
     for (int i = 0; i < frame_data.size(); ++i) {
         if (frame_error_data[i] == 0) {
             dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
+            has_error = true;
         }
     }
-    qInfo().noquote() << "Data24:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+    if (has_error) {
+        qInfo().noquote() << "Data24:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number() << "ERROR";
+    } else {
+        qInfo().noquote() << "Data24:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+    }
 }
 
 // Constructor for F1Frame, initializes data to the frame size
@@ -125,14 +144,20 @@ int F1Frame::get_frame_size() const {
 
 void F1Frame::show_data() {
     QString dataString;
+    bool has_error = false;
     for (int i = 0; i < frame_data.size(); ++i) {
         if (frame_error_data[i] == 0) {
             dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
+            has_error = true;
         }
     }
-    qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+    if (has_error) {
+        qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number() << "ERROR";
+    } else {
+        qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+    }
 }
 
 // Constructor for F2Frame, initializes data to the frame size
@@ -149,14 +174,20 @@ int F2Frame::get_frame_size() const {
 
 void F2Frame::show_data() {
     QString dataString;
+    bool has_error = false;
     for (int i = 0; i < frame_data.size(); ++i) {
         if (frame_error_data[i] == 0) {
             dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
+            has_error = true;
         }
     }
-    qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+    if (has_error) {
+        qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number() << "ERROR";
+    } else {
+        qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+    }
 }
 
 // Constructor for F3Frame, initializes data to the frame size
@@ -215,21 +246,26 @@ uint8_t F3Frame::get_subcode_byte() const {
 
 void F3Frame::show_data() {
     QString dataString;
+    bool has_error = false;
     for (int i = 0; i < frame_data.size(); ++i) {
         if (frame_error_data[i] == 0) {
             dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
+            has_error = true;
         }
     }
 
+    QString errorString;
+    if (has_error) errorString = "ERROR"; else errorString = "";
+
     if (f3_frame_type == SUBCODE) {
-        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " subcode:" << QString("0x%1").arg(subcode_byte, 2, 16, QChar('0'));
+        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " subcode:" << QString("0x%1").arg(subcode_byte, 2, 16, QChar('0')) << errorString;
     } else if (f3_frame_type == SYNC0) {
-        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " SYNC0";
+        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " SYNC0" << errorString;
     } else if (f3_frame_type == SYNC1) {
-        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " SYNC1";
+        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " SYNC1" << errorString;
     } else {
-        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " UNKNOWN";
+        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " UNKNOWN" << errorString;
     }
 }

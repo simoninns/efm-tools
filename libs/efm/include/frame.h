@@ -55,6 +55,7 @@ public:
     int get_frame_size() const override;
     void show_data();
     void set_data(const QVector<uint8_t>& data) override;
+    void set_error_data(const QVector<uint8_t>& error_data) override;
 
     FrameMetadata frame_metadata;
 };

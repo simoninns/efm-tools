@@ -258,20 +258,26 @@ F3Frame ChannelToF3Frame::convert_frame_data_to_f3_frame(const QString frame_dat
     } else valid_efm_symbols_count++;
 
     QVector<uint8_t> frame_data_bytes;
+    QVector<uint8_t> frame_data_error_bytes;
     for (int i = 0; i < 32; i++) {
         uint16_t data = efm.fourteen_to_eight(frame_data.mid(3+14+3+(17*i), 14));
 
         if (data == 300) {
-            data = 0; // Invalid subcode, treat as 0
+            // Invalid subcode, treat as 0
+            frame_data_bytes.append(0);
+            frame_data_error_bytes.append(1);
             invalid_efm_symbols_count++;
-        } else valid_efm_symbols_count++;
-
-        frame_data_bytes.append(data);
+        } else {
+            frame_data_bytes.append(data);
+            frame_data_error_bytes.append(0);
+            valid_efm_symbols_count++;
+        }
     }
 
     // Create a new F3 frame
     F3Frame f3_frame;
     f3_frame.set_data(frame_data_bytes);
+    f3_frame.set_error_data(frame_data_error_bytes);
     if (subcode == 256) {
         f3_frame.set_frame_type_as_sync0();
     } else if (subcode == 257) {

@@ -284,6 +284,7 @@ F3FrameToSection::State F3FrameToSection::process_section() {
     for (uint32_t index = 0; index < 98; index++) {
         F2Frame f2_frame;
         f2_frame.set_data(section_buffer[index].get_data());
+        f2_frame.set_error_data(section_buffer[index].get_error_data());
         f2_frame.frame_metadata = frame_metadata;
         section.push_frame(f2_frame);
     }

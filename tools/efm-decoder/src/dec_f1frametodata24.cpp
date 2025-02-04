@@ -62,10 +62,11 @@ void F1FrameToData24::process_queue() {
         for (int i = 0; i < data.size(); i += 2) {
             if (i + 1 < data.size()) {
                 std::swap(data[i], data[i + 1]);
+                std::swap(error_data[i], error_data[i + 1]);
             }
         }
         
-        // Check the error data
+        // Check the error data (and count any flagged errors)
         uint32_t error_count = 0;
         for (int i = 0; i < error_data.size(); i++) {
             if (error_data[i] != 0) {
@@ -81,6 +82,7 @@ void F1FrameToData24::process_queue() {
         // Put the resulting data into a Data24 frame and push it to the output buffer
         Data24 data24;
         data24.set_data(data);
+        data24.set_error_data(error_data);
         data24.frame_metadata = f1_frame.frame_metadata;
 
         if (data24.frame_metadata.get_absolute_frame_time() < start_time) {
