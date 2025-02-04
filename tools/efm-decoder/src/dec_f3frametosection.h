@@ -66,6 +66,7 @@ private:
     uint32_t missed_subcodes;
     uint32_t valid_sections;
     uint32_t invalid_sections;
+    uint32_t input_f3_frames;
 };
 
 #endif // DEC_F3FRAMETOSECTION_H

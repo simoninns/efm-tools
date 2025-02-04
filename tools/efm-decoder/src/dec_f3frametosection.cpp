@@ -33,11 +33,13 @@ F3FrameToSection::F3FrameToSection() {
     missed_subcodes = 0;
     valid_sections = 0;
     invalid_sections = 0;
+    input_f3_frames = 0;
 }
 
 void F3FrameToSection::push_frame(F3Frame data) {
     // Add the data to the input buffer
     input_buffer.enqueue(data);
+    input_f3_frames++;
 
     // Process the state machine
     process_state_machine();
@@ -299,8 +301,12 @@ void F3FrameToSection::show_statistics() {
     qInfo() << "  Sections:";
     qInfo() << "    Valid sections:" << valid_sections;
     qInfo() << "    Invalid sections:" << invalid_sections;
-    qInfo() << "  Frames:";
+    qInfo() << "  Sync tracking:";
     qInfo() << "    Missed sync0s:" << missed_sync0s;
     qInfo() << "    Missed sync1s:" << missed_sync1s;
     qInfo() << "    Missed subcodes:" << missed_subcodes;
+    qInfo() << "  F3 Frames:";
+    qInfo() << "    Input F3 frames:" << input_f3_frames;
+    qInfo() << "    Output F2 frames:" << (valid_sections) * 98;
+    qInfo() << "    Discarded F3 frames:" << input_f3_frames - (valid_sections * 98);
 }

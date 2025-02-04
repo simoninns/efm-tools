@@ -270,7 +270,7 @@ void SectionToF2Frame::output_section(Section section) {
 void SectionToF2Frame::show_statistics() {
     qInfo() << "Section to F2 frame statistics:";
     qInfo() << "  Sections:";
-    qInfo() << "    Total sections:" << total_sections;
+    qInfo().nospace() << "    Total sections: " << total_sections << " (" << total_sections * 98 << " F2)";
     qInfo() << "    Corrected sections:" << corrected_sections;
     qInfo() << "    Uncorrectable sections:" << uncorrectable_sections;
     qInfo() << "    Output F2 frames:" << total_f2_frames;
