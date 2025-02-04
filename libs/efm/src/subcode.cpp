@@ -189,7 +189,9 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
         // the metadata as default values
         qDebug() << "Subcode::from_data(): Invalid CRC in Q-channel data - expected:" << QString::number(get_q_channel_crc(q_channel), 16) <<
             "calculated:" << QString::number(calculate_q_channel_crc16(q_channel), 16);
-        qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
+
+        FrameTime bad_abs_time = FrameTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9]));
+        qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex() << "bad ABS time:" << bad_abs_time.to_string();
         frame_metadata.set_valid(false);
     }
 

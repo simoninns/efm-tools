@@ -146,8 +146,6 @@ bool SectionToF2Frame::is_section_valid(Section current, Section last_good, uint
 // section in the window (which should be valid). After correction,
 // all sections are output.
 void SectionToF2Frame::correct_and_flush_window() {
-    qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Correcting window. Last good section:" <<
-        last_good_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
     // The last section in the window is our “next good” section.
     Section next_good_section = window.last();
     FrameMetadata next_good_metadata = next_good_section.get_f2_frame(0).frame_metadata;
@@ -188,10 +186,8 @@ void SectionToF2Frame::correct_and_flush_window() {
         trk_time.set_time_in_frames(corrected_time);
 
         if (corrected_metadata.get_absolute_frame_time().get_time_in_frames() != abs_time.get_time_in_frames()) {
-            qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected frame from abs:" <<
-                temp_list[index].get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string() << "to" << abs_time.to_string();
-            qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected track number from" <<
-                temp_list[index].get_f2_frame(0).frame_metadata.get_track_number() << "to" << corrected_track;
+            qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected frame abs time to" << abs_time.to_string() <<
+            "/ track time to" << trk_time.to_string() << "/ track number to" << corrected_track;
         }
 
         // Set the corrected ABS time and track number in the section
@@ -245,7 +241,7 @@ void SectionToF2Frame::output_section(Section section) {
     FrameTime absolute_time = section.get_f2_frame(0).frame_metadata.get_absolute_frame_time();
 
     // Set the absolute start and end times
-    if (absolute_time < absolute_start_time) absolute_start_time = absolute_time;
+    if (absolute_time <= absolute_start_time) absolute_start_time = absolute_time;
     if (absolute_time > absolute_end_time) absolute_end_time = absolute_time;
 
     // Do we have a new track?
@@ -258,7 +254,7 @@ void SectionToF2Frame::output_section(Section section) {
         // Update the end time for the existing track
         int index = track_numbers.indexOf(track_number);
         if (frame_time < track_start_times[index]) track_start_times[index] = frame_time;
-        if (frame_time > track_end_times[index]) track_end_times[index] = frame_time;
+        if (frame_time >= track_end_times[index]) track_end_times[index] = frame_time;
     }
 
     // Save the current track and frame time

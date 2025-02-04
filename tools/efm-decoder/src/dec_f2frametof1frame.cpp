@@ -113,7 +113,7 @@ void F2FrameToF1Frame::process_queue() {
 
 void F2FrameToF1Frame::show_statistics() {
     qInfo() << "F2 frame to F1 frame statistics:";
-    qInfo() << "  Frames:";
+    qInfo() << "  Frames (after Reed-Solomon):";
     qInfo() << "    Valid F2 frames:" << valid_f2_frames_count;
     qInfo() << "    Corrupt F2 frames:" << invalid_f2_frames_count; // 1 or more errors in the frame data
     qInfo() << "  C1 decoder:";

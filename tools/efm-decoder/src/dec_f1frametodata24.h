@@ -44,6 +44,7 @@ private:
 
     uint32_t invalid_f1_frames_count;
     uint32_t valid_f1_frames_count;
+    uint32_t corrupt_bytes_count;
 
     FrameTime start_time;
     FrameTime end_time;

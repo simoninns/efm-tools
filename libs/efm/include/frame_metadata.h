@@ -54,6 +54,8 @@ public:
     bool operator!=(const FrameTime& other) const;
     bool operator<(const FrameTime& other) const;
     bool operator>(const FrameTime& other) const;
+    bool operator<=(const FrameTime& other) const { return !(*this > other); }
+    bool operator>=(const FrameTime& other) const { return !(*this < other); }
     FrameTime operator+(const FrameTime& other) const;
     FrameTime operator-(const FrameTime& other) const;
 
