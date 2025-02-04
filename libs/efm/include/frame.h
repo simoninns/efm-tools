@@ -38,11 +38,15 @@ public:
     virtual void set_data(const QVector<uint8_t>& data);
     virtual QVector<uint8_t> get_data() const;
 
+    virtual void set_error_data(const QVector<uint8_t>& error_data);
+    virtual QVector<uint8_t> get_error_data() const;
+
     bool is_full() const;
     bool is_empty() const;
 
 protected:
     QVector<uint8_t> frame_data;
+    QVector<uint8_t> frame_error_data;
 };
 
 class Data24 : public Frame {
@@ -61,14 +65,7 @@ public:
     int get_frame_size() const override;
     void show_data();
 
-    void set_error_data(const QVector<uint8_t>& error_data);
-    QVector<uint8_t> get_error_data() const;
-
     FrameMetadata frame_metadata;
-
-private:
-    // Error data
-    QVector<uint8_t> frame_error_data;
 };
 
 class F2Frame : public Frame {
