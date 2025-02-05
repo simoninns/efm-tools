@@ -1,13 +1,13 @@
 /************************************************************************
 
-    dec_tvaluestochannel.h
+    tvalues.h
 
-    ld-efm-decoder - EFM data decoder
+    EFM-library - T-values to bit string conversion
     Copyright (C) 2025 Simon Inns
 
-    This file is part of ld-decode-tools.
+    This file is part of EFM-Tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,30 +22,27 @@
 
 ************************************************************************/
 
-#ifndef DEC_TVALUESTOCHANNEL_H
-#define DEC_TVALUESTOCHANNEL_H
+#ifndef TVALUES_H
+#define TVALUES_H
 
-#include "decoders.h"
-#include "tvalues.h"
+#include <cstdint>
+#include <QString>
+#include <QVector>
 
-class TvaluesToChannel : Decoder {
+class Tvalues {
 public:
-    TvaluesToChannel();
-    void push_frame(QByteArray data);
-    QString pop_frame();
-    bool is_ready() const;
+    Tvalues();
     
-    void show_statistics();
+    QString tvalues_to_bit_string(QByteArray tvalues);
+
+    uint32_t get_invalid_high_t_values_count() const { return invalid_high_t_values_count; }
+    uint32_t get_invalid_low_t_values_count() const { return invalid_low_t_values_count; }
+    uint32_t get_valid_t_values_count() const { return valid_t_values_count; }
 
 private:
-    void process_queue();
-
-    QQueue<QByteArray> input_buffer;
-    QQueue<QString> output_buffer;
-    uint32_t invalid_t_values_count;
+    uint32_t invalid_high_t_values_count;
+    uint32_t invalid_low_t_values_count;
     uint32_t valid_t_values_count;
-
-    Tvalues tvalues;
 };
 
-#endif // DEC_TVALUESTOCHANNEL_H
+#endif // EFM_H

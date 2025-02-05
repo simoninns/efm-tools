@@ -49,31 +49,11 @@ bool TvaluesToChannel::is_ready() const {
 
 void TvaluesToChannel::process_queue() {
     // Process the input buffer
-    QString bit_string;
-    bit_string.reserve(input_buffer.size() * 11); // Reserve enough space to avoid frequent reallocations
+    QString bit_string = "";
 
     while (!input_buffer.isEmpty()) {
         QByteArray t_values = input_buffer.dequeue();
-
-        for (int32_t i = 0; i < t_values.size(); i++) {
-            // Convert the T-value to a bit string
-            
-            // Range check
-            int t_value = static_cast<int>(t_values[i]);
-            if (t_value > 11) {
-                invalid_t_values_count++;
-                t_value = 11;
-            } else if (t_value < 3) {
-                invalid_t_values_count++;
-                t_value = 3;
-            } else {
-                valid_t_values_count++;
-            }
-
-            // T3 = 100, T4 = 1000, ... , T11 = 10000000000
-            bit_string += '1';
-            bit_string += QString(t_value - 1, '0');
-        }
+        bit_string += tvalues.tvalues_to_bit_string(t_values);
     }
 
     if (!bit_string.isEmpty()) {
@@ -84,6 +64,8 @@ void TvaluesToChannel::process_queue() {
 
 void TvaluesToChannel::show_statistics() {
     qInfo() << "T-values to channel statistics:";
-    qInfo() << "  Valid T-values:" << valid_t_values_count;
-    qInfo() << "  Invalid T-values:" << invalid_t_values_count;
+    qInfo() << "  Valid T-values:" << tvalues.get_valid_t_values_count();
+    qInfo() << "  Invalid T-values:" << tvalues.get_invalid_high_t_values_count() + tvalues.get_invalid_low_t_values_count();
+    qInfo() << "    >11 T-values:" << tvalues.get_invalid_high_t_values_count();
+    qInfo() << "    < 3 T-values:" << tvalues.get_invalid_low_t_values_count();
 }
