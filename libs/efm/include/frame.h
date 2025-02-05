@@ -40,6 +40,7 @@ public:
 
     virtual void set_error_data(const QVector<uint8_t>& error_data);
     virtual QVector<uint8_t> get_error_data() const;
+    virtual uint32_t count_errors() const;
 
     bool is_full() const;
     bool is_empty() const;

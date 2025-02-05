@@ -33,8 +33,10 @@ F2FrameToF1Frame::F2FrameToF1Frame()
       delay_lineM_err({108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16, 12, 8, 4, 0}),
       valid_input_f2_frames_count(0),
       invalid_input_f2_frames_count(0),
-      invalid_output_f2_frames_count(0),
-      valid_output_f2_frames_count(0) 
+      invalid_output_f1_frames_count(0),
+      valid_output_f1_frames_count(0),
+      input_byte_errors(0),
+      output_byte_errors(0)
 {}
 
 void F2FrameToF1Frame::push_frame(F2Frame data) {
@@ -65,16 +67,13 @@ void F2FrameToF1Frame::process_queue() {
         QVector<uint8_t> data = f2_frame.get_data();
         QVector<uint8_t> error_data = f2_frame.get_error_data();
 
-        // Check if any value in the input F2 error_data is not 0
-        bool in_error_detected = false;
-        for (auto byte : error_data) {
-            if (byte != 0) {
-                in_error_detected = true;
-                break;
-            }
+        // Check F2 frame for errors
+        uint32_t in_frame_errors = f2_frame.count_errors();
+        if (in_frame_errors == 0) valid_input_f2_frames_count++;
+        else {
+            invalid_input_f2_frames_count++;
+            input_byte_errors += in_frame_errors;
         }
-        if (!in_error_detected) valid_input_f2_frames_count++;
-        else invalid_input_f2_frames_count++;
 
         data = delay_line1.push(data);
         error_data = delay_line1_err.push(error_data);
@@ -100,22 +99,19 @@ void F2FrameToF1Frame::process_queue() {
         error_data = delay_line2_err.push(error_data);
         if (data.isEmpty()) continue;
 
-        // Check if any value in the output F2 error_data is not 0
-        bool out_error_detected = false;
-        for (auto byte : error_data) {
-            if (byte != 0) {
-                out_error_detected = true;
-                break;
-            }
-        }
-        if (!out_error_detected) valid_output_f2_frames_count++;
-        else invalid_output_f2_frames_count++;
-
         // Put the resulting data (and error data) into an F1 frame and push it to the output buffer
         F1Frame f1_frame;
         f1_frame.set_data(data);
         f1_frame.set_error_data(error_data);
         f1_frame.frame_metadata = f2_frame.frame_metadata;
+
+        // Check F1 frame for errors
+        uint32_t out_frame_errors = f1_frame.count_errors();
+        if (out_frame_errors == 0) valid_output_f1_frames_count++;
+        else {
+            invalid_output_f1_frames_count++;
+            output_byte_errors += out_frame_errors;
+        }
 
         output_buffer.enqueue(f1_frame);
     }
@@ -123,12 +119,14 @@ void F2FrameToF1Frame::process_queue() {
 
 void F2FrameToF1Frame::show_statistics() {
     qInfo() << "F2 frame to F1 frame statistics:";
-    qInfo() << "  Input Frames:";
-    qInfo() << "    Valid F2 frames:" << valid_input_f2_frames_count;
-    qInfo() << "    Corrupt F2 frames:" << invalid_input_f2_frames_count;
-    qInfo() << "  Output Frames (after Reed-Solomon):";
-    qInfo() << "    Valid F2 frames:" << valid_output_f2_frames_count;
-    qInfo() << "    Corrupt F2 frames:" << invalid_output_f2_frames_count;
+    qInfo() << "  Input F2 Frames:";
+    qInfo() << "    Valid frames:" << valid_input_f2_frames_count;
+    qInfo() << "    Corrupt frames:" << invalid_input_f2_frames_count;
+    qInfo() << "    Input byte errors:" << input_byte_errors;
+    qInfo() << "  Output F1 Frames (after CIRC):";
+    qInfo() << "    Valid frames:" << valid_output_f1_frames_count;
+    qInfo() << "    Corrupt frames:" << invalid_output_f1_frames_count;
+    qInfo() << "    Output byte errors:" << output_byte_errors;
     qInfo() << "  C1 decoder:";
     qInfo() << "    Valid C1s:" << circ.get_valid_c1s();
     qInfo() << "    Fixed C1s:" << circ.get_fixed_c1s();

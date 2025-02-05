@@ -36,6 +36,9 @@ ChannelToF3Frame::ChannelToF3Frame() {
     valid_efm_symbols_count = 0;
     invalid_efm_symbols_count = 0;
 
+    output_f3_frame_count_good = 0;
+    output_f3_frame_count_bad = 0;
+
     // State machine tracking variables
     missed_sync = 0;
 }
@@ -286,17 +289,28 @@ F3Frame ChannelToF3Frame::convert_frame_data_to_f3_frame(const QString frame_dat
         f3_frame.set_frame_type_as_subcode(subcode);
     }
 
+    // Update the statistics
+    if (f3_frame.count_errors() > 0) {
+        output_f3_frame_count_bad++;
+    } else {
+        output_f3_frame_count_good++;
+    }
+
     return f3_frame;
 }
 
 void ChannelToF3Frame::show_statistics() {
     qInfo() << "Channel to F3 frame statistics:";
+    qInfo() << "  EFM symbols:";
+    qInfo() << "    Valid EFM symbols:" << valid_efm_symbols_count;
+    qInfo() << "    Invalid EFM symbols:" << invalid_efm_symbols_count;
     qInfo() << "  Channel Frames:";
     qInfo() << "    Valid:" << valid_channel_frames_count;
     qInfo() << "    Overshoot:" << overshoot_channel_frames_count;
     qInfo() << "    Undershoot:" << undershoot_channel_frames_count;
     qInfo() << "    Discarded bits:" << discarded_bits_count;
-    qInfo() << "  EFM symbols:";
-    qInfo() << "    Valid EFM symbols:" << valid_efm_symbols_count;
-    qInfo() << "    Invalid EFM symbols:" << invalid_efm_symbols_count;
+    qInfo() << "  F3 Frames:";
+    qInfo() << "    Clean:" << output_f3_frame_count_good;
+    qInfo() << "    Error:" << output_f3_frame_count_bad;
+    qInfo() << "    Total:" << output_f3_frame_count_good + output_f3_frame_count_bad;
 }

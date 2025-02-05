@@ -74,6 +74,9 @@ private:
 
     uint32_t valid_efm_symbols_count;
     uint32_t invalid_efm_symbols_count;
+
+    uint32_t output_f3_frame_count_good;
+    uint32_t output_f3_frame_count_bad;
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H

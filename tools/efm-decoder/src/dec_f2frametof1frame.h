@@ -63,8 +63,11 @@ private:
 
     uint32_t invalid_input_f2_frames_count;
     uint32_t valid_input_f2_frames_count;
-    uint32_t invalid_output_f2_frames_count;
-    uint32_t valid_output_f2_frames_count;
+    uint32_t invalid_output_f1_frames_count;
+    uint32_t valid_output_f1_frames_count;
+
+    uint32_t input_byte_errors;
+    uint32_t output_byte_errors;
 };
 
 #endif // DEC_F2FRAMETOF1FRAME_H

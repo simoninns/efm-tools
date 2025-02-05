@@ -67,12 +67,7 @@ void F1FrameToData24::process_queue() {
         }
         
         // Check the error data (and count any flagged errors)
-        uint32_t error_count = 0;
-        for (int i = 0; i < error_data.size(); i++) {
-            if (error_data[i] != 0) {
-                error_count++;
-            }
-        }
+        uint32_t error_count = f1_frame.count_errors();
 
         corrupt_bytes_count += error_count;
 

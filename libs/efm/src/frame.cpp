@@ -64,6 +64,17 @@ QVector<uint8_t> Frame::get_error_data() const {
     return frame_error_data;
 }
 
+// Count the number of errors in the frame
+uint32_t Frame::count_errors() const {
+    uint32_t error_count = 0;
+    for (int i = 0; i < frame_error_data.size(); ++i) {
+        if (frame_error_data[i] == 1) {
+            error_count++;
+        }
+    }
+    return error_count;
+}
+
 // Check if the frame is full (i.e., has data)
 bool Frame::is_full() const {
     return !frame_data.isEmpty();
