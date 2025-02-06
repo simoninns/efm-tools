@@ -28,12 +28,13 @@
 
 #include "efm_processor.h"
 #include "decoders.h"
+#include "dec_tvaluestochannel.h"
+
 #include "dec_channeltof3frame.h"
 #include "dec_f3frametosection.h"
 #include "dec_sectiontof2frame.h"
 #include "dec_f2frametof1frame.h"
 #include "dec_f1frametodata24.h"
-#include "dec_tvaluestochannel.h"
 
 EfmProcessor::EfmProcessor() {
 }
@@ -102,67 +103,72 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             t_values_to_channel.push_frame(t_values);
         }
 
-        // Are there any T-values ready?
+        // Test - throw away the data
         while(t_values_to_channel.is_ready()) {
             QString channel_data = t_values_to_channel.pop_frame();
-            channel_to_f3.push_frame(channel_data);
         }
 
-        // Are there any F3 frames ready?
-        while(channel_to_f3.is_ready()) {
-            F3Frame f3_frame = channel_to_f3.pop_frame();
-            if (showF3) f3_frame.show_data();
-            f3_frame_to_section.push_frame(f3_frame);
-            f3_frame_count++;
-        }
+        // // Are there any T-values ready?
+        // while(t_values_to_channel.is_ready()) {
+        //     QString channel_data = t_values_to_channel.pop_frame();
+        //     channel_to_f3.push_frame(channel_data);
+        // }
 
-        // Are there any sections ready?
-        while(f3_frame_to_section.is_ready()) {
-            Section section = f3_frame_to_section.pop_section();
-            section_to_f2.push_frame(section);
-            section_count++;
-        }
+        // // Are there any F3 frames ready?
+        // while(channel_to_f3.is_ready()) {
+        //     F3Frame f3_frame = channel_to_f3.pop_frame();
+        //     if (showF3) f3_frame.show_data();
+        //     f3_frame_to_section.push_frame(f3_frame);
+        //     f3_frame_count++;
+        // }
 
-        // Are there any F2 frames ready?
-        while(section_to_f2.is_ready()) {
-            QVector<F2Frame> f2_frames = section_to_f2.pop_frames();
+        // // Are there any sections ready?
+        // while(f3_frame_to_section.is_ready()) {
+        //     Section section = f3_frame_to_section.pop_section();
+        //     section_to_f2.push_frame(section);
+        //     section_count++;
+        // }
 
-            for (int i = 0; i < f2_frames.size(); i++) {
-                if (showF2) f2_frames[i].show_data();
-                f2_frame_to_f1.push_frame(f2_frames[i]);
-                f2_frame_count++;
-            }
-        }
+        // // Are there any F2 frames ready?
+        // while(section_to_f2.is_ready()) {
+        //     QVector<F2Frame> f2_frames = section_to_f2.pop_frames();
 
-        // Are there any F1 frames ready?
-        while(f2_frame_to_f1.is_ready()) {
-            F1Frame f1_frame = f2_frame_to_f1.pop_frame();
-            if (showF1) f1_frame.show_data();
-            f1_frame_to_data24.push_frame(f1_frame);
-            f1_frame_count++;
-        }
+        //     for (int i = 0; i < f2_frames.size(); i++) {
+        //         if (showF2) f2_frames[i].show_data();
+        //         f2_frame_to_f1.push_frame(f2_frames[i]);
+        //         f2_frame_count++;
+        //     }
+        // }
 
-        // Are there any data frames ready?
-        while(f1_frame_to_data24.is_ready()) {
-            Data24 data24 = f1_frame_to_data24.pop_frame();
-            output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
-            data24_count += 1;
+        // // Are there any F1 frames ready?
+        // while(f2_frame_to_f1.is_ready()) {
+        //     F1Frame f1_frame = f2_frame_to_f1.pop_frame();
+        //     if (showF1) f1_frame.show_data();
+        //     f1_frame_to_data24.push_frame(f1_frame);
+        //     f1_frame_count++;
+        // }
 
-            if (showOutput) {
-                data24.show_data();
-            }
-        }
+        // // Are there any data frames ready?
+        // while(f1_frame_to_data24.is_ready()) {
+        //     Data24 data24 = f1_frame_to_data24.pop_frame();
+        //     output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
+        //     data24_count += 1;
+
+        //     if (showOutput) {
+        //         data24.show_data();
+        //     }
+        // }
     }
 
     // Show summary
     qInfo() << "Decoding complete";
 
     t_values_to_channel.show_statistics(); qInfo() << "";
-    channel_to_f3.show_statistics(); qInfo() << "";
-    f3_frame_to_section.show_statistics(); qInfo() << "";
-    section_to_f2.show_statistics(); qInfo() << "";
-    f2_frame_to_f1.show_statistics(); qInfo() << "";
-    f1_frame_to_data24.show_statistics(); qInfo() << "";
+    // channel_to_f3.show_statistics(); qInfo() << "";
+    // f3_frame_to_section.show_statistics(); qInfo() << "";
+    // section_to_f2.show_statistics(); qInfo() << "";
+    // f2_frame_to_f1.show_statistics(); qInfo() << "";
+    // f1_frame_to_data24.show_statistics(); qInfo() << "";
     
     qInfo() << "Processed" << data24_count << "Data24 Frames," << f1_frame_count << "F1 Frames," << f2_frame_count << "F2 Frames," << f3_frame_count << "F3 Frames";
 

@@ -38,14 +38,43 @@ public:
     void show_statistics();
 
 private:
-    void process_queue();
+    void process_state_machine();
+
+    // State machine states
+    enum State {
+        EXPECTING_INITIAL_SYNC,
+        EXPECTING_SYNC,
+        HANDLE_OVERSHOOT,
+        HANDLE_UNDERSHOOT
+    };
+
+    // Statistics
+    uint32_t consumed_t_values;
+    uint32_t discarded_t_values;
+    uint32_t channel_frame_count;
+
+    uint32_t perfect_frames;
+    uint32_t long_frames;
+    uint32_t short_frames;
+
+    uint32_t overshoot_syncs;
+    uint32_t undershoot_syncs;
+    uint32_t perfect_syncs;
+
+    State current_state;
+    QByteArray internal_buffer;
+    QByteArray frame_data;
 
     QQueue<QByteArray> input_buffer;
     QQueue<QString> output_buffer;
-    uint32_t invalid_t_values_count;
-    uint32_t valid_t_values_count;
 
     Tvalues tvalues;
+
+    State expecting_initial_sync();
+    State expecting_sync();
+    State handle_undershoot();
+    State handle_overshoot();
+
 };
 
 #endif // DEC_TVALUESTOCHANNEL_H
