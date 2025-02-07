@@ -27,7 +27,7 @@
 
 #include "decoders.h"
 
-class F1FrameToData24 : Decoder {
+class F1FrameToData24 : public Decoder {
 public:
     F1FrameToData24();
     void push_frame(F1Frame data);

@@ -37,7 +37,12 @@
 
 class Decoder {
 public:
+    Decoder() : show_debug(false) {}
     virtual void show_statistics() { qInfo() << "Decoder::show_statistics(): No statistics available"; };
-};
+    virtual void set_show_debug(bool _show_debug) { show_debug = _show_debug; };
+
+protected:
+    bool show_debug;
+};;
 
 #endif // DECODERS_H

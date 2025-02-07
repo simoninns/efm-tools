@@ -72,7 +72,7 @@ void SectionToF2Frame::process_queue() {
                 has_last_good_section = true;
                 last_good_section = current_section;
                 output_section(current_section);
-                qDebug() << "SectionToF2Frame::process_queue - First good section:" <<
+                if (show_debug) qDebug() << "SectionToF2Frame::process_queue - First good section:" <<
                     current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
             } else {
                 // If the first section is bad, add it to the window
@@ -80,7 +80,7 @@ void SectionToF2Frame::process_queue() {
                 if (window.size() >= window_size) {
                     flush_window();
                 }
-                qDebug() << "SectionToF2Frame::process_queue - First bad section:" <<
+                if (show_debug) qDebug() << "SectionToF2Frame::process_queue - First bad section:" <<
                     current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
             }
         } else {
@@ -98,10 +98,10 @@ void SectionToF2Frame::process_queue() {
                     last_good_section = current_section;
                 }
             } else {
-                if (!is_current_section_valid) qDebug() << "SectionToF2Frame::process_queue - Section is invalid - Invalid metadata (bad CRC)";
+                if (!is_current_section_valid && show_debug) qDebug() << "SectionToF2Frame::process_queue - Section is invalid - Invalid metadata (bad CRC)";
                 //qDebug() << "Sections in window between last good section and current section:" << window.size();
 
-                if (!is_section_valid(current_section, last_good_section, window.size())) qDebug().noquote() << "SectionToF2Frame::process_queue - Section is invalid - current:" <<
+                if (!is_section_valid(current_section, last_good_section, window.size()) && show_debug) qDebug().noquote() << "SectionToF2Frame::process_queue - Section is invalid - current:" <<
                     current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string() << "last good:" <<
                     last_good_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
 
@@ -124,7 +124,7 @@ bool SectionToF2Frame::is_section_valid(Section current, Section last_good, uint
 
     // If the current section's metadata is invalid, it's invalid.
     if (!current_metadata.is_valid()) {
-        qDebug() << "SectionToF2Frame::is_section_valid - Section is invalid - Invalid metadata (bad CRC)";
+        if (show_debug) qDebug() << "SectionToF2Frame::is_section_valid - Section is invalid - Invalid metadata (bad CRC)";
         return false;
     }
 
@@ -135,7 +135,7 @@ bool SectionToF2Frame::is_section_valid(Section current, Section last_good, uint
     }
 
     // Otherwise, the section is invalid
-    qDebug().noquote() << "SectionToF2Frame::is_section_valid - Section is invalid - current:" <<
+    if (show_debug) qDebug().noquote() << "SectionToF2Frame::is_section_valid - Section is invalid - current:" <<
         current_metadata.get_absolute_frame_time().to_string() << "last good:" <<
         last_good_metadata.get_absolute_frame_time().to_string();
     return false;
@@ -186,7 +186,7 @@ void SectionToF2Frame::correct_and_flush_window() {
         trk_time.set_time_in_frames(corrected_time);
 
         if (corrected_metadata.get_absolute_frame_time().get_time_in_frames() != abs_time.get_time_in_frames()) {
-            qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected frame abs time to" << abs_time.to_string() <<
+            if (show_debug) qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected frame abs time to" << abs_time.to_string() <<
             "/ track time to" << trk_time.to_string() << "/ track number to" << corrected_track;
         }
 
@@ -213,7 +213,7 @@ void SectionToF2Frame::correct_and_flush_window() {
 
 // Flush the window without any correction - output all frames in order.
 void SectionToF2Frame::flush_window() {
-    qDebug() << "SectionToF2Frame::flush_window - Flushing window without correction";
+    if (show_debug) qDebug() << "SectionToF2Frame::flush_window - Flushing window without correction";
     while (!window.isEmpty()) {
         Section section = window.dequeue();
         uncorrectable_sections++;

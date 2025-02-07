@@ -28,7 +28,7 @@
 #include "decoders.h"
 #include "subcode.h"
 
-class F3FrameToSection : Decoder {
+class F3FrameToSection : public Decoder {
 public:
     F3FrameToSection();
     void push_frame(F3Frame data);

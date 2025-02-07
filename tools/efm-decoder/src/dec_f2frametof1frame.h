@@ -31,7 +31,7 @@
 #include "interleave.h"
 #include "inverter.h"
 
-class F2FrameToF1Frame : Decoder {
+class F2FrameToF1Frame : public Decoder {
 public:
     F2FrameToF1Frame();
     void push_frame(F2Frame data);

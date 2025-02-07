@@ -41,6 +41,9 @@ ChannelToF3Frame::ChannelToF3Frame() {
 
     // State machine tracking variables
     missed_sync = 0;
+
+    // Initialize debug flag
+    show_debug = false;
 }
 
 void ChannelToF3Frame::push_frame(QString data) {
@@ -90,16 +93,14 @@ ChannelToF3Frame::State ChannelToF3Frame::expecting_sync() {
 
     // Does the internal buffer contain a sync header?
     if (internal_buffer.contains(sync_header)) {
-        //qDebug() << "ChannelToF3Frame::expecting_sync - Sync header found";
+        //if (show_debug) qDebug() << "ChannelToF3Frame::expecting_sync - Sync header found";
 
         // Remove any data before the sync header (including the actual sync header itself)
         uint32_t original_frame_buffer_size = internal_buffer.size();
         internal_buffer = internal_buffer.mid(internal_buffer.indexOf(sync_header) + sync_header.size());
         uint32_t preceeding_bits_count = original_frame_buffer_size - internal_buffer.size() - 24;
         discarded_bits_count += preceeding_bits_count;
-        if (preceeding_bits_count > 0) {
-            qDebug() << "ChannelToF3Frame::expecting_sync - Discarding" << preceeding_bits_count << "bits before sync header";
-        }
+        if (preceeding_bits_count > 0 && show_debug) qDebug() << "ChannelToF3Frame::expecting_sync - Discarding" << preceeding_bits_count << "bits before sync header";
         
         next_state = EXPECTING_DATA;
     } else {
@@ -107,7 +108,7 @@ ChannelToF3Frame::State ChannelToF3Frame::expecting_sync() {
         uint32_t original_frame_buffer_size = internal_buffer.size();
         internal_buffer = internal_buffer.right(24);
         discarded_bits_count += original_frame_buffer_size - internal_buffer.size();
-        qDebug() << "ChannelToF3Frame::expecting_sync - Sync header not found - throwing away" << original_frame_buffer_size - internal_buffer.size() << "bits";
+        if (show_debug) qDebug() << "ChannelToF3Frame::expecting_sync - Sync header not found - throwing away" << original_frame_buffer_size - internal_buffer.size() << "bits";
 
         next_state = EXPECTING_SYNC;
     }
@@ -128,7 +129,7 @@ ChannelToF3Frame::State ChannelToF3Frame::expecting_data() {
         // we also use CaseSensitive to avoid the overhead of converting the data to lower case
         uint32_t sync_header_index = internal_buffer.indexOf(sync_header, 0, Qt::CaseSensitive);
         if (sync_header_index != -1) {
-            //qDebug() << "ChannelToF3Frame::expecting_data - Terminating sync header found at position" << internal_buffer.indexOf(sync_header);
+            //if (show_debug) qDebug() << "ChannelToF3Frame::expecting_data - Terminating sync header found at position" << internal_buffer.indexOf(sync_header);
             // There is a terminating sync header
             frame_data = internal_buffer.left(sync_header_index);
 
@@ -141,7 +142,7 @@ ChannelToF3Frame::State ChannelToF3Frame::expecting_data() {
             // Process the frame
             next_state = PROCESS_FRAME;
         } else {
-            qDebug() << "ChannelToF3Frame::expecting_data - Sync header not found - using 564 bits of data";
+            if (show_debug) qDebug() << "ChannelToF3Frame::expecting_data - Sync header not found - using 564 bits of data";
             // There is no terminating sync header, but there's enough data for a frame
             // Assume the sync header is missing or corrupt and take 564 bits of data
             frame_data = internal_buffer.left(564); // 588 bits - 24 bits = 564 bits
@@ -165,7 +166,7 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
 
     // Do we have 564 bits of data?
     if (frame_data.size() == 564) {
-        //qDebug() << "ChannelToF3Frame::process_frame - Processing 564 bit frame";
+        //if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Processing 564 bit frame";
 
         // Count the number of valid channel frames
         valid_channel_frames_count++;
@@ -181,7 +182,7 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
             overshoot_channel_frames_count++;
             // The frame data is too long, discard the extra bits
             discarded_bits_count += frame_data.size() - 564;
-            qDebug() << "ChannelToF3Frame::process_frame - Frame data is too long - expected 564 bits, got" << frame_data.size() << "bits";
+            if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Frame data is too long - expected 564 bits, got" << frame_data.size() << "bits";
 
             // Create an F3 frame from the first 564 bits
             F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data.left(564));
@@ -199,9 +200,9 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
                 if (frame_data.size() > 0) {
                     // The remaining data is not a reasonable size, discard it
                     discarded_bits_count += frame_data.size();
-                    qDebug() << "ChannelToF3Frame::process_frame - Discarding" << frame_data.size() << "bits of data (too long)";
+                    if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Discarding" << frame_data.size() << "bits of data (too long)";
                 } else {
-                    qDebug() << "ChannelToF3Frame::process_frame - No data left";
+                    if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - No data left";
                 }
             }
 
@@ -210,7 +211,7 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
             // The frame data is too short, pad with zeros to 564 bits
             uint8_t padding_bits = 564 - frame_data.size();
             frame_data.append(QString(564 - frame_data.size(), '0'));
-            qDebug() << "ChannelToF3Frame::process_frame - Frame data is too short - padding with" << padding_bits << "zero bits";
+            if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Frame data is too short - padding with" << padding_bits << "zero bits";
 
             // Create an F3 frame
             F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
@@ -226,7 +227,7 @@ ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
 
     if (missed_sync > 0 && missed_sync < 3) {
         // Terminating sync header was missing, start collecting data again
-        qDebug() << "ChannelToF3Frame::process_frame - Terminating sync header missing - resyncing (missed syncs:" << missed_sync << ")";
+        if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Terminating sync header missing - resyncing (missed syncs:" << missed_sync << ")";
 
         // Remove the first 24 bits of the internal buffer (the quite-possibly-corrupted sync header)
         internal_buffer = internal_buffer.right(internal_buffer.size() - sync_header.size());

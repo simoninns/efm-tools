@@ -28,7 +28,7 @@
 #include "decoders.h"
 #include "frame_metadata.h"
 
-class SectionToF2Frame : Decoder {
+class SectionToF2Frame : public Decoder {
 public:
     SectionToF2Frame();
     void push_frame(Section data);

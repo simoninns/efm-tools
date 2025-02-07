@@ -96,7 +96,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync0() {
 
         case F3Frame::SYNC1:
             missed_sync0s++;
-            qDebug() << "F3FrameToSection::expecting_sync0 - Sync1 frame received when expecting Sync0";
+            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync0 - Sync1 frame received when expecting Sync0";
 
             // Is there a frame in the section buffer?
             if(section_buffer.size() > 0) {
@@ -129,7 +129,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync0() {
         case F3Frame::SUBCODE:
             missed_sync0s++;
             // If we get a subcode, assume it's a miss-labelled sync0 frame
-            qDebug() << "F3FrameToSection::expecting_sync0 - Subcode frame received when expecting Sync0";
+            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync0 - Subcode frame received when expecting Sync0";
             f3_frame.set_frame_type_as_sync0();
             section_buffer.clear();
             section_buffer.append(f3_frame);
@@ -158,7 +158,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync1() {
         case F3Frame::SYNC0:
             missed_sync1s++;
             // If we get a sync0, continue to wait for the sync1
-            qDebug() << "F3FrameToSection::expecting_sync1 - Sync0 frame received when expecting Sync1";
+            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync1 - Sync0 frame received when expecting Sync1";
 
             // Add the sync0 to a new section buffer
             section_buffer.clear();
@@ -171,7 +171,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync1() {
         case F3Frame::SUBCODE:
             missed_sync1s++;
             // If we get a subcode, assume it's a miss-labeled sync1 frame
-            qDebug() << "F3FrameToSection::expecting_sync1 - Subcode frame received when expecting Sync1";
+            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync1 - Subcode frame received when expecting Sync1";
             f3_frame.set_frame_type_as_sync1();        
 
             // Add the sync1 to the section buffer
@@ -209,7 +209,7 @@ F3FrameToSection::State F3FrameToSection::expecting_subcode() {
 
         case F3Frame::SYNC0:
             missed_subcodes++;
-            qDebug() << "F3FrameToSection::expecting_subcode - Sync0 frame received when expecting Subcode";
+            if (show_debug) qDebug() << "F3FrameToSection::expecting_subcode - Sync0 frame received when expecting Subcode";
 
             // Assume section is lost - clear the buffer and look for the sync1
             section_buffer.clear();
@@ -225,7 +225,7 @@ F3FrameToSection::State F3FrameToSection::expecting_subcode() {
 
         case F3Frame::SYNC1:
             missed_subcodes++;
-            qDebug() << "F3FrameToSection::expecting_subcode - Sync1 frame received when expecting Subcode";
+            if (show_debug) qDebug() << "F3FrameToSection::expecting_subcode - Sync1 frame received when expecting Subcode";
 
             // If we get a sync1, assume it's a miss-labeled subcode frame
             f3_frame.set_frame_type_as_subcode(0);        

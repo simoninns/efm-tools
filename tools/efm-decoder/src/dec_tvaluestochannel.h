@@ -28,7 +28,7 @@
 #include "decoders.h"
 #include "tvalues.h"
 
-class TvaluesToChannel : Decoder {
+class TvaluesToChannel : public Decoder {
 public:
     TvaluesToChannel();
     void push_frame(QByteArray data);

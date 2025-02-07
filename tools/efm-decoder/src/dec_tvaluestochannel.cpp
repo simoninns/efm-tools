@@ -99,11 +99,11 @@ TvaluesToChannel::State TvaluesToChannel::expecting_initial_sync() {
     int initial_sync_index = internal_buffer.indexOf(t11_t11);
 
     if (initial_sync_index != -1) {
-        qDebug() << "TvaluesToChannel::expecting_initial_sync() - Initial sync header found at index:" << initial_sync_index;
+        if (show_debug) qDebug() << "TvaluesToChannel::expecting_initial_sync() - Initial sync header found at index:" << initial_sync_index;
         next_state = EXPECTING_SYNC;
     } else {
+        if (show_debug) qDebug() << "TvaluesToChannel::expecting_initial_sync() - Initial sync header not found, dropping" << internal_buffer.size() - 1 << "T-values";
         // Drop all but the last T-value in the buffer
-        qDebug() << "TvaluesToChannel::expecting_initial_sync() - Initial sync header not found, dropping" << internal_buffer.size() - 1 << "T-values";
         discarded_t_values += internal_buffer.size() - 1;
         internal_buffer = internal_buffer.right(1);
     }
@@ -133,9 +133,9 @@ TvaluesToChannel::State TvaluesToChannel::expecting_sync() {
 
         // If the frame data is 550 to 600 bits, we have a valid frame
         if (bit_count > 550 && bit_count < 600) {
-            // We have a valid frame
-            if (bit_count != 588) qDebug() << "TvaluesToChannel::expecting_sync() - Got frame with" << bit_count << "bits - Treating as valid";
+            if (bit_count != 588 && show_debug) qDebug() << "TvaluesToChannel::expecting_sync() - Got frame with" << bit_count << "bits - Treating as valid";
 
+            // We have a valid frame
             // Place the frame data into the output buffer
             output_buffer.enqueue(frame_data);
             consumed_t_values += frame_data.size();
@@ -199,8 +199,8 @@ TvaluesToChannel::State TvaluesToChannel::handle_undershoot() {
         }
         
         if (ftt_bit_count > 550 && ftt_bit_count < 600) {
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot frame - Value from first to third sync_header =" << ftt_bit_count << "bits - treating as valid";
             // Valid frame between the first and third sync headers
-            qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot frame - Value from first to third sync_header =" << ftt_bit_count << "bits - treating as valid";
             QByteArray frame_data = internal_buffer.left(third_sync_index);
             output_buffer.enqueue(frame_data);
             consumed_t_values += frame_data.size();
@@ -214,8 +214,8 @@ TvaluesToChannel::State TvaluesToChannel::handle_undershoot() {
             internal_buffer = internal_buffer.right(internal_buffer.size() - third_sync_index);
             next_state = EXPECTING_SYNC;
         } else if (stt_bit_count > 550 && stt_bit_count < 600) {
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot frame - Value from second to third sync_header =" << stt_bit_count << "bits - treating as valid";
             // Valid frame between the second and third sync headers
-            qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot frame - Value from second to third sync_header =" << stt_bit_count << "bits - treating as valid";
             QByteArray frame_data = internal_buffer.mid(second_sync_index, third_sync_index - second_sync_index);
             output_buffer.enqueue(frame_data);
             consumed_t_values += frame_data.size();
@@ -230,12 +230,12 @@ TvaluesToChannel::State TvaluesToChannel::handle_undershoot() {
             internal_buffer = internal_buffer.right(internal_buffer.size() - third_sync_index);
             next_state = EXPECTING_SYNC;
         } else {
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot -2";
             // Corrupt frame data - can't recover
-            qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot -2";
             qFatal("TvaluesToChannel::handle_undershoot() - Undershoot frame detected but no valid frame found between first and third sync headers - what to do?");
         }
     } else {
-        qDebug() << "TvaluesToChannel::handle_undershoot() - No third sync header found.  Staying in undershoot state waiting for more data";
+        if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - No third sync header found.  Staying in undershoot state waiting for more data";
         next_state = HANDLE_UNDERSHOOT;
     }
 
@@ -271,7 +271,7 @@ TvaluesToChannel::State TvaluesToChannel::handle_overshoot() {
         // If the frame data is 588*2 bits, or within 11 bits of 588*2, we have a two frames
         // separated by a corrupt sync header
         if (bit_count > 588*2-11 && bit_count < 588*2+11) {
-            qDebug() << "TvaluesToChannel::handle_overshoot() - Overshoot frame -" << bit_count << "bits - splitting into two frames of" << bit_count/2 << "bits";
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_overshoot() - Overshoot frame -" << bit_count << "bits - splitting into two frames of" << bit_count/2 << "bits";
 
             // Place the frame data into the output buffer
             output_buffer.enqueue(frame_data.left(frame_data.size()/2));
@@ -288,7 +288,7 @@ TvaluesToChannel::State TvaluesToChannel::handle_overshoot() {
 
             next_state = EXPECTING_SYNC;
         } else {
-            qDebug() << "TvaluesToChannel::handle_overshoot() - Overshoot frame -" << bit_count << "bits, but no sync header found, dropping" << internal_buffer.size() - 1 << "T-values";
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_overshoot() - Overshoot frame -" << bit_count << "bits, but no sync header found, dropping" << internal_buffer.size() - 1 << "T-values";
             internal_buffer = internal_buffer.right(1);
             next_state = EXPECTING_INITIAL_SYNC;
         }
