@@ -31,52 +31,32 @@
 class ChannelToF3Frame : public Decoder {
 public:
     ChannelToF3Frame();
-    void push_frame(QString data);
+    void push_frame(QByteArray data);
     F3Frame pop_frame();
     bool is_ready() const;
 
     void show_statistics();
 
 private:
-    void process_state_machine();
-    F3Frame convert_frame_data_to_f3_frame(const QString frame_data);
+    void process_queue();
+    F3Frame create_f3_frame(QByteArray data);
 
-    QQueue<QString> input_buffer;
-    QQueue<F3Frame> output_buffer;
-
-    // Define the 24-bit sync header for the F3 frame
-    const QString sync_header = "100000000001000000000010";
+    QByteArray tvalues_to_data(QByteArray tvalues);
+    uint16_t get_bits(QByteArray data, int start_bit, int end_bit);
 
     Efm efm;
 
-    // State machine states
-    enum State {
-        EXPECTING_SYNC,
-        EXPECTING_DATA,
-        PROCESS_FRAME
-    };
-
-    State current_state;
-    QString internal_buffer;
-    QString frame_data;
-    uint32_t missed_sync;
-
-    // State machine state processing functions
-    State expecting_sync();
-    State expecting_data();
-    State process_frame();
+    QQueue<QByteArray> input_buffer;
+    QQueue<F3Frame> output_buffer;
 
     // Statistics
-    uint32_t valid_channel_frames_count;
-    uint32_t undershoot_channel_frames_count;
-    uint32_t overshoot_channel_frames_count;
-    uint32_t discarded_bits_count;
-
-    uint32_t valid_efm_symbols_count;
-    uint32_t invalid_efm_symbols_count;
-
-    uint32_t output_f3_frame_count_good;
-    uint32_t output_f3_frame_count_bad;
+    uint32_t good_frames;
+    uint32_t undershoot_frames;
+    uint32_t overshoot_frames;
+    uint32_t valid_efm_symbols;
+    uint32_t invalid_efm_symbols;
+    uint32_t valid_subcode_symbols;
+    uint32_t invalid_subcode_symbols;
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H

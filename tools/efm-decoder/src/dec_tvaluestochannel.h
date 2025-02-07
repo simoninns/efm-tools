@@ -32,13 +32,14 @@ class TvaluesToChannel : public Decoder {
 public:
     TvaluesToChannel();
     void push_frame(QByteArray data);
-    QString pop_frame();
+    QByteArray pop_frame();
     bool is_ready() const;
     
     void show_statistics();
 
 private:
     void process_state_machine();
+    uint32_t count_bits(QByteArray data, int32_t start_position = 0, int32_t end_position = -1);
 
     // State machine states
     enum State {
@@ -66,7 +67,7 @@ private:
     QByteArray frame_data;
 
     QQueue<QByteArray> input_buffer;
-    QQueue<QString> output_buffer;
+    QQueue<QByteArray> output_buffer;
 
     Tvalues tvalues;
 

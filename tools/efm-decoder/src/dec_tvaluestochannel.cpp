@@ -50,7 +50,7 @@ void TvaluesToChannel::push_frame(QByteArray data) {
     process_state_machine();
 }
 
-QString TvaluesToChannel::pop_frame() {
+QByteArray TvaluesToChannel::pop_frame() {
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
@@ -126,10 +126,7 @@ TvaluesToChannel::State TvaluesToChannel::expecting_sync() {
         QByteArray frame_data = internal_buffer.left(sync_index);
 
         // Do we have exactly 588 bits of data?  Count the T-values
-        int bit_count = 0;
-        for (int i = 0; i < frame_data.size(); i++) {
-            bit_count += frame_data.at(i);
-        }
+        int bit_count = count_bits(frame_data);
 
         // If the frame data is 550 to 600 bits, we have a valid frame
         if (bit_count > 550 && bit_count < 600) {
@@ -138,6 +135,7 @@ TvaluesToChannel::State TvaluesToChannel::expecting_sync() {
             // We have a valid frame
             // Place the frame data into the output buffer
             output_buffer.enqueue(frame_data);
+            if (show_debug && count_bits(frame_data) != 588) qDebug() << "TvaluesToChannel::expecting_sync() - Enqueued frame of" << count_bits(frame_data) << "bits";
             consumed_t_values += frame_data.size();
             channel_frame_count++;
             perfect_syncs++;
@@ -187,22 +185,17 @@ TvaluesToChannel::State TvaluesToChannel::handle_undershoot() {
    
     if (third_sync_index != -1) {
         // Value of the Ts between the first and third sync header
-        int ftt_bit_count = 0;
-        for (int i = 0; i < third_sync_index; i++) {
-            ftt_bit_count += internal_buffer.at(i);
-        }
+        int ftt_bit_count = count_bits(internal_buffer, 0, third_sync_index);
         
         // Value of the Ts between the second and third sync header
-        int stt_bit_count = 0;
-        for (int i = second_sync_index; i < third_sync_index; i++) {
-            stt_bit_count += internal_buffer.at(i);
-        }
+        int stt_bit_count = count_bits(internal_buffer, second_sync_index, third_sync_index);
         
         if (ftt_bit_count > 550 && ftt_bit_count < 600) {
             if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot frame - Value from first to third sync_header =" << ftt_bit_count << "bits - treating as valid";
             // Valid frame between the first and third sync headers
             QByteArray frame_data = internal_buffer.left(third_sync_index);
             output_buffer.enqueue(frame_data);
+            if (show_debug && count_bits(frame_data) != 588) qDebug() << "TvaluesToChannel::handle_undershoot1() - Enqueued frame of" << count_bits(frame_data) << "bits";
             consumed_t_values += frame_data.size();
             channel_frame_count++;
 
@@ -218,6 +211,7 @@ TvaluesToChannel::State TvaluesToChannel::handle_undershoot() {
             // Valid frame between the second and third sync headers
             QByteArray frame_data = internal_buffer.mid(second_sync_index, third_sync_index - second_sync_index);
             output_buffer.enqueue(frame_data);
+            if (show_debug && count_bits(frame_data) != 588) qDebug() << "TvaluesToChannel::handle_undershoot2() - Enqueued frame of" << count_bits(frame_data) << "bits";
             consumed_t_values += frame_data.size();
             channel_frame_count++;
 
@@ -262,29 +256,48 @@ TvaluesToChannel::State TvaluesToChannel::handle_overshoot() {
         // (but not including) the second sync header
         QByteArray frame_data = internal_buffer.left(sync_index);
 
+        // Remove the frame data from the internal buffer
+        internal_buffer = internal_buffer.right(internal_buffer.size() - sync_index);
+
         // How many bits of data do we have?  Count the T-values
-        int bit_count = 0;
-        for (int i = 0; i < frame_data.size(); i++) {
-            bit_count += frame_data.at(i);
-        }
+        int bit_count = count_bits(frame_data);
 
         // If the frame data is 588*2 bits, or within 11 bits of 588*2, we have a two frames
         // separated by a corrupt sync header
         if (bit_count > 588*2-11 && bit_count < 588*2+11) {
-            if (show_debug) qDebug() << "TvaluesToChannel::handle_overshoot() - Overshoot frame -" << bit_count << "bits - splitting into two frames of" << bit_count/2 << "bits";
+            // Count the number of T-values to 588 bits
+            int first_frame_bits = 0;
+            int end_of_frame_index = 0;
+            for (int i = 0; i < frame_data.size(); i++) {
+                first_frame_bits += frame_data.at(i);
+                if (first_frame_bits >= 588) {
+                    end_of_frame_index = i;
+                    break;
+                }
+            }
 
-            // Place the frame data into the output buffer
-            output_buffer.enqueue(frame_data.left(frame_data.size()/2));
-            output_buffer.enqueue(frame_data.right(frame_data.size()/2));
+            QByteArray first_frame_data = frame_data.left(end_of_frame_index + 1);
+            QByteArray second_frame_data = frame_data.right(frame_data.size() - end_of_frame_index - 1);
+
+            uint32_t first_frame_bit_count = count_bits(first_frame_data);
+            uint32_t second_frame_bit_count = count_bits(second_frame_data);
+
+            // Place the frames into the output buffer
+            output_buffer.enqueue(first_frame_data);
+            output_buffer.enqueue(second_frame_data);
+
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_overshoot() - Overshoot frame split -" << first_frame_bit_count << "/" << second_frame_bit_count << "bits";
+
             consumed_t_values += frame_data.size();
             channel_frame_count += 2;
 
-            if (bit_count/2 == 588) perfect_frames+=2;
-            if (bit_count/2 < 588) long_frames+=2;
-            if (bit_count/2 > 588) short_frames+=2;
+            if (first_frame_bit_count == 588) perfect_frames++;
+            if (first_frame_bit_count < 588) long_frames++;
+            if (first_frame_bit_count > 588) short_frames++;
 
-            // Remove the frame data from the internal buffer
-            internal_buffer = internal_buffer.right(internal_buffer.size() - sync_index);
+            if (second_frame_bit_count == 588) perfect_frames++;
+            if (second_frame_bit_count < 588) long_frames++;
+            if (second_frame_bit_count > 588) short_frames++;
 
             next_state = EXPECTING_SYNC;
         } else {
@@ -297,6 +310,17 @@ TvaluesToChannel::State TvaluesToChannel::handle_overshoot() {
     }
 
     return next_state;
+}
+
+// Count the number of bits in the array of T-values
+uint32_t TvaluesToChannel::count_bits(QByteArray data, int32_t start_position, int32_t end_position) {
+    if (end_position == -1) end_position = data.size();
+
+    uint32_t bit_count = 0;
+    for (int i = start_position; i < end_position; i++) {
+        bit_count += data.at(i);
+    }
+    return bit_count;
 }
 
 void TvaluesToChannel::show_statistics() {

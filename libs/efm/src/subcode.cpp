@@ -429,7 +429,7 @@ bool Subcode::repair_data(QByteArray &q_channel_data) {
 
         if (is_crc_valid(data_copy)) {
             q_channel_data = data_copy;
-            qDebug() << "Subcode::repair_data(): Repaired data by flipping bit" << i;
+            qDebug() << "Subcode::repair_data(): Repaired Q-channel data by flipping bit" << i;
             return true;
         }
     }

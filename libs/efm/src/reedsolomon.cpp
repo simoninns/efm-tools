@@ -117,7 +117,7 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     }
 
     // If result < 0, the Reed-Solomon decode completely failed and the data is corrupt
-    qDebug() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
+    //qDebug() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
 
     // Make every byte in the error data 1 - i.e. all errors
     error_data.fill(1);
@@ -207,7 +207,7 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     }
 
     // If result < 0, then the Reed-Solomon decode failed and the data should be flagged as corrupt
-    qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed";
+    //qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed";
     error_data.fill(1);
     error_c2s++;
     return;

@@ -25,33 +25,24 @@
 #include "dec_channeltof3frame.h"
 
 ChannelToF3Frame::ChannelToF3Frame() {
-    current_state = EXPECTING_SYNC;
+    // Statistics
+    good_frames = 0;
+    undershoot_frames = 0;
+    overshoot_frames = 0;
 
-    // Reset statistics
-    valid_channel_frames_count = 0;
-    overshoot_channel_frames_count = 0;
-    undershoot_channel_frames_count = 0;
-    discarded_bits_count = 0;
+    valid_efm_symbols = 0;
+    invalid_efm_symbols = 0;
 
-    valid_efm_symbols_count = 0;
-    invalid_efm_symbols_count = 0;
-
-    output_f3_frame_count_good = 0;
-    output_f3_frame_count_bad = 0;
-
-    // State machine tracking variables
-    missed_sync = 0;
-
-    // Initialize debug flag
-    show_debug = false;
+    valid_subcode_symbols = 0;
+    invalid_subcode_symbols = 0;
 }
 
-void ChannelToF3Frame::push_frame(QString data) {
+void ChannelToF3Frame::push_frame(QByteArray data) {
     // Add the data to the input buffer
     input_buffer.enqueue(data);
 
-    // Process the state machine
-    process_state_machine();
+    // Process queue
+    process_queue();
 }
 
 F3Frame ChannelToF3Frame::pop_frame() {
@@ -64,254 +55,168 @@ bool ChannelToF3Frame::is_ready() const {
     return !output_buffer.isEmpty();
 }
 
-void ChannelToF3Frame::process_state_machine() {
-    // Add the input data to the internal frame buffer
-    internal_buffer.append(input_buffer.dequeue());
+void ChannelToF3Frame::process_queue() {
+    while(input_buffer.size() > 0) {
+        // Extract the first item in the input buffer
+        QByteArray frame_data = input_buffer.dequeue();
 
-    // Keep processing the state machine until the frame buffer
-    // doesn't have enough data to process (we always want a full frame
-    // plus the next sync header's worth of data, so 588+24 bits)
-    while(internal_buffer.size() > 588+24) {
-        switch(current_state) {
-            case EXPECTING_SYNC:
-                current_state = expecting_sync();
-                break;
-
-            case EXPECTING_DATA:
-                current_state = expecting_data();
-                break;
-
-            case PROCESS_FRAME:
-                current_state = process_frame();
-                break;
+        // Count the number of bits in the frame
+        int bit_count = 0;
+        for (int i = 0; i < frame_data.size(); i++) {
+            bit_count += frame_data.at(i);
         }
-    }
-}
 
-ChannelToF3Frame::State ChannelToF3Frame::expecting_sync() {
-    State next_state = EXPECTING_SYNC;
-
-    // Does the internal buffer contain a sync header?
-    if (internal_buffer.contains(sync_header)) {
-        //if (show_debug) qDebug() << "ChannelToF3Frame::expecting_sync - Sync header found";
-
-        // Remove any data before the sync header (including the actual sync header itself)
-        uint32_t original_frame_buffer_size = internal_buffer.size();
-        internal_buffer = internal_buffer.mid(internal_buffer.indexOf(sync_header) + sync_header.size());
-        uint32_t preceeding_bits_count = original_frame_buffer_size - internal_buffer.size() - 24;
-        discarded_bits_count += preceeding_bits_count;
-        if (preceeding_bits_count > 0 && show_debug) qDebug() << "ChannelToF3Frame::expecting_sync - Discarding" << preceeding_bits_count << "bits before sync header";
-        
-        next_state = EXPECTING_DATA;
-    } else {
-        // We are out of sync, discard all but the last 24 bits of the internal buffer
-        uint32_t original_frame_buffer_size = internal_buffer.size();
-        internal_buffer = internal_buffer.right(24);
-        discarded_bits_count += original_frame_buffer_size - internal_buffer.size();
-        if (show_debug) qDebug() << "ChannelToF3Frame::expecting_sync - Sync header not found - throwing away" << original_frame_buffer_size - internal_buffer.size() << "bits";
-
-        next_state = EXPECTING_SYNC;
-    }
-
-    return next_state;
-}
-
-ChannelToF3Frame::State ChannelToF3Frame::expecting_data() {
-    State next_state = EXPECTING_DATA;
-
-    // Does the internal buffer contain enough data for a frame?
-    if (internal_buffer.size() < 564+24) {
-        // Wait for more data
-        next_state = EXPECTING_DATA;
-    } else {
-        // There is enough data for a frame, but is there a terminating sync header?
-        // Note: Here we look at the sync header position once, as it takes quite a bit of processing
-        // we also use CaseSensitive to avoid the overhead of converting the data to lower case
-        uint32_t sync_header_index = internal_buffer.indexOf(sync_header, 0, Qt::CaseSensitive);
-        if (sync_header_index != -1) {
-            //if (show_debug) qDebug() << "ChannelToF3Frame::expecting_data - Terminating sync header found at position" << internal_buffer.indexOf(sync_header);
-            // There is a terminating sync header
-            frame_data = internal_buffer.left(sync_header_index);
-
-            // Remove the data from the internal buffer
-            internal_buffer = internal_buffer.right(internal_buffer.size() - sync_header_index);
-
-            // Clear the missing sync counter
-            missed_sync = 0;
-
-            // Process the frame
-            next_state = PROCESS_FRAME;
-        } else {
-            if (show_debug) qDebug() << "ChannelToF3Frame::expecting_data - Sync header not found - using 564 bits of data";
-            // There is no terminating sync header, but there's enough data for a frame
-            // Assume the sync header is missing or corrupt and take 564 bits of data
-            frame_data = internal_buffer.left(564); // 588 bits - 24 bits = 564 bits
-
-            // Remove the first 546 bits of the data from the internal buffer
-            internal_buffer = internal_buffer.right(internal_buffer.size() - 564);
-
-            // Increment the missing sync counter
-            missed_sync++;
-
-            // Process the frame
-            next_state = PROCESS_FRAME;
-        }
-    }
-
-    return next_state;
-}
-
-ChannelToF3Frame::State ChannelToF3Frame::process_frame() {
-    State next_state = PROCESS_FRAME;
-
-    // Do we have 564 bits of data?
-    if (frame_data.size() == 564) {
-        //if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Processing 564 bit frame";
-
-        // Count the number of valid channel frames
-        valid_channel_frames_count++;
+        // Generate statistics
+        if (bit_count != 588 && show_debug) qDebug() << "ChannelToF3Frame::process_queue() - Frame data is" << bit_count << "bits (should be 588)";
+        if (bit_count == 588) good_frames++;
+        if (bit_count < 588) undershoot_frames++;
+        if (bit_count > 588) overshoot_frames++;
 
         // Create an F3 frame
-        F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
-        
-        // Add the frame to the output buffer
+        F3Frame f3_frame = create_f3_frame(frame_data);
+
+        // Place the frame into the output buffer
         output_buffer.enqueue(f3_frame);
-    } else {
-        // The frame data is not 564 bits...
-        if (frame_data.size() > 564) {
-            overshoot_channel_frames_count++;
-            // The frame data is too long, discard the extra bits
-            discarded_bits_count += frame_data.size() - 564;
-            if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Frame data is too long - expected 564 bits, got" << frame_data.size() << "bits";
-
-            // Create an F3 frame from the first 564 bits
-            F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data.left(564));
-            output_buffer.enqueue(f3_frame); // Add the frame to the output buffer
-
-            // Remove the left-most 564+24 bits from frame_data
-            frame_data = frame_data.mid(564 + 24);
-
-            // If it's a reasonable size, treat it as a second frame
-            if (frame_data.size() == 564) {
-                F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
-                output_buffer.enqueue(f3_frame); // Add the frame to the output buffer
-                qDebug() << "ChannelToF3Frame::process_frame - Split too long data - Processing 564 bit frame from remaining data";
-            } else {
-                if (frame_data.size() > 0) {
-                    // The remaining data is not a reasonable size, discard it
-                    discarded_bits_count += frame_data.size();
-                    if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Discarding" << frame_data.size() << "bits of data (too long)";
-                } else {
-                    if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - No data left";
-                }
-            }
-
-        } else {
-            undershoot_channel_frames_count++;
-            // The frame data is too short, pad with zeros to 564 bits
-            uint8_t padding_bits = 564 - frame_data.size();
-            frame_data.append(QString(564 - frame_data.size(), '0'));
-            if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Frame data is too short - padding with" << padding_bits << "zero bits";
-
-            // Create an F3 frame
-            F3Frame f3_frame = convert_frame_data_to_f3_frame(frame_data);
-            frame_data.clear();
-
-            // Add the frame to the output buffer
-            output_buffer.enqueue(f3_frame);
-        }
     }
-
-    // Clear the internal buffer
-    frame_data.clear();
-
-    if (missed_sync > 0 && missed_sync < 3) {
-        // Terminating sync header was missing, start collecting data again
-        if (show_debug) qDebug() << "ChannelToF3Frame::process_frame - Terminating sync header missing - resyncing (missed syncs:" << missed_sync << ")";
-
-        // Remove the first 24 bits of the internal buffer (the quite-possibly-corrupted sync header)
-        internal_buffer = internal_buffer.right(internal_buffer.size() - sync_header.size());
-
-        next_state = EXPECTING_DATA;
-    } else {
-        // Wait for the next sync
-        missed_sync = 0;
-        next_state = EXPECTING_SYNC;
-    }
-
-    return next_state;
 }
 
-F3Frame ChannelToF3Frame::convert_frame_data_to_f3_frame(const QString frame_data) {
+F3Frame ChannelToF3Frame::create_f3_frame(QByteArray t_values) {
+    F3Frame f3_frame;
+
     // The channel frame data is:
-    //   Sync Header: 24 bits (removed already)
-    //   Merging bits: 3 bits
-    //   Subcode: 14 bits
-    //   Merging bits: 3 bits
-    //   Then 32x
+    //   Sync Header: 24 bits (bits 0-23)
+    //   Merging bits: 3 bits (bits 24-26)
+    //   Subcode: 14 bits (bits 27-40)
+    //   Merging bits: 3 bits (bits 41-43)
+    //   Then 32x 17-bit data values (bits 44-587)
     //     Data: 14 bits
     //     Merging bits: 3 bits
     //
     // Giving a total of 588 bits
 
-    // Note: the subcode could be 256 (sync0 symbol) or 257 (sync1 symbol)
-    uint16_t subcode = efm.fourteen_to_eight(frame_data.mid(3, 14));
+    // Convert the T-values to data
+    QByteArray frame_data = tvalues_to_data(t_values);
+
+    // Extract the subcode in bits 27-40
+    uint16_t subcode = efm.fourteen_to_eight(get_bits(frame_data, 27, 40));
     if (subcode == 300) {
-        subcode = 0; // Invalid subcode, treat as 0
-        invalid_efm_symbols_count++;
-    } else valid_efm_symbols_count++;
+        subcode = 0;
+        invalid_subcode_symbols++;
+    } else valid_subcode_symbols++;
 
-    QVector<uint8_t> frame_data_bytes;
-    QVector<uint8_t> frame_data_error_bytes;
-    for (int i = 0; i < 32; i++) {
-        uint16_t data = efm.fourteen_to_eight(frame_data.mid(3+14+3+(17*i), 14));
+    // Extract the data values in bits 44-587 ignoring the merging bits
+    QVector<uint8_t> data_values;
+    QVector<uint8_t> error_values;
+    for (int i = 44; i < 588; i += 17) {
+        uint16_t data_value = efm.fourteen_to_eight(get_bits(frame_data, i, i + 13));
 
-        if (data == 300) {
-            // Invalid subcode, treat as 0
-            frame_data_bytes.append(0);
-            frame_data_error_bytes.append(1);
-            invalid_efm_symbols_count++;
+        if (data_value < 256) {
+            data_values.append(data_value);
+            error_values.append(0);
+            valid_efm_symbols++;
         } else {
-            frame_data_bytes.append(data);
-            frame_data_error_bytes.append(0);
-            valid_efm_symbols_count++;
+            data_values.append(0);
+            error_values.append(1);
+            invalid_efm_symbols++;
         }
     }
 
-    // Create a new F3 frame
-    F3Frame f3_frame;
-    f3_frame.set_data(frame_data_bytes);
-    f3_frame.set_error_data(frame_data_error_bytes);
-    if (subcode == 256) {
-        f3_frame.set_frame_type_as_sync0();
-    } else if (subcode == 257) {
-        f3_frame.set_frame_type_as_sync1();
-    } else {
-        f3_frame.set_frame_type_as_subcode(subcode);
-    }
+    // Create an F3 frame...
+    
+    // Determine the frame type
+    if (subcode == 256) f3_frame.set_frame_type_as_sync0();
+    else if (subcode == 257) f3_frame.set_frame_type_as_sync1();
+    else f3_frame.set_frame_type_as_subcode(subcode);
 
-    // Update the statistics
-    if (f3_frame.count_errors() > 0) {
-        output_f3_frame_count_bad++;
-    } else {
-        output_f3_frame_count_good++;
-    }
+    // Set the frame data
+    f3_frame.set_data(data_values);
+    f3_frame.set_error_data(error_values);
 
     return f3_frame;
 }
 
+QByteArray ChannelToF3Frame::tvalues_to_data(QByteArray t_values) {
+    QByteArray output_data;
+    uint8_t currentByte = 0; // Will accumulate bits until we have 8.
+    uint32_t bitsFilled = 0;     // How many bits are currently in currentByte.
+
+    // Iterate through each T-value in the input.
+    for (uint8_t c : t_values) {
+        // Convert char to int (assuming the T-value is in the range 3..11)
+        int tValue = static_cast<uint8_t>(c);
+        if (tValue < 3 || tValue > 11) {
+            qFatal("ChannelToF3Frame::tvalues_to_data(): T-value must be in the range 3 to 11.");
+        }
+        
+        // First, append the leading 1 bit.
+        currentByte = (currentByte << 1) | 1;
+        ++bitsFilled;
+        if (bitsFilled == 8) {
+            output_data.append(currentByte);
+            currentByte = 0;
+            bitsFilled = 0;
+        }
+        
+        // Then, append (t_value - 1) zeros.
+        for (int i = 1; i < tValue; ++i) {
+            currentByte = (currentByte << 1); // Append a 0 bit.
+            ++bitsFilled;
+            if (bitsFilled == 8) {
+                output_data.append(currentByte);
+                currentByte = 0;
+                bitsFilled = 0;
+            }
+        }
+    }
+    
+    // If there are remaining bits, pad the final byte with zeros on the right.
+    if (bitsFilled > 0) {
+        currentByte <<= (8 - bitsFilled);
+        output_data.append(currentByte);
+    }
+    
+    return output_data;
+}
+
+uint16_t ChannelToF3Frame::get_bits(QByteArray data, int start_bit, int end_bit) {
+    uint16_t value = 0;
+
+    // Make sure start and end bits are within a 588 bit range
+    if (start_bit < 0 || start_bit > 587) {
+        qFatal("ChannelToF3Frame::get_bits(): Start bit must be in the range 0 to 587.");
+    }
+
+    if (end_bit < 0 || end_bit > 587) {
+        qFatal("ChannelToF3Frame::get_bits(): End bit must be in the range 0 to 587.");
+    }
+
+    if (start_bit > end_bit) {
+        qFatal("ChannelToF3Frame::get_bits(): Start bit must be less than or equal to the end bit.");
+    }
+
+    // Extract the bits from the data
+    for (int bit = start_bit; bit <= end_bit; ++bit) {
+        int byte_index = bit / 8;
+        int bit_index = bit % 8;
+        if (data[byte_index] & (1 << (7 - bit_index))) {
+            value |= (1 << (end_bit - bit));
+        }
+    }
+
+    return value;
+}
+
 void ChannelToF3Frame::show_statistics() {
     qInfo() << "Channel to F3 frame statistics:";
-    qInfo() << "  EFM symbols:";
-    qInfo() << "    Valid EFM symbols:" << valid_efm_symbols_count;
-    qInfo() << "    Invalid EFM symbols:" << invalid_efm_symbols_count;
     qInfo() << "  Channel Frames:";
-    qInfo() << "    Valid:" << valid_channel_frames_count;
-    qInfo() << "    Overshoot:" << overshoot_channel_frames_count;
-    qInfo() << "    Undershoot:" << undershoot_channel_frames_count;
-    qInfo() << "    Discarded bits:" << discarded_bits_count;
-    qInfo() << "  F3 Frames:";
-    qInfo() << "    Clean:" << output_f3_frame_count_good;
-    qInfo() << "    Error:" << output_f3_frame_count_bad;
-    qInfo() << "    Total:" << output_f3_frame_count_good + output_f3_frame_count_bad;
+    qInfo() << "    Total:" << good_frames + undershoot_frames + overshoot_frames;
+    qInfo() << "    Good:" << good_frames;
+    qInfo() << "    Undershoot:" << undershoot_frames;
+    qInfo() << "    Overshoot:" << overshoot_frames;
+    qInfo() << "  EFM symbols:";
+    qInfo() << "    Valid:" << valid_efm_symbols;
+    qInfo() << "    Invalid:" << invalid_efm_symbols;
+    qInfo() << "  Subcode symbols:";
+    qInfo() << "    Valid:" << valid_subcode_symbols;
+    qInfo() << "    Invalid:" << invalid_subcode_symbols;
 }

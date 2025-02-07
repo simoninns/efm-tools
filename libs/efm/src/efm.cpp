@@ -25,26 +25,27 @@
 #include "efm.h"
 
 Efm::Efm() {
-    // Initialize the lookup table
-    for (int i = 0; i < efm_lut.size(); ++i) {
-        efmHash[efm_lut[i]] = i;
+    // Initialise the hash table
+    for (uint16_t i = 0; i < 256 + 2; ++i) {
+        efmHash.insert(efm_lut[i], i);
     }
 }
 
 // Note: There are 257 EFM symbols: 0 to 255 and two additional sync0 and sync1 symbols
 // A value of 300 is returned for an invalid EFM symbol
-uint16_t Efm::fourteen_to_eight(QString efm) {
-    // Convert the EFM symbol to an 8-bit value using a hash table for faster lookup
-    if (efmHash.contains(efm)) {
-        return efmHash[efm];
-    } else {
-        if (efm != "00000000000000") qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found -" << efm;
-        else qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found - looks like zero padding";
-        return 300; // Return an invalid value
+uint16_t Efm::fourteen_to_eight(uint16_t efm) {
+    // Find the value efm in the efm_lut array
+    for (uint16_t i = 0; i < 256 + 2; ++i) {
+        if (efm_lut[i] == efm) {
+            return i;
+        }
     }
+
+    //qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found -" << efm;
+    return 300;
 }
 
-QString Efm::eight_to_fourteen(uint16_t value) {
+uint16_t Efm::eight_to_fourteen(uint16_t value) {
     if (value < 258) {
         return efm_lut[value];
     } else {
