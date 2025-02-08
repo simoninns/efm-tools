@@ -150,6 +150,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         section_metadata.set_section_time(section_time);
         section_metadata.set_absolute_section_time(section_time);
         section_metadata.set_track_number(track_number);
+        data24_section.metadata = section_metadata;
 
         for (int index = 0; index < 98; ++index) {
             // Create a Data24 object and set the data
@@ -167,7 +168,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         section_time.increment_frame();
 
         // Are there any F1 sections ready?
-        if (data24_section_to_f1_section.is_ready()) {
+        while (data24_section_to_f1_section.is_ready()) {
             // Pop the F1 frame, count it and push it to the next converter
             F1Section f1_section = data24_section_to_f1_section.pop_section();
             if (showF1) f1_section.show_data();
@@ -175,7 +176,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Are there any F2 sections ready?
-        if (f1_section_to_f2_section.is_ready()) {
+        while (f1_section_to_f2_section.is_ready()) {
             // Pop the F2 frame, count it and push it to the next converter
             F2Section f2_section = f1_section_to_f2_section.pop_section();
             if (showF2) f2_section.show_data();
@@ -183,7 +184,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Are there any F3 frames ready?
-        if (f2_section_to_f3_frames.is_ready()) {
+        while (f2_section_to_f3_frames.is_ready()) {
             // Pop the section, count it and push it to the next converter
             QVector<F3Frame> f3_frames = f2_section_to_f3_frames.pop_frames();
 
@@ -194,7 +195,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Is there any channel data ready?
-        if (f3_frame_to_channel.is_ready()) {
+        while (f3_frame_to_channel.is_ready()) {
             // Pop the channel data, count it and write it to the output file
             QVector<uint8_t> channel_data = f3_frame_to_channel.pop_frame();
 
@@ -237,7 +238,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             last_reported_progress = current_progress;
         }
 
-        // Read the next 24 bytes
+        // Read the next 98 * 24 bytes
         bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 98 * 24);
     }
 
@@ -263,10 +264,12 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     qInfo().noquote() << "Processed" << data24_section_count << "data24 sections totalling" << size_value << size_unit;
     qInfo().noquote() << "Final time was" << section_time.to_string();
 
-    qInfo() << data24_section_to_f1_section.get_valid_output_sections_count() << "F1 sections," << f1_section_to_f2_section.get_valid_output_sections_count() << "F2 sections," <<
-        f2_section_to_f3_frames.get_valid_output_sections_count() << "F3 frames,";
-    qInfo() << f3_frame_to_channel.get_valid_output_sections_count() << "channel frames" << f3_frame_to_channel.get_total_t_values() <<
-        "T-values," << channel_byte_count << "channel bytes";
+    qInfo() << data24_section_to_f1_section.get_valid_output_sections_count() << "F1 sections";
+    qInfo() << f1_section_to_f2_section.get_valid_output_sections_count() << "F2 sections";
+    qInfo() << f2_section_to_f3_frames.get_valid_output_sections_count() << "F3 frames";
+    qInfo() << f3_frame_to_channel.get_valid_output_sections_count() << "Channel frames";
+    qInfo() << f3_frame_to_channel.get_total_t_values() << "T-values";
+    qInfo() << channel_byte_count << "channel bytes";
 
     // Show corruption warnings
     if (corrupt_tvalues) {
