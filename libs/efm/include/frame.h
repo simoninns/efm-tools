@@ -27,7 +27,6 @@
 
 #include <QVector>
 #include <cstdint>
-#include "frame_metadata.h"
 
 // Frame class - base class for F1, F2, and F3 frames
 class Frame {
@@ -57,8 +56,6 @@ public:
     void show_data();
     void set_data(const QVector<uint8_t>& data) override;
     void set_error_data(const QVector<uint8_t>& error_data) override;
-
-    FrameMetadata frame_metadata;
 };
 
 class F1Frame : public Frame {
@@ -66,8 +63,6 @@ public:
     F1Frame();
     int get_frame_size() const override;
     void show_data();
-
-    FrameMetadata frame_metadata;
 };
 
 class F2Frame : public Frame {
@@ -75,8 +70,6 @@ public:
     F2Frame();
     int get_frame_size() const override;
     void show_data();
-
-    FrameMetadata frame_metadata;
 };
 
 class F3Frame : public Frame {

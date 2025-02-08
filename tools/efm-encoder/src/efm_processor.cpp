@@ -28,10 +28,9 @@
 
 #include "efm_processor.h"
 #include "encoders.h"
-#include "enc_data24tof1frame.h"
-#include "enc_f1frametof2frame.h"
-#include "enc_f2frametosection.h"
-#include "enc_sectiontof3frame.h"
+#include "enc_data24sectiontof1section.h"
+#include "enc_f1sectiontof2section.h"
+#include "enc_f2sectiontof3frames.h"
 #include "enc_f3frametochannel.h"
 
 EfmProcessor::EfmProcessor() {}
@@ -121,10 +120,9 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     }
 
     // Prepare the encoders
-    Data24ToF1Frame data24_to_f1;
-    F1FrameToF2Frame f1_frame_to_f2;
-    F2FrameToSection f2_frame_to_section;
-    SectionToF3Frame section_to_f3;
+    Data24SectionToF1Section data24_section_to_f1_section;
+    F1SectionToF2Section f1_section_to_f2_section;
+    F2SectionToF3Frames f2_section_to_f3_frames;
     F3FrameToChannel f3_frame_to_channel;
 
     f3_frame_to_channel.set_corruption(corrupt_f3sync, corrupt_f3sync_frequency, corrupt_subcode_sync, corrupt_subcode_sync_frequency);
@@ -135,62 +133,59 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     // Process the input audio data 24 bytes at a time
     // The time, type and track number are set to default values for now
     uint8_t track_number = 1;
-    FrameType frame_type = FrameType::USER_DATA;
-    FrameTime frame_time;
-    uint32_t data24_count = 0;
+    SectionType section_type = SectionType::USER_DATA;
+    SectionTime section_time;
+    uint32_t data24_section_count = 0;
 
-    QVector<uint8_t> input_data(24);
-    uint64_t bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 24);
+    // We have to fill a Data24Section with 98 * 24 bytes of data
+    // If we can't fill a section, then we have run out of usable data
 
-    while (bytes_read > 0) {
-        // Create a Data24 object and set the data
-        Data24 data24;
-        data24.set_data(input_data);
+    QVector<uint8_t> input_data(98 * 24);
+    uint64_t bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 98 * 24);
 
-        frame_metadata.set_frame_type(frame_type);
-        frame_metadata.set_frame_time(frame_time);
-        frame_metadata.set_absolute_frame_time(frame_time);
-        frame_metadata.set_track_number(track_number);
-        data24.frame_metadata = frame_metadata;
+    while (bytes_read >= 98 * 24) {
+        // Create a Data24Section object
+        Data24Section data24_section;
+        section_metadata.set_section_type(section_type);
+        section_metadata.set_section_time(section_time);
+        section_metadata.set_absolute_section_time(section_time);
+        section_metadata.set_track_number(track_number);
 
-        if (showInput) data24.show_data();
+        for (int index = 0; index < 98; ++index) {
+            // Create a Data24 object and set the data
+            Data24 data24;
+            data24.set_data(input_data.mid(index * 24, 24));
+            data24_section.set_frame(index, data24);
+        }
+        if (showInput) data24_section.show_data();
 
         // Push the data to the first converter
-        data24_to_f1.push_frame(data24);
-        data24_count++;
+        data24_section_to_f1_section.push_section(data24_section);
+        data24_section_count++;
 
-        // Adjust the frame time if required
-        if (data24_count % 98 == 0  && data24_count >= 98) {
-            frame_time.increment_frame();
-        }
+        // Adjust the section time
+        section_time.increment_frame();
 
-        // Are there any F1 frames ready?
-        if (data24_to_f1.is_ready()) {
+        // Are there any F1 sections ready?
+        if (data24_section_to_f1_section.is_ready()) {
             // Pop the F1 frame, count it and push it to the next converter
-            F1Frame f1_frame = data24_to_f1.pop_frame();
-            if (showF1) f1_frame.show_data();
-            f1_frame_to_f2.push_frame(f1_frame);
+            F1Section f1_section = data24_section_to_f1_section.pop_section();
+            if (showF1) f1_section.show_data();
+            f1_section_to_f2_section.push_section(f1_section);
         }
 
-        // Are there any F2 frames ready?
-        if (f1_frame_to_f2.is_ready()) {
+        // Are there any F2 sections ready?
+        if (f1_section_to_f2_section.is_ready()) {
             // Pop the F2 frame, count it and push it to the next converter
-            F2Frame f2_frame = f1_frame_to_f2.pop_frame();
-            if (showF2) f2_frame.show_data();
-            f2_frame_to_section.push_frame(f2_frame);
-        }
-
-        // Are there any sections ready?
-        if (f2_frame_to_section.is_ready()) {
-            // Pop the section, count it and push it to the next converter
-            Section section = f2_frame_to_section.pop_section();
-            section_to_f3.push_section(section);
+            F2Section f2_section = f1_section_to_f2_section.pop_section();
+            if (showF2) f2_section.show_data();
+            f2_section_to_f3_frames.push_section(f2_section);
         }
 
         // Are there any F3 frames ready?
-        if (section_to_f3.is_ready()) {
+        if (f2_section_to_f3_frames.is_ready()) {
             // Pop the section, count it and push it to the next converter
-            QVector<F3Frame> f3_frames = section_to_f3.pop_frames();
+            QVector<F3Frame> f3_frames = f2_section_to_f3_frames.pop_frames();
 
             for (int i = 0; i < f3_frames.size(); i++) {
                 if (showF3) f3_frames[i].show_data();
@@ -243,14 +238,14 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         }
 
         // Read the next 24 bytes
-        bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 24);
+        bytes_read = input_file.read(reinterpret_cast<char*>(input_data.data()), 98 * 24);
     }
 
     // Close the output file
     output_file.close();
 
     // Output some statistics
-    double total_bytes = data24_count * 24;
+    double total_bytes = data24_section_count * 98 * 24;
     QString size_unit;
     double size_value;
 
@@ -265,12 +260,12 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         size_value = total_bytes / (1024 * 1024);
     }
 
-    qInfo().noquote() << "Processed" << data24_count << "data24 frames totalling" << size_value << size_unit;
-    qInfo().noquote() << "Final time was" << frame_time.to_string();
+    qInfo().noquote() << "Processed" << data24_section_count << "data24 sections totalling" << size_value << size_unit;
+    qInfo().noquote() << "Final time was" << section_time.to_string();
 
-    qInfo() << data24_to_f1.get_valid_output_frames_count() << "F1 frames," << f1_frame_to_f2.get_valid_output_frames_count() << "F2 frames," <<
-        f2_frame_to_section.get_valid_output_frames_count() << "Sections," << section_to_f3.get_valid_output_frames_count() << "F3 frames,";
-    qInfo() << f3_frame_to_channel.get_valid_output_frames_count() << "channel frames" << f3_frame_to_channel.get_total_t_values() <<
+    qInfo() << data24_section_to_f1_section.get_valid_output_sections_count() << "F1 sections," << f1_section_to_f2_section.get_valid_output_sections_count() << "F2 sections," <<
+        f2_section_to_f3_frames.get_valid_output_sections_count() << "F3 frames,";
+    qInfo() << f3_frame_to_channel.get_valid_output_sections_count() << "channel frames" << f3_frame_to_channel.get_total_t_values() <<
         "T-values," << channel_byte_count << "channel bytes";
 
     // Show corruption warnings
@@ -315,79 +310,79 @@ bool EfmProcessor::set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_a
     }
 
     if (_qmode_1) {
-        frame_metadata.set_q_mode(FrameMetadata::QMODE_1);
+        section_metadata.set_q_mode(SectionMetadata::QMODE_1);
         qInfo() << "Q-Channel mode set to: QMODE_1";
     } else if (_qmode_4) {
-        frame_metadata.set_q_mode(FrameMetadata::QMODE_4);
+        section_metadata.set_q_mode(SectionMetadata::QMODE_4);
         qInfo() << "Q-Channel mode set to: QMODE_4";
     }
 
     if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_2ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(false);
-        frame_metadata.set_preemphasis(true);
-        frame_metadata.set_2_channel(true);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(false);
+        section_metadata.set_preemphasis(true);
+        section_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_2ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(false);
-        frame_metadata.set_preemphasis(false);
-        frame_metadata.set_2_channel(true);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(false);
+        section_metadata.set_preemphasis(false);
+        section_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_2ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(true);
-        frame_metadata.set_preemphasis(true);
-        frame_metadata.set_2_channel(true);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(true);
+        section_metadata.set_preemphasis(true);
+        section_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_2ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(true);
-        frame_metadata.set_preemphasis(false);
-        frame_metadata.set_2_channel(true);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(true);
+        section_metadata.set_preemphasis(false);
+        section_metadata.set_2_channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED";
     }
 
     if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_4ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(false);
-        frame_metadata.set_preemphasis(true);
-        frame_metadata.set_2_channel(false);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(false);
+        section_metadata.set_preemphasis(true);
+        section_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_4ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(false);
-        frame_metadata.set_preemphasis(false);
-        frame_metadata.set_2_channel(false);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(false);
+        section_metadata.set_preemphasis(false);
+        section_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_4ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(true);
-        frame_metadata.set_preemphasis(true);
-        frame_metadata.set_2_channel(false);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(true);
+        section_metadata.set_preemphasis(true);
+        section_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_4ch) {
-        frame_metadata.set_audio(true);
-        frame_metadata.set_copy_prohibited(true);
-        frame_metadata.set_preemphasis(false);
-        frame_metadata.set_2_channel(false);
+        section_metadata.set_audio(true);
+        section_metadata.set_copy_prohibited(true);
+        section_metadata.set_preemphasis(false);
+        section_metadata.set_2_channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED";
     }
 
     if (_qmode_data && _qmode_copy) {
-        frame_metadata.set_audio(false);
-        frame_metadata.set_copy_prohibited(false);
+        section_metadata.set_audio(false);
+        section_metadata.set_copy_prohibited(false);
         qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PERMITTED";
     }
     if (_qmode_data && _qmode_nocopy) {
-        frame_metadata.set_audio(false);
-        frame_metadata.set_copy_prohibited(true);
+        section_metadata.set_audio(false);
+        section_metadata.set_copy_prohibited(true);
         qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PROHIBITED";
     }
 

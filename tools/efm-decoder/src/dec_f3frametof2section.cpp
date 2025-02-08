@@ -1,6 +1,6 @@
 /************************************************************************
 
-    dec_f3frametosection.cpp
+    dec_f3frametof2section.cpp
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,9 +22,9 @@
 
 ************************************************************************/
 
-#include "dec_f3frametosection.h"
+#include "dec_f3frametof2section.h"
 
-F3FrameToSection::F3FrameToSection() {
+F3FrameToF2Section::F3FrameToF2Section() {
     // Set the initial state
     current_state = EXPECTING_SYNC0;
 
@@ -36,7 +36,7 @@ F3FrameToSection::F3FrameToSection() {
     input_f3_frames = 0;
 }
 
-void F3FrameToSection::push_frame(F3Frame data) {
+void F3FrameToF2Section::push_frame(F3Frame data) {
     // Add the data to the input buffer
     input_buffer.enqueue(data);
     input_f3_frames++;
@@ -45,17 +45,17 @@ void F3FrameToSection::push_frame(F3Frame data) {
     process_state_machine();
 }
 
-Section F3FrameToSection::pop_section() {
+F2Section F3FrameToF2Section::pop_section() {
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
 
-bool F3FrameToSection::is_ready() const {
+bool F3FrameToF2Section::is_ready() const {
     // Return true if the output buffer is not empty
     return !output_buffer.isEmpty();
 }
 
-void F3FrameToSection::process_state_machine() {
+void F3FrameToF2Section::process_state_machine() {
     // Keep processing the state machine until the input buffer is empty
     while(input_buffer.size() > 0) {
         switch(current_state) {
@@ -78,7 +78,7 @@ void F3FrameToSection::process_state_machine() {
     }
 }
 
-F3FrameToSection::State F3FrameToSection::expecting_sync0() {
+F3FrameToF2Section::State F3FrameToF2Section::expecting_sync0() {
     // Pop the first frame from the input buffer
     F3Frame f3_frame = input_buffer.dequeue();
 
@@ -96,7 +96,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync0() {
 
         case F3Frame::SYNC1:
             missed_sync0s++;
-            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync0 - Sync1 frame received when expecting Sync0";
+            if (show_debug) qDebug() << "F3FrameToF2Section::expecting_sync0 - Sync1 frame received when expecting Sync0";
 
             // Is there a frame in the section buffer?
             if(section_buffer.size() > 0) {
@@ -129,7 +129,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync0() {
         case F3Frame::SUBCODE:
             missed_sync0s++;
             // If we get a subcode, assume it's a miss-labelled sync0 frame
-            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync0 - Subcode frame received when expecting Sync0";
+            if (show_debug) qDebug() << "F3FrameToF2Section::expecting_sync0 - Subcode frame received when expecting Sync0";
             f3_frame.set_frame_type_as_sync0();
             section_buffer.clear();
             section_buffer.append(f3_frame);
@@ -140,7 +140,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync0() {
     return next_state;
 }
 
-F3FrameToSection::State F3FrameToSection::expecting_sync1() {
+F3FrameToF2Section::State F3FrameToF2Section::expecting_sync1() {
     // Pop the first frame from the input buffer
     F3Frame f3_frame = input_buffer.dequeue();
 
@@ -158,7 +158,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync1() {
         case F3Frame::SYNC0:
             missed_sync1s++;
             // If we get a sync0, continue to wait for the sync1
-            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync1 - Sync0 frame received when expecting Sync1";
+            if (show_debug) qDebug() << "F3FrameToF2Section::expecting_sync1 - Sync0 frame received when expecting Sync1";
 
             // Add the sync0 to a new section buffer
             section_buffer.clear();
@@ -171,7 +171,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync1() {
         case F3Frame::SUBCODE:
             missed_sync1s++;
             // If we get a subcode, assume it's a miss-labeled sync1 frame
-            if (show_debug) qDebug() << "F3FrameToSection::expecting_sync1 - Subcode frame received when expecting Sync1";
+            if (show_debug) qDebug() << "F3FrameToF2Section::expecting_sync1 - Subcode frame received when expecting Sync1";
             f3_frame.set_frame_type_as_sync1();        
 
             // Add the sync1 to the section buffer
@@ -185,7 +185,7 @@ F3FrameToSection::State F3FrameToSection::expecting_sync1() {
     return next_state;
 }
 
-F3FrameToSection::State F3FrameToSection::expecting_subcode() {
+F3FrameToF2Section::State F3FrameToF2Section::expecting_subcode() {
     // Pop the first frame from the input buffer
     F3Frame f3_frame = input_buffer.dequeue();
 
@@ -209,7 +209,7 @@ F3FrameToSection::State F3FrameToSection::expecting_subcode() {
 
         case F3Frame::SYNC0:
             missed_subcodes++;
-            if (show_debug) qDebug() << "F3FrameToSection::expecting_subcode - Sync0 frame received when expecting Subcode";
+            if (show_debug) qDebug() << "F3FrameToF2Section::expecting_subcode - Sync0 frame received when expecting Subcode";
 
             // Assume section is lost - clear the buffer and look for the sync1
             section_buffer.clear();
@@ -225,7 +225,7 @@ F3FrameToSection::State F3FrameToSection::expecting_subcode() {
 
         case F3Frame::SYNC1:
             missed_subcodes++;
-            if (show_debug) qDebug() << "F3FrameToSection::expecting_subcode - Sync1 frame received when expecting Subcode";
+            if (show_debug) qDebug() << "F3FrameToF2Section::expecting_subcode - Sync1 frame received when expecting Subcode";
 
             // If we get a sync1, assume it's a miss-labeled subcode frame
             f3_frame.set_frame_type_as_subcode(0);        
@@ -248,60 +248,64 @@ F3FrameToSection::State F3FrameToSection::expecting_subcode() {
     return next_state;
 }
 
-F3FrameToSection::State F3FrameToSection::process_section() {
+F3FrameToF2Section::State F3FrameToF2Section::process_section() {
     // Sanity check - Do we have a full section buffer?
     if(section_buffer.size() != 98) {
-        qFatal("F3FrameToSection::process_section - Section buffer is not full");
+        qFatal("F3FrameToF2Section::process_section - Section buffer is not full");
     }
 
     // Sanity check - Is the first frame a sync0?
     if(section_buffer.first().get_f3_frame_type() != F3Frame::SYNC0) {
-        qFatal("F3FrameToSection::process_section - First frame in section buffer is not a Sync0");
+        qFatal("F3FrameToF2Section::process_section - First frame in section buffer is not a Sync0");
     }
 
     // Sanity check - Is the second frame a sync1?
     if(section_buffer.at(1).get_f3_frame_type() != F3Frame::SYNC1) {
-        qFatal("F3FrameToSection::process_section - Second frame in section buffer is not a Sync1");
+        qFatal("F3FrameToF2Section::process_section - Second frame in section buffer is not a Sync1");
     }
 
     // Sanity check - Are frames 3-98 subcode frames?
     for(int i = 2; i < 98; i++) {
         if(section_buffer.at(i).get_f3_frame_type() != F3Frame::SUBCODE) {
-            qFatal("F3FrameToSection::process_section - Frame %d in section buffer is not a Subcode", i);
+            qFatal("F3FrameToF2Section::process_section - Frame %d in section buffer is not a Subcode", i);
         }
     }
 
-    // Generate the subcode
+    // Generate the subcode from the 98 bytes of data
     Subcode subcode;
     QByteArray subcode_data;
     for (int i = 0; i < 98; i++) {
         subcode_data[i] = section_buffer[i].get_subcode_byte();
     }
-    FrameMetadata frame_metadata = subcode.from_data(subcode_data);
+    SectionMetadata section_metadata = subcode.from_data(subcode_data);
 
     // Now we have 98 F3 Frames and a subcode for metadata, we can create a new section
-    Section section;
+    F2Section f2_section;
+
+    // Add the 98 F2 frames to the section
     for (uint32_t index = 0; index < 98; index++) {
         F2Frame f2_frame;
         f2_frame.set_data(section_buffer[index].get_data());
         f2_frame.set_error_data(section_buffer[index].get_error_data());
-        f2_frame.frame_metadata = frame_metadata;
-        section.push_frame(f2_frame);
+        f2_section.push_frame(f2_frame);
     }
 
+    // Set the section metadata
+    f2_section.metadata = section_metadata;
+
     // Add the section to the output buffer
-    output_buffer.enqueue(section);
+    output_buffer.enqueue(f2_section);
 
     // Clear the section buffer and move to the next state
     section_buffer.clear();
     return EXPECTING_SYNC0;
 }
 
-void F3FrameToSection::show_statistics() {
-    qInfo() << "F3 frame to section statistics:";
-    qInfo() << "  Sections:";
-    qInfo() << "    Valid sections:" << valid_sections;
-    qInfo() << "    Invalid sections:" << invalid_sections;
+void F3FrameToF2Section::show_statistics() {
+    qInfo() << "F3 Frame to F2 Section statistics:";
+    qInfo() << "  F2 Sections:";
+    qInfo() << "    Valid F2 sections:" << valid_sections;
+    qInfo() << "    Invalid F2 sections:" << invalid_sections;
     qInfo() << "  Sync tracking:";
     qInfo() << "    Missed sync0s:" << missed_sync0s;
     qInfo() << "    Missed sync1s:" << missed_sync1s;

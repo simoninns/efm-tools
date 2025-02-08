@@ -324,7 +324,7 @@ uint32_t TvaluesToChannel::count_bits(QByteArray data, int32_t start_position, i
 }
 
 void TvaluesToChannel::show_statistics() {
-    qInfo() << "T-values to Channel frame statistics:";
+    qInfo() << "T-values to Channel Frame statistics:";
     qInfo() << "  T-Values:";
     qInfo() << "    Consumed:" << consumed_t_values;
     qInfo() << "    Discarded:" << discarded_t_values;

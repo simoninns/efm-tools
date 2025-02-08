@@ -1,6 +1,6 @@
 /************************************************************************
 
-    enc_data24_to_f1frame.h
+    enc_data24sectiontof1section.h
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,27 +22,28 @@
 
 ************************************************************************/
 
-#ifndef ENC_DATA24_TO_F1FRAME_H
-#define ENC_DATA24_TO_F1FRAME_H
+#ifndef ENC_DATA24SECTIONTOF1SECTION_H
+#define ENC_DATA24SECTIONTOF1SECTION_H
 
 #include "encoders.h"
+#include "section.h"
 
-class Data24ToF1Frame : Encoder {
+class Data24SectionToF1Section : Encoder {
 public:
-    Data24ToF1Frame();
-    void push_frame(Data24 data);
-    F1Frame pop_frame();
+    Data24SectionToF1Section();
+    void push_section(Data24Section data);
+    F1Section pop_section();
     bool is_ready() const;
 
-    uint32_t get_valid_output_frames_count() const override { return valid_f1_frames_count; }
+    uint32_t get_valid_output_sections_count() const override { return valid_f1_sections_count; }
 
 private:
     void process_queue();
 
-    QQueue<Data24> input_buffer;
-    QQueue<F1Frame> output_buffer;
+    QQueue<Data24Section> input_buffer;
+    QQueue<F1Section> output_buffer;
 
-    uint32_t valid_f1_frames_count;
+    uint32_t valid_f1_sections_count;
 };
 
-#endif // ENC_DATA24_TO_F1FRAME_H
+#endif // ENC_DATA24SECTIONTOF1SECTION_H

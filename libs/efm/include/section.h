@@ -27,19 +27,54 @@
 
 #include <QVector>
 #include "frame.h"
+#include "section_metadata.h"
 
-class Section {
+class F2Section {
 public:
-    Section();
-
-    void push_frame(F2Frame f2_frame);
-    F2Frame get_f2_frame(int index) const;
-    void set_f2_frame(int index, F2Frame f2_frame);
+    F2Section();
+    void push_frame(F2Frame in_frame);
+    F2Frame get_frame(int index) const;
+    void set_frame(int index, F2Frame in_frame);
     bool is_complete() const;
     void clear();
+    void show_data();
+
+    SectionMetadata metadata;
 
 private:
-    QVector<F2Frame> f2_frames;
+    QVector<F2Frame> frames;
+};
+
+class F1Section {
+public:
+    F1Section();
+    void push_frame(F1Frame in_frame);
+    F1Frame get_frame(int index) const;
+    void set_frame(int index, F1Frame in_frame);
+    bool is_complete() const;
+    void clear();
+    void show_data();
+
+    SectionMetadata metadata;
+
+private:
+    QVector<F1Frame> frames;
+};
+
+class Data24Section {
+public:
+    Data24Section();
+    void push_frame(Data24 in_frame);
+    Data24 get_frame(int index) const;
+    void set_frame(int index, Data24 in_frame);
+    bool is_complete() const;
+    void clear();
+    void show_data();
+
+    SectionMetadata metadata;
+
+private:
+    QVector<Data24> frames;
 };
 
 #endif // SECTION_H

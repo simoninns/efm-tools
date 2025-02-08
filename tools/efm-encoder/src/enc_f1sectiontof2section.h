@@ -1,13 +1,13 @@
 /************************************************************************
 
-    dec_f2frametof1frame.h
+    enc_f1sectiontof2section.h
 
-    ld-efm-decoder - EFM data decoder
+    ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    ld-efm-encoder is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,29 +22,29 @@
 
 ************************************************************************/
 
-#ifndef DEC_F2FRAMETOF1FRAME_H
-#define DEC_F2FRAMETOF1FRAME_H
+#ifndef ENC_F1SECTIONTOF2SECTION_H
+#define ENC_F1SECTIONTOF2SECTION_H
 
-#include "decoders.h"
-#include "reedsolomon.h"
+#include "encoders.h"
 #include "delay_lines.h"
 #include "interleave.h"
 #include "inverter.h"
+#include "reedsolomon.h"
+#include "section.h"
 
-class F2FrameToF1Frame : public Decoder {
+class F1SectionToF2Section : Encoder {
 public:
-    F2FrameToF1Frame();
-    void push_frame(F2Frame data);
-    F1Frame pop_frame();
+    F1SectionToF2Section();
+    void push_section(F1Section f1_section);
+    F2Section pop_section();
     bool is_ready() const;
-    
-    void show_statistics();
+    uint32_t get_valid_output_sections_count() const override { return valid_f2_sections_count; };
 
 private:
     void process_queue();
 
-    QQueue<F2Frame> input_buffer;
-    QQueue<F1Frame> output_buffer;
+    QQueue<F1Section> input_buffer;
+    QQueue<F2Section> output_buffer;
 
     ReedSolomon circ;
 
@@ -52,22 +52,10 @@ private:
     DelayLines delay_line2;
     DelayLines delay_lineM;
 
-    DelayLines delay_line1_err;
-    DelayLines delay_line2_err;
-    DelayLines delay_lineM_err;
-
     Interleave interleave;
     Inverter inverter;
 
-    Interleave interleave_err;
-
-    uint32_t invalid_input_f2_frames_count;
-    uint32_t valid_input_f2_frames_count;
-    uint32_t invalid_output_f1_frames_count;
-    uint32_t valid_output_f1_frames_count;
-
-    uint32_t input_byte_errors;
-    uint32_t output_byte_errors;
+    uint32_t valid_f2_sections_count;
 };
 
-#endif // DEC_F2FRAMETOF1FRAME_H
+#endif // ENC_F1SECTIONTOF2SECTION_H

@@ -1,6 +1,6 @@
 /************************************************************************
 
-    enc_f1frametof2frame.h
+    enc_f2sectiontof3frames.h
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,39 +22,28 @@
 
 ************************************************************************/
 
-#ifndef ENC_F1FRAMETOF2FRAME_H
-#define ENC_F1FRAMETOF2FRAME_H
+#ifndef ENC_F2SECTIONTOF3FRAMES_H
+#define ENC_F2SECTIONTOF3FRAMES_H
 
 #include "encoders.h"
-#include "delay_lines.h"
-#include "interleave.h"
-#include "inverter.h"
-#include "reedsolomon.h"
+#include "section.h"
+#include "subcode.h"
 
-class F1FrameToF2Frame : Encoder {
+class F2SectionToF3Frames : Encoder {
 public:
-    F1FrameToF2Frame();
-    void push_frame(F1Frame f1_frame);
-    F2Frame pop_frame();
+    F2SectionToF3Frames();
+    void push_section(F2Section f2_section);
+    QVector<F3Frame> pop_frames();
     bool is_ready() const;
-    uint32_t get_valid_output_frames_count() const override { return valid_f2_frames_count; };
+    uint32_t get_valid_output_sections_count() const override { return valid_f3_frames_count; };
 
 private:
     void process_queue();
 
-    QQueue<F1Frame> input_buffer;
-    QQueue<F2Frame> output_buffer;
+    QQueue<F2Section> input_buffer;
+    QQueue<QVector<F3Frame>> output_buffer;
 
-    ReedSolomon circ;
-
-    DelayLines delay_line1;
-    DelayLines delay_line2;
-    DelayLines delay_lineM;
-
-    Interleave interleave;
-    Inverter inverter;
-
-    uint32_t valid_f2_frames_count;
+    uint32_t valid_f3_frames_count;
 };
 
-#endif // ENC_F1FRAMETOF2FRAME_H
+#endif // ENC_F2SECTIONTOF3FRAMES_H

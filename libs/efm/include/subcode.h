@@ -30,14 +30,14 @@
 #include <QString>
 #include <QDebug>
 
-#include "frame_metadata.h"
+#include "section_metadata.h"
 
 class Subcode {
 public:
     Subcode() {};
 
-    FrameMetadata from_data(const QByteArray& data);
-    QByteArray to_data(const FrameMetadata& frame_metadata);
+    SectionMetadata from_data(const QByteArray& data);
+    QByteArray to_data(const SectionMetadata& section_metadata);
 
 private:
     void set_bit(QByteArray& data, uint8_t bit_position, bool value);

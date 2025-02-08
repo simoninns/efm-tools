@@ -1,6 +1,6 @@
 /************************************************************************
 
-    dec_sectiontof2frame.cpp
+    dec_f2sectioncorrection.cpp
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,23 +22,22 @@
 
 ************************************************************************/
 
-#include "dec_sectiontof2frame.h"
+#include "dec_f2sectioncorrection.h"
 
-SectionToF2Frame::SectionToF2Frame() {
+F2SectionCorrection::F2SectionCorrection() {
     has_last_good_section = false;
     window_size = 6;
 
     total_sections = 0;
     corrected_sections = 0;
     uncorrectable_sections = 0;
-    total_f2_frames = 0;
 
     // Time statistics
-    absolute_start_time = FrameTime(59,59,74);
-    absolute_end_time = FrameTime(0,0,0);
+    absolute_start_time = SectionTime(59,59,74);
+    absolute_end_time = SectionTime(0,0,0);
 }
 
-void SectionToF2Frame::push_frame(Section data) {
+void F2SectionCorrection::push_section(F2Section data) {
     // Add the data to the input buffer
     input_buffer.enqueue(data);
 
@@ -46,22 +45,22 @@ void SectionToF2Frame::push_frame(Section data) {
     process_queue();
 }
 
-QVector<F2Frame> SectionToF2Frame::pop_frames() {
+F2Section F2SectionCorrection::pop_section() {
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
 
-bool SectionToF2Frame::is_ready() const {
+bool F2SectionCorrection::is_ready() const {
     // Return true if the output buffer is not empty
     return !output_buffer.isEmpty();
 }
 
-void SectionToF2Frame::process_queue() {
+void F2SectionCorrection::process_queue() {
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
         // Dequeue the next section
-        Section current_section = input_buffer.dequeue();
-        bool is_current_section_valid = current_section.get_f2_frame(0).frame_metadata.is_valid();
+        F2Section current_section = input_buffer.dequeue();
+        bool is_current_section_valid = current_section.metadata.is_valid();
         total_sections++;
 
         // If we haven't see a good section yet, try to use the first section
@@ -72,16 +71,16 @@ void SectionToF2Frame::process_queue() {
                 has_last_good_section = true;
                 last_good_section = current_section;
                 output_section(current_section);
-                if (show_debug) qDebug() << "SectionToF2Frame::process_queue - First good section:" <<
-                    current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
+                if (show_debug) qDebug() << "F2SectionCorrection::process_queue - First good section:" <<
+                    current_section.metadata.get_absolute_section_time().to_string();
             } else {
                 // If the first section is bad, add it to the window
                 window.enqueue(current_section);
                 if (window.size() >= window_size) {
                     flush_window();
                 }
-                if (show_debug) qDebug() << "SectionToF2Frame::process_queue - First bad section:" <<
-                    current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
+                if (show_debug) qDebug() << "F2SectionCorrection::process_queue - First bad section:" <<
+                    current_section.metadata.get_absolute_section_time().to_string();
             }
         } else {
             // We have a last known good section
@@ -98,12 +97,12 @@ void SectionToF2Frame::process_queue() {
                     last_good_section = current_section;
                 }
             } else {
-                if (!is_current_section_valid && show_debug) qDebug() << "SectionToF2Frame::process_queue - Section is invalid - Invalid metadata (bad CRC)";
+                if (!is_current_section_valid && show_debug) qDebug() << "F2SectionCorrection::process_queue - Section is invalid - Invalid metadata (bad CRC)";
                 //qDebug() << "Sections in window between last good section and current section:" << window.size();
 
-                if (!is_section_valid(current_section, last_good_section, window.size()) && show_debug) qDebug().noquote() << "SectionToF2Frame::process_queue - Section is invalid - current:" <<
-                    current_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string() << "last good:" <<
-                    last_good_section.get_f2_frame(0).frame_metadata.get_absolute_frame_time().to_string();
+                if (!is_section_valid(current_section, last_good_section, window.size()) && show_debug) qDebug().noquote() << "F2SectionCorrection::process_queue - Section is invalid - current:" <<
+                    current_section.metadata.get_absolute_section_time().to_string() << "last good:" <<
+                    last_good_section.metadata.get_absolute_section_time().to_string();
 
                 // The section is either marked invalid or fails our validity check.
                 // Add it to our sliding window.
@@ -116,28 +115,28 @@ void SectionToF2Frame::process_queue() {
     }
 }
 
-bool SectionToF2Frame::is_section_valid(Section current, Section last_good, uint32_t window_size) {
+bool F2SectionCorrection::is_section_valid(F2Section current, F2Section last_good, uint32_t window_size) {
     // For the current section to be good, it must be one absolute frame
     // ahead of the last good section and have valid metadata (CRC passed)
-    FrameMetadata current_metadata = current.get_f2_frame(0).frame_metadata;
-    FrameMetadata last_good_metadata = last_good.get_f2_frame(0).frame_metadata;
+    SectionMetadata current_metadata = current.metadata;
+    SectionMetadata last_good_metadata = last_good.metadata;
 
     // If the current section's metadata is invalid, it's invalid.
     if (!current_metadata.is_valid()) {
-        if (show_debug) qDebug() << "SectionToF2Frame::is_section_valid - Section is invalid - Invalid metadata (bad CRC)";
+        if (show_debug) qDebug() << "F2SectionCorrection::is_section_valid - Section is invalid - Invalid metadata (bad CRC)";
         return false;
     }
 
     // If the current section is windows.size() frame(s) ahead of the last good section, it's valid.
     // to avoid inter-track issues we use the absolute frame time.
-    if (current_metadata.get_absolute_frame_time() == last_good_metadata.get_absolute_frame_time() + FrameTime(0,0,window_size+1)) {
+    if (current_metadata.get_absolute_section_time() == last_good_metadata.get_absolute_section_time() + SectionTime(0,0,window_size+1)) {
         return true;
     }
 
     // Otherwise, the section is invalid
-    if (show_debug) qDebug().noquote() << "SectionToF2Frame::is_section_valid - Section is invalid - current:" <<
-        current_metadata.get_absolute_frame_time().to_string() << "last good:" <<
-        last_good_metadata.get_absolute_frame_time().to_string();
+    if (show_debug) qDebug().noquote() << "F2SectionCorrection::is_section_valid - Section is invalid - current:" <<
+        current_metadata.get_absolute_section_time().to_string() << "last good:" <<
+        last_good_metadata.get_absolute_section_time().to_string();
     return false;
 }
 
@@ -145,21 +144,21 @@ bool SectionToF2Frame::is_section_valid(Section current, Section last_good, uint
 // last_good_section (the good section before the window) and the last
 // section in the window (which should be valid). After correction,
 // all sections are output.
-void SectionToF2Frame::correct_and_flush_window() {
+void F2SectionCorrection::correct_and_flush_window() {
     // The last section in the window is our “next good” section.
-    Section next_good_section = window.last();
-    FrameMetadata next_good_metadata = next_good_section.get_f2_frame(0).frame_metadata;
-    FrameMetadata last_good_metadata = last_good_section.get_f2_frame(0).frame_metadata;  
+    F2Section next_good_section = window.last();
+    SectionMetadata next_good_metadata = next_good_section.metadata;
+    SectionMetadata last_good_metadata = last_good_section.metadata;  
     int total_buffered = window.size(); // number of frames in the window
 
     // Determine the total gap in track time and track numbers.
-    int32_t deltaTime = next_good_metadata.get_absolute_frame_time().get_time_in_frames() - last_good_metadata.get_absolute_frame_time().get_time_in_frames();
+    int32_t deltaTime = next_good_metadata.get_absolute_section_time().get_time_in_frames() - last_good_metadata.get_absolute_section_time().get_time_in_frames();
     uint8_t deltaTrack = next_good_metadata.get_track_number() - last_good_metadata.get_track_number();
 
     // We now have last_good_section as “position 0” and next_good_section as
     // “position totalBuffered”. We will update each buffered section
     // (positions 1..totalBuffered) to have interpolated values.
-    QList<Section> temp_list;
+    QList<F2Section> temp_list;
     while (!window.isEmpty())
         temp_list.append(window.dequeue());
 
@@ -171,37 +170,31 @@ void SectionToF2Frame::correct_and_flush_window() {
         // (Position i+1 out of totalBuffered intervals.)
         int pos = index + 1;
 
-        Section corrected = temp_list[index];
-        FrameMetadata corrected_metadata = corrected.get_f2_frame(0).frame_metadata;
+        F2Section corrected = temp_list[index];
+        SectionMetadata corrected_metadata = corrected.metadata;
 
         // Linear interpolation for absolute track time and track number.
-        int32_t corrected_abs_time = last_good_metadata.get_absolute_frame_time().get_time_in_frames() + (deltaTime * pos) / total_buffered;
-        int32_t corrected_time = last_good_metadata.get_frame_time().get_time_in_frames() + (deltaTime * pos) / total_buffered;
+        int32_t corrected_abs_time = last_good_metadata.get_absolute_section_time().get_time_in_frames() + (deltaTime * pos) / total_buffered;
+        int32_t corrected_time = last_good_metadata.get_section_time().get_time_in_frames() + (deltaTime * pos) / total_buffered;
         uint8_t corrected_track = last_good_metadata.get_track_number() + (deltaTrack * pos) / total_buffered;
 
-        FrameTime abs_time;
+        SectionTime abs_time;
         abs_time.set_time_in_frames(corrected_abs_time);
 
-        FrameTime trk_time;
+        SectionTime trk_time;
         trk_time.set_time_in_frames(corrected_time);
 
-        if (corrected_metadata.get_absolute_frame_time().get_time_in_frames() != abs_time.get_time_in_frames()) {
-            if (show_debug) qDebug().noquote() << "SectionToF2Frame::correct_and_flush_window - Corrected frame abs time to" << abs_time.to_string() <<
+        if (corrected_metadata.get_absolute_section_time().get_time_in_frames() != abs_time.get_time_in_frames()) {
+            if (show_debug) qDebug().noquote() << "F2SectionCorrection::correct_and_flush_window - Corrected frame abs time to" << abs_time.to_string() <<
             "/ track time to" << trk_time.to_string() << "/ track number to" << corrected_track;
         }
 
         // Set the corrected ABS time and track number in the section
         // We also copy the frame type from the last good section.
-        for (int f2_index = 0; f2_index < 98; f2_index++) { 
-            F2Frame f2_frame = corrected.get_f2_frame(f2_index);
-
-            f2_frame.frame_metadata.set_frame_type(last_good_metadata.get_frame_type());
-            f2_frame.frame_metadata.set_track_number(corrected_track);
-            f2_frame.frame_metadata.set_absolute_frame_time(abs_time);
-            f2_frame.frame_metadata.set_frame_time(trk_time);
-
-            corrected.set_f2_frame(f2_index, f2_frame);
-        }
+        corrected.metadata.set_section_type(last_good_metadata.get_section_type());
+        corrected.metadata.set_track_number(corrected_track);
+        corrected.metadata.set_absolute_section_time(abs_time);
+        corrected.metadata.set_section_time(trk_time);
 
         output_section(corrected);
         corrected_sections++;
@@ -212,33 +205,27 @@ void SectionToF2Frame::correct_and_flush_window() {
 }
 
 // Flush the window without any correction - output all frames in order.
-void SectionToF2Frame::flush_window() {
-    if (show_debug) qDebug() << "SectionToF2Frame::flush_window - Flushing window without correction";
+void F2SectionCorrection::flush_window() {
+    if (show_debug) qDebug() << "F2SectionCorrection::flush_window - Flushing window without correction";
     while (!window.isEmpty()) {
-        Section section = window.dequeue();
+        F2Section section = window.dequeue();
         uncorrectable_sections++;
         output_section(section);
-        if (section.get_f2_frame(0).frame_metadata.is_valid())
+        if (section.metadata.is_valid())
             last_good_section = section;
     }
 }
 
-// Output the F2 frames in the section to the output buffer
+// Output the F2 section to the output buffer
 // and count the number of tracks, durations, etc.
-void SectionToF2Frame::output_section(Section section) {
-    QVector<F2Frame> f2_frames;
-    for (int i = 0; i < 98; i++) {
-        f2_frames.append(section.get_f2_frame(i));
-        total_f2_frames++;
-    }
-
-    // Add the F2 frames to the output buffer
-    output_buffer.enqueue(f2_frames);
+void F2SectionCorrection::output_section(F2Section section) {
+    // Add the F2Section to the output buffer
+    output_buffer.enqueue(section);
 
     // Statistics generation...
-    uint8_t track_number = section.get_f2_frame(0).frame_metadata.get_track_number();
-    FrameTime frame_time = section.get_f2_frame(0).frame_metadata.get_frame_time();
-    FrameTime absolute_time = section.get_f2_frame(0).frame_metadata.get_absolute_frame_time();
+    uint8_t track_number = section.metadata.get_track_number();
+    SectionTime section_time = section.metadata.get_section_time();
+    SectionTime absolute_time = section.metadata.get_absolute_section_time();
 
     // Set the absolute start and end times
     if (absolute_time <= absolute_start_time) absolute_start_time = absolute_time;
@@ -248,28 +235,27 @@ void SectionToF2Frame::output_section(Section section) {
     if (!track_numbers.contains(track_number)) {
         // Append the new track to the statistics
         track_numbers.append(track_number);
-        track_start_times.append(frame_time);
-        track_end_times.append(frame_time);
+        track_start_times.append(section_time);
+        track_end_times.append(section_time);
     } else {
         // Update the end time for the existing track
         int index = track_numbers.indexOf(track_number);
-        if (frame_time < track_start_times[index]) track_start_times[index] = frame_time;
-        if (frame_time >= track_end_times[index]) track_end_times[index] = frame_time;
+        if (section_time < track_start_times[index]) track_start_times[index] = section_time;
+        if (section_time >= track_end_times[index]) track_end_times[index] = section_time;
     }
 
     // Save the current track and frame time
     current_track = track_number;
-    current_frame_time = frame_time;
+    current_section_time = section_time;
     current_absolute_time = absolute_time;
 }
 
-void SectionToF2Frame::show_statistics() {
-    qInfo() << "Section to F2 frame statistics:";
-    qInfo() << "  Sections:";
-    qInfo().nospace() << "    Total sections: " << total_sections << " (" << total_sections * 98 << " F2)";
-    qInfo() << "    Corrected sections:" << corrected_sections;
-    qInfo() << "    Uncorrectable sections:" << uncorrectable_sections;
-    qInfo() << "    Output F2 frames:" << total_f2_frames;
+void F2SectionCorrection::show_statistics() {
+    qInfo() << "F2 Section Metadata Correction statistics:";
+    qInfo() << "  F2 Sections:";
+    qInfo().nospace() << "    Total: " << total_sections << " (" << total_sections * 98 << " F2)";
+    qInfo() << "    Corrected:" << corrected_sections;
+    qInfo() << "    Uncorrectable:" << uncorrectable_sections;
 
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << absolute_start_time.to_string();
@@ -285,7 +271,7 @@ void SectionToF2Frame::show_statistics() {
     }
 
     // Show the total duration of all tracks
-    FrameTime total_duration = FrameTime(0,0,0);
+    SectionTime total_duration = SectionTime(0,0,0);
     for (int i = 0; i < track_numbers.size(); i++) {
         total_duration = total_duration + (track_end_times[i] - track_start_times[i]);
     }

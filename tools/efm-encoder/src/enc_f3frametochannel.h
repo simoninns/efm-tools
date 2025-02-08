@@ -37,7 +37,7 @@ public:
     QVector<uint8_t> pop_frame();
     bool is_ready() const;
     int32_t get_total_t_values() const;
-    uint32_t get_valid_output_frames_count() const override { return valid_channel_frames_count; };
+    uint32_t get_valid_output_sections_count() const override { return valid_channel_frames_count; };
 
     void set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
 

@@ -31,10 +31,10 @@
 #include "dec_tvaluestochannel.h"
 
 #include "dec_channeltof3frame.h"
-#include "dec_f3frametosection.h"
-#include "dec_sectiontof2frame.h"
-#include "dec_f2frametof1frame.h"
-#include "dec_f1frametodata24.h"
+#include "dec_f3frametof2section.h"
+#include "dec_f2sectioncorrection.h"
+#include "dec_f2sectiontof1section.h"
+#include "dec_f1sectiontodata24section.h"
 
 EfmProcessor::EfmProcessor() {
 }
@@ -68,24 +68,24 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     // Prepare the decoders
     TvaluesToChannel t_values_to_channel;
     ChannelToF3Frame channel_to_f3;
-    F3FrameToSection f3_frame_to_section;
-    SectionToF2Frame section_to_f2;
-    F2FrameToF1Frame f2_frame_to_f1;
-    F1FrameToData24 f1_frame_to_data24;
+    F3FrameToF2Section f3_frame_to_f2_section;
+    F2SectionCorrection f2_section_correction;
+    F2SectionToF1Section f2_section_to_f1_section;
+    F1SectionToData24Section f1_section_to_data24_section;
 
     // Set the debug flags
     t_values_to_channel.set_show_debug(false);
     channel_to_f3.set_show_debug(false);
-    f3_frame_to_section.set_show_debug(false);
-    section_to_f2.set_show_debug(true);
-    f2_frame_to_f1.set_show_debug(false);
-    f1_frame_to_data24.set_show_debug(false);
+    f3_frame_to_f2_section.set_show_debug(false);
+    f2_section_correction.set_show_debug(false);
+    f2_section_to_f1_section.set_show_debug(true);
+    f1_section_to_data24_section.set_show_debug(true);
 
     uint32_t data24_count = 0;
     uint32_t f1_frame_count = 0;
     uint32_t f2_frame_count = 0;
     uint32_t f3_frame_count = 0;
-    uint32_t section_count = 0;
+    uint32_t f2_section_count = 0;
 
     // Get the total size of the input file for progress reporting
     qint64 total_size = input_file.size();
@@ -121,44 +121,51 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         while(channel_to_f3.is_ready()) {
             F3Frame f3_frame = channel_to_f3.pop_frame();
             if (showF3) f3_frame.show_data();
-            f3_frame_to_section.push_frame(f3_frame);
+            f3_frame_to_f2_section.push_frame(f3_frame);
             f3_frame_count++;
         }
 
-        // Are there any sections ready?
-        while(f3_frame_to_section.is_ready()) {
-            Section section = f3_frame_to_section.pop_section();
-            section_to_f2.push_frame(section);
-            section_count++;
+        // Note: Once we have F2 frames, we have to group them into 98 frame
+        // sections due to the Q-channel metadata which is spread over 98 frames
+        // otherwise we can't keep track of the metadata as we decode the data...
+
+        // Are there any F2 sections ready?
+        while(f3_frame_to_f2_section.is_ready()) {
+            F2Section section = f3_frame_to_f2_section.pop_section();
+            f2_section_correction.push_section(section);
+            f2_section_count++;
         }
 
-        // Are there any F2 frames ready?
-        while(section_to_f2.is_ready()) {
-            QVector<F2Frame> f2_frames = section_to_f2.pop_frames();
+        // Are there any corrected F2 sections ready?
+        while(f2_section_correction.is_ready()) {
+            F2Section f2_section = f2_section_correction.pop_section();
 
-            for (int i = 0; i < f2_frames.size(); i++) {
-                if (showF2) f2_frames[i].show_data();
-                f2_frame_to_f1.push_frame(f2_frames[i]);
-                f2_frame_count++;
-            }
+            if (showF2) f2_section.show_data();
+            f2_section_to_f1_section.push_section(f2_section);
+            // Missing counter here?
         }
 
-        // Are there any F1 frames ready?
-        while(f2_frame_to_f1.is_ready()) {
-            F1Frame f1_frame = f2_frame_to_f1.pop_frame();
-            if (showF1) f1_frame.show_data();
-            f1_frame_to_data24.push_frame(f1_frame);
+        // Are there any F1 sections ready?
+        while(f2_section_to_f1_section.is_ready()) {
+            F1Section f1_section = f2_section_to_f1_section.pop_section();
+            if (showF1) f1_section.show_data();
+            f1_section_to_data24_section.push_section(f1_section);
             f1_frame_count++;
         }
 
-        // Are there any data frames ready?
-        while(f1_frame_to_data24.is_ready()) {
-            Data24 data24 = f1_frame_to_data24.pop_frame();
-            output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
-            data24_count += 1;
+        // Are there any data24 frames ready?
+        while(f1_section_to_data24_section.is_ready()) {
+            Data24Section data24section = f1_section_to_data24_section.pop_section();
+
+            // Each Data24 section contains 98 frames that we need to write to the output file
+            for (int index = 0; index < 98; index++) {
+                Data24 data24 = data24section.get_frame(index);
+                output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
+                data24_count += 1;
+            }
 
             if (showOutput) {
-                data24.show_data();
+                data24section.show_data();
             }
         }
     }
@@ -168,10 +175,10 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
     t_values_to_channel.show_statistics(); qInfo() << "";
     channel_to_f3.show_statistics(); qInfo() << "";
-    f3_frame_to_section.show_statistics(); qInfo() << "";
-    section_to_f2.show_statistics(); qInfo() << "";
-    f2_frame_to_f1.show_statistics(); qInfo() << "";
-    f1_frame_to_data24.show_statistics(); qInfo() << "";
+    f3_frame_to_f2_section.show_statistics(); qInfo() << "";
+    f2_section_correction.show_statistics(); qInfo() << "";
+    f2_section_to_f1_section.show_statistics(); qInfo() << "";
+    f1_section_to_data24_section.show_statistics(); qInfo() << "";
     
     qInfo() << "Processed" << data24_count << "Data24 Frames," << f1_frame_count << "F1 Frames," << f2_frame_count << "F2 Frames," << f3_frame_count << "F3 Frames";
 

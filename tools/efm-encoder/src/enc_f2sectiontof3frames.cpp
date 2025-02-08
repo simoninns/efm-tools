@@ -1,6 +1,6 @@
 /************************************************************************
 
-    enc_sectiontof3frame.cpp
+    enc_f2sectiontof3frames.cpp
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,36 +22,36 @@
 
 ************************************************************************/
 
-#include "enc_sectiontof3frame.h"
+#include "enc_f2sectiontof3frames.h"
 
-// SectionToF3Frame class implementation
-SectionToF3Frame::SectionToF3Frame() {
+// F2SectionToF3Frames class implementation
+F2SectionToF3Frames::F2SectionToF3Frames() {
     valid_f3_frames_count = 0;
 }
 
-void SectionToF3Frame::push_section(Section section) {
-    input_buffer.enqueue(section);
+void F2SectionToF3Frames::push_section(F2Section f2_section) {
+    input_buffer.enqueue(f2_section);
     process_queue();
 }
 
-QVector<F3Frame> SectionToF3Frame::pop_frames() {
+QVector<F3Frame> F2SectionToF3Frames::pop_frames() {
     if (!is_ready()) {
-        qFatal("SectionToF3Frame::pop_frames(): No F3 frames are available.");
+        qFatal("F2SectionToF3Frames::pop_frames(): No F3 frames are available.");
     }
     return output_buffer.dequeue();
 }
 
-void SectionToF3Frame::process_queue() {
+void F2SectionToF3Frames::process_queue() {
     while (input_buffer.size() >= 1) {
-        Section section = input_buffer.dequeue();
+        F2Section f2_section = input_buffer.dequeue();
         QVector<F3Frame> f3_frames;
 
         // Take the metadata information from the first F2 frame in the section
         Subcode subcode;
-        QByteArray subcode_data = subcode.to_data(section.get_f2_frame(10).frame_metadata);
+        QByteArray subcode_data = subcode.to_data(f2_section.metadata);
 
         for (uint32_t symbol_number = 0; symbol_number < 98; ++symbol_number) {
-            F2Frame f2_frame = section.get_f2_frame(symbol_number);
+            F2Frame f2_frame = f2_section.get_frame(symbol_number);
             F3Frame f3_frame;
 
             if (symbol_number == 0) {
@@ -73,6 +73,6 @@ void SectionToF3Frame::process_queue() {
     }
 }
 
-bool SectionToF3Frame::is_ready() const {
+bool F2SectionToF3Frames::is_ready() const {
     return !output_buffer.isEmpty();
 }

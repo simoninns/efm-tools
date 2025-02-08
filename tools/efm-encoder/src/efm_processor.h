@@ -26,7 +26,8 @@
 #define EFMPROCESSOR_H
 
 #include <QString>
-#include "frame_metadata.h"
+#include "section_metadata.h"
+#include "section.h"
 
 class EfmProcessor
 {
@@ -41,7 +42,7 @@ public:
         bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
 
 private:
-    FrameMetadata frame_metadata;
+    SectionMetadata section_metadata;
 
     // Show data flags
     bool showInput;

@@ -25,7 +25,7 @@
 #include "subcode.h"
 
 // Takes 98 bytes of subcode data and returns a FrameMetadata object
-FrameMetadata Subcode::from_data(const QByteArray& data) {
+SectionMetadata Subcode::from_data(const QByteArray& data) {
     // Ensure the data is 98 bytes long
     if (data.size() != 98) {
         qFatal("Subcode::from_data(): Data size of %d does not match 98 bytes", data.size());
@@ -44,12 +44,12 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
         set_bit(q_channel, index-2, data[index] & 0x40);
     }
 
-    // Create the FrameMetadata object
-    FrameMetadata frame_metadata;
+    // Create the SectionMetadata object
+    SectionMetadata section_metadata;
 
     // Set the p-channel (p-channel is just repeating flag)
-    if (static_cast<char>(p_channel[0]) == 0) frame_metadata.set_p_flag(false);
-    else frame_metadata.set_p_flag(true);
+    if (static_cast<char>(p_channel[0]) == 0) section_metadata.set_p_flag(false);
+    else section_metadata.set_p_flag(true);
 
     // Set the q-channel
     // If the q-channel CRC is not valid, attempt to repair the data
@@ -65,16 +65,16 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
         // Set the q-channel mode
         switch (mode_nybble) {
             case 0x1:
-                frame_metadata.set_q_mode(FrameMetadata::QMODE_1);
+                section_metadata.set_q_mode(SectionMetadata::QMODE_1);
                 break;
             case 0x2:
-                frame_metadata.set_q_mode(FrameMetadata::QMODE_2);
+                section_metadata.set_q_mode(SectionMetadata::QMODE_2);
                 break;
             case 0x3:
-                frame_metadata.set_q_mode(FrameMetadata::QMODE_3);
+                section_metadata.set_q_mode(SectionMetadata::QMODE_3);
                 break;
             case 0x4:
-                frame_metadata.set_q_mode(FrameMetadata::QMODE_4);
+                section_metadata.set_q_mode(SectionMetadata::QMODE_4);
                 break;
             default:
                 qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
@@ -85,73 +85,73 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
         switch (control_nybble) {
             case 0x0:
                 // AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(true);
-                frame_metadata.set_preemphasis(false);
-                frame_metadata.set_2_channel(true);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(true);
+                section_metadata.set_preemphasis(false);
+                section_metadata.set_2_channel(true);
                 break;
             case 0x1:
                 // AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(true);
-                frame_metadata.set_preemphasis(true);
-                frame_metadata.set_2_channel(true);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(true);
+                section_metadata.set_preemphasis(true);
+                section_metadata.set_2_channel(true);
                 break;
             case 0x2:
                 // AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(false);
-                frame_metadata.set_preemphasis(false);
-                frame_metadata.set_2_channel(true);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(false);
+                section_metadata.set_preemphasis(false);
+                section_metadata.set_2_channel(true);
                 break;
             case 0x3:
                 // AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(false);
-                frame_metadata.set_preemphasis(true);
-                frame_metadata.set_2_channel(true);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(false);
+                section_metadata.set_preemphasis(true);
+                section_metadata.set_2_channel(true);
                 break;
             case 0x4:
                 // DIGITAL_COPY_PROHIBITED
-                frame_metadata.set_audio(false);
-                frame_metadata.set_copy_prohibited(true);
-                frame_metadata.set_preemphasis(false);
-                frame_metadata.set_2_channel(true);
+                section_metadata.set_audio(false);
+                section_metadata.set_copy_prohibited(true);
+                section_metadata.set_preemphasis(false);
+                section_metadata.set_2_channel(true);
                 break;
             case 0x6:
                 // DIGITAL_COPY_PERMITTED
-                frame_metadata.set_audio(false);
-                frame_metadata.set_copy_prohibited(false);
-                frame_metadata.set_preemphasis(false);
-                frame_metadata.set_2_channel(true);
+                section_metadata.set_audio(false);
+                section_metadata.set_copy_prohibited(false);
+                section_metadata.set_preemphasis(false);
+                section_metadata.set_2_channel(true);
                 break;
             case 0x8:
                 // AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(true);
-                frame_metadata.set_preemphasis(false);
-                frame_metadata.set_2_channel(false);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(true);
+                section_metadata.set_preemphasis(false);
+                section_metadata.set_2_channel(false);
                 break;
             case 0x9:
                 // AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(true);
-                frame_metadata.set_preemphasis(true);
-                frame_metadata.set_2_channel(false);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(true);
+                section_metadata.set_preemphasis(true);
+                section_metadata.set_2_channel(false);
                 break;
             case 0xA:
                 // AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(false);
-                frame_metadata.set_preemphasis(false);
-                frame_metadata.set_2_channel(false);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(false);
+                section_metadata.set_preemphasis(false);
+                section_metadata.set_2_channel(false);
                 break;
             case 0xB:
                 // AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED
-                frame_metadata.set_audio(true);
-                frame_metadata.set_copy_prohibited(false);
-                frame_metadata.set_preemphasis(true);
-                frame_metadata.set_2_channel(false);
+                section_metadata.set_audio(true);
+                section_metadata.set_copy_prohibited(false);
+                section_metadata.set_preemphasis(true);
+                section_metadata.set_2_channel(false);
                 break;
             default:
                 qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
@@ -165,48 +165,48 @@ FrameMetadata Subcode::from_data(const QByteArray& data) {
         // If the track number is 0xAA, then this is a lead-out frame
         // If the track number is 1-99, then this is a user data frame
         if (track_number == 0) {
-            frame_metadata.set_frame_type(FrameType::LEAD_IN);
+            section_metadata.set_section_type(SectionType::LEAD_IN);
         } else if (track_number == 0xAA) {
-            frame_metadata.set_frame_type(FrameType::LEAD_OUT);
+            section_metadata.set_section_type(SectionType::LEAD_OUT);
         } else {
-            frame_metadata.set_frame_type(FrameType::USER_DATA);
+            section_metadata.set_section_type(SectionType::USER_DATA);
         }
 
         // Now set the track number
-        frame_metadata.set_track_number(track_number);
+        section_metadata.set_track_number(track_number);
 
         // Set the frame time q_data_channel[3-5]
-        frame_metadata.set_frame_time(FrameTime(bcd2_to_int(q_channel[3]), bcd2_to_int(q_channel[4]), bcd2_to_int(q_channel[5])));
+        section_metadata.set_section_time(SectionTime(bcd2_to_int(q_channel[3]), bcd2_to_int(q_channel[4]), bcd2_to_int(q_channel[5])));
 
         // Set the zero byte q_data_channel[6] - Not used at the moment
 
         // Set the ap time q_data_channel[7-9]
-        frame_metadata.set_absolute_frame_time(FrameTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9])));
+        section_metadata.set_absolute_section_time(SectionTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9])));
 
-        frame_metadata.set_valid(true);
+        section_metadata.set_valid(true);
     } else {
         // Set the q-channel data to invalid leaving the rest of 
         // the metadata as default values
         qDebug() << "Subcode::from_data(): Invalid CRC in Q-channel data - expected:" << QString::number(get_q_channel_crc(q_channel), 16) <<
             "calculated:" << QString::number(calculate_q_channel_crc16(q_channel), 16);
 
-        FrameTime bad_abs_time = FrameTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9]));
+        SectionTime bad_abs_time = SectionTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9]));
         qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex() << "bad ABS time:" << bad_abs_time.to_string();
-        frame_metadata.set_valid(false);
+        section_metadata.set_valid(false);
     }
 
     // All done!
-    return frame_metadata;
+    return section_metadata;
 }
 
 // Takes a FrameMetadata object and returns 98 bytes of subcode data
-QByteArray Subcode::to_data(const FrameMetadata& frame_metadata) {
+QByteArray Subcode::to_data(const SectionMetadata& section_metadata) {
     QByteArray p_channel_data(12,0);
     QByteArray q_channel_data(12,0);
 
     // Set the p-channel data
     for (int i = 0; i < 12; i++) {
-        if (frame_metadata.is_p_flag()) p_channel_data[i] = 0xFF;
+        if (section_metadata.is_p_flag()) p_channel_data[i] = 0xFF;
         else p_channel_data[i] = 0x00;
     }
 
@@ -214,27 +214,27 @@ QByteArray Subcode::to_data(const FrameMetadata& frame_metadata) {
     uint8_t control_nybble = 0;
     uint8_t mode_nybble = 0;
 
-    switch (frame_metadata.get_q_mode()) {
-        case FrameMetadata::QMODE_1:
+    switch (section_metadata.get_q_mode()) {
+        case SectionMetadata::QMODE_1:
             mode_nybble = 0x1; // 0b0001
             break;
-        case FrameMetadata::QMODE_2:
+        case SectionMetadata::QMODE_2:
             mode_nybble = 0x2; // 0b0010
             break;
-        case FrameMetadata::QMODE_3:
+        case SectionMetadata::QMODE_3:
             mode_nybble = 0x3; // 0b0011
             break;
-        case FrameMetadata::QMODE_4:
+        case SectionMetadata::QMODE_4:
             mode_nybble = 0x4; // 0b0100
             break;
         default:
-            qFatal("Subcode::to_data(): Invalid Q-mode %d", frame_metadata.get_q_mode());
+            qFatal("Subcode::to_data(): Invalid Q-mode %d", section_metadata.get_q_mode());
     }
 
-    bool audio = frame_metadata.is_audio();
-    bool copy_prohibited = frame_metadata.is_copy_prohibited();
-    bool preemphasis = frame_metadata.is_preemphasis();
-    bool channels2 = frame_metadata.is_2_channel();
+    bool audio = section_metadata.is_audio();
+    bool copy_prohibited = section_metadata.is_copy_prohibited();
+    bool preemphasis = section_metadata.is_preemphasis();
+    bool channels2 = section_metadata.is_2_channel();
 
     // These are the valid combinations of control nybble flags
     if (audio && channels2 && !preemphasis && copy_prohibited) control_nybble = 0x0; // 0b0000 = AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED
@@ -256,13 +256,13 @@ QByteArray Subcode::to_data(const FrameMetadata& frame_metadata) {
     q_channel_data[0] = control_nybble << 4 | mode_nybble;
 
     // Get the frame metadata
-    FrameType frame_type = frame_metadata.get_frame_type();
-    FrameTime f_time = frame_metadata.get_frame_time();
-    FrameTime ap_time = frame_metadata.get_absolute_frame_time();
-    uint8_t track_number = frame_metadata.get_track_number();
+    SectionType frame_type = section_metadata.get_section_type();
+    SectionTime f_time = section_metadata.get_section_time();
+    SectionTime ap_time = section_metadata.get_absolute_section_time();
+    uint8_t track_number = section_metadata.get_track_number();
 
     // Set the Q-channel data
-    if (frame_type == FrameType::LEAD_IN) {
+    if (frame_type == SectionType::LEAD_IN) {
         uint16_t tno = 0x00;
         uint16_t pointer = 0x00;
         uint8_t zero = 0;
@@ -278,7 +278,7 @@ QByteArray Subcode::to_data(const FrameMetadata& frame_metadata) {
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
     }
  
-    if (frame_type == FrameType::USER_DATA) {
+    if (frame_type == SectionType::USER_DATA) {
         uint8_t tno = int_to_bcd2(track_number);
         uint8_t index = 01; // Not correct?
         uint8_t zero = 0;
@@ -294,7 +294,7 @@ QByteArray Subcode::to_data(const FrameMetadata& frame_metadata) {
         q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
     }
 
-    if (frame_type == FrameType::LEAD_OUT) {
+    if (frame_type == SectionType::LEAD_OUT) {
         uint16_t tno = 0xAA; // Hexidecimal AA for lead-out
         uint16_t index = 01; // Must be 01 for lead-out
         uint8_t zero = 0;

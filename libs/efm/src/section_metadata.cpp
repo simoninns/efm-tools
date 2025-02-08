@@ -1,6 +1,6 @@
 /************************************************************************
 
-    frame_metadata.cpp
+    section_metadata.cpp
 
     EFM-library - Frame metadata classes
     Copyright (C) 2025 Simon Inns
@@ -22,31 +22,31 @@
 
 ************************************************************************/
 
-#include "frame_metadata.h"
+#include "section_metadata.h"
 
-// Frame time class ---------------------------------------------------------------------------------------------------
-void FrameTime::set_min(uint8_t _min) {
+// Section time class ---------------------------------------------------------------------------------------------------
+void SectionTime::set_min(uint8_t _min) {
     if (_min > 59) {
-        qFatal("FrameTime::set_min(): Invalid minute value of %d", _min);
+        qFatal("SectionTime::set_min(): Invalid minute value of %d", _min);
     }
     min = _min;
 }
 
-void FrameTime::set_sec(uint8_t _sec) {
+void SectionTime::set_sec(uint8_t _sec) {
     if (_sec > 59) {
-        qFatal("FrameTime::set_sec(): Invalid second value of %d", _sec);
+        qFatal("SectionTime::set_sec(): Invalid second value of %d", _sec);
     }
     sec = _sec;
 }
 
-void FrameTime::set_frame(uint8_t _frame) {
+void SectionTime::set_frame(uint8_t _frame) {
     if (_frame > 74) {
-        qFatal("FrameTime::set_frame(): Invalid frame value of %d", _frame);
+        qFatal("SectionTime::set_frame(): Invalid frame value of %d", _frame);
     }
     frame = _frame;
 }
 
-QByteArray FrameTime::to_bcd() const {
+QByteArray SectionTime::to_bcd() const {
     QByteArray bcd;
     bcd.append((min / 10) << 4 | (min % 10));
     bcd.append((sec / 10) << 4 | (sec % 10));
@@ -55,7 +55,7 @@ QByteArray FrameTime::to_bcd() const {
 }
 
 // Increment the frame time by one frame, wrapping around as needed
-void FrameTime::increment_frame() {
+void SectionTime::increment_frame() {
     frame++;
     if (frame > 74) {
         frame = 0;
@@ -65,15 +65,15 @@ void FrameTime::increment_frame() {
             min++;
             if (min > 59) {
                 min = 0;
-                qWarning("FrameTime::increment_frame(): Frame time has exceeded 60 minutes - wrapping around");
+                qWarning("SectionTime::increment_frame(): Section time has exceeded 60 minutes - wrapping around");
             }
         }
     }
 }
 
-void FrameTime::set_time_in_frames(int32_t time_in_frames) {
+void SectionTime::set_time_in_frames(int32_t time_in_frames) {
     if (time_in_frames < 0) {
-        qFatal("FrameTime::set_time_in_frames(): Negative time in frames");
+        qFatal("SectionTime::set_time_in_frames(): Negative time in sections");
     }
 
     min = time_in_frames / (60 * 75);
@@ -81,26 +81,26 @@ void FrameTime::set_time_in_frames(int32_t time_in_frames) {
     frame = time_in_frames % 75;
 }
 
-bool FrameTime::operator==(const FrameTime& other) const {
+bool SectionTime::operator==(const SectionTime& other) const {
     return min == other.min && sec == other.sec && frame == other.frame;
 }
 
-bool FrameTime::operator!=(const FrameTime& other) const {
+bool SectionTime::operator!=(const SectionTime& other) const {
     return !(*this == other);
 }
 
-bool FrameTime::operator<(const FrameTime& other) const {
+bool SectionTime::operator<(const SectionTime& other) const {
     if (min != other.min) return min < other.min;
     if (sec != other.sec) return sec < other.sec;
     return frame < other.frame;
 }
 
-bool FrameTime::operator>(const FrameTime& other) const {
+bool SectionTime::operator>(const SectionTime& other) const {
     return other < *this;
 }
 
-FrameTime FrameTime::operator+(const FrameTime& other) const {
-    FrameTime result = *this;
+SectionTime SectionTime::operator+(const SectionTime& other) const {
+    SectionTime result = *this;
     result.frame += other.frame;
     result.sec += other.sec + result.frame / 75;
     result.frame %= 75;
@@ -110,14 +110,14 @@ FrameTime FrameTime::operator+(const FrameTime& other) const {
     return result;
 }
 
-FrameTime FrameTime::operator-(const FrameTime& other) const {
-    FrameTime result = *this;
+SectionTime SectionTime::operator-(const SectionTime& other) const {
+    SectionTime result = *this;
     int totalFrames1 = (min * 60 + sec) * 75 + frame;
     int totalFrames2 = (other.min * 60 + other.sec) * 75 + other.frame;
     int diffFrames = totalFrames1 - totalFrames2;
 
     if (diffFrames < 0) {
-        qFatal("FrameTime::operator-(): Resulting frame time is negative");
+        qFatal("SectionTime::operator-(): Resulting section time is negative");
     }
 
     result.min = (diffFrames / 75) / 60;
@@ -126,29 +126,29 @@ FrameTime FrameTime::operator-(const FrameTime& other) const {
     return result;
 }
 
-QString FrameTime::to_string() const {
+QString SectionTime::to_string() const {
     return QString("%1:%2.%3").arg(min, 2, 10, QChar('0')).arg(sec, 2, 10, QChar('0')).arg(frame, 2, 10, QChar('0'));
 }
 
 // Frame metadata class -----------------------------------------------------------------------------------------------
-void FrameMetadata::set_frame_type(FrameType _frame_type) {
-    frame_type = _frame_type;
+void SectionMetadata::set_section_type(SectionType _section_type) {
+    section_type = _section_type;
 
     // Ensure track number is sane
-    if (frame_type == FrameType::LEAD_IN) track_number = 0;
-    if (frame_type == FrameType::LEAD_OUT) track_number = 0;
-    if ((frame_type == FrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
+    if (section_type == SectionType::LEAD_IN) track_number = 0;
+    if (section_type == SectionType::LEAD_OUT) track_number = 0;
+    if ((section_type == SectionType::USER_DATA) && (track_number < 1 || track_number > 98)) {
         track_number = 1;
     }
 }
 
-void FrameMetadata::set_track_number(uint8_t _track_number) {
+void SectionMetadata::set_track_number(uint8_t _track_number) {
     track_number = _track_number;
 
     // Ensure track number is sane
-    if (frame_type == FrameType::LEAD_IN) track_number = 0;
-    if (frame_type == FrameType::LEAD_OUT) track_number = 0;
-    if ((frame_type == FrameType::USER_DATA) && (track_number < 1 || track_number > 98)) {
+    if (section_type == SectionType::LEAD_IN) track_number = 0;
+    if (section_type == SectionType::LEAD_OUT) track_number = 0;
+    if ((section_type == SectionType::USER_DATA) && (track_number < 1 || track_number > 98)) {
         track_number = 1;
     }
 }

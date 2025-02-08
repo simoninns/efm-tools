@@ -135,9 +135,9 @@ void Data24::show_data() {
         }
     }
     if (has_error) {
-        qInfo().noquote() << "Data24:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number() << "ERROR";
+        qInfo().noquote() << "Data24:" << dataString.trimmed() << "ERROR";
     } else {
-        qInfo().noquote() << "Data24:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+        qInfo().noquote() << "Data24:" << dataString.trimmed();
     }
 }
 
@@ -165,9 +165,9 @@ void F1Frame::show_data() {
         }
     }
     if (has_error) {
-        qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number() << "ERROR";
+        qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "ERROR";
     } else {
-        qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+        qInfo().noquote() << "F1Frame:" << dataString.trimmed();
     }
 }
 
@@ -195,9 +195,9 @@ void F2Frame::show_data() {
         }
     }
     if (has_error) {
-        qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number() << "ERROR";
+        qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "ERROR";
     } else {
-        qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "-" << frame_metadata.get_frame_time().to_string() << "Track:" << frame_metadata.get_track_number();
+        qInfo().noquote() << "F2Frame:" << dataString.trimmed();
     }
 }
 

@@ -1,6 +1,6 @@
 /************************************************************************
 
-    dec_f3frametosection.h
+    dec_f2sectiontof1section.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,51 +22,52 @@
 
 ************************************************************************/
 
-#ifndef DEC_F3FRAMETOSECTION_H
-#define DEC_F3FRAMETOSECTION_H
+#ifndef DEC_F2SECTIONTOF1SECTION_H
+#define DEC_F2SECTIONTOF1SECTION_H
 
 #include "decoders.h"
-#include "subcode.h"
+#include "reedsolomon.h"
+#include "delay_lines.h"
+#include "interleave.h"
+#include "inverter.h"
 
-class F3FrameToSection : public Decoder {
+class F2SectionToF1Section : public Decoder {
 public:
-    F3FrameToSection();
-    void push_frame(F3Frame data);
-    Section pop_section();
+    F2SectionToF1Section();
+    void push_section(F2Section f2_section);
+    F1Section pop_section();
     bool is_ready() const;
     
     void show_statistics();
 
 private:
-    void process_state_machine();
+    void process_queue();
 
-    QQueue<F3Frame> input_buffer;
-    QQueue<Section> output_buffer;
+    QQueue<F2Section> input_buffer;
+    QQueue<F1Section> output_buffer;
 
-    // State machine states
-    enum State {
-        EXPECTING_SYNC0,
-        EXPECTING_SYNC1,
-        EXPECTING_SUBCODE,
-        PROCESS_SECTION
-    };
+    ReedSolomon circ;
 
-    State current_state;
-    QVector<F3Frame> section_buffer;
+    DelayLines delay_line1;
+    DelayLines delay_line2;
+    DelayLines delay_lineM;
 
-    // State machine state processing functions
-    State expecting_sync0();
-    State expecting_sync1();
-    State expecting_subcode();
-    State process_section();
+    DelayLines delay_line1_err;
+    DelayLines delay_line2_err;
+    DelayLines delay_lineM_err;
 
-    // Statistics
-    uint32_t missed_sync0s;
-    uint32_t missed_sync1s;
-    uint32_t missed_subcodes;
-    uint32_t valid_sections;
-    uint32_t invalid_sections;
-    uint32_t input_f3_frames;
+    Interleave interleave;
+    Inverter inverter;
+
+    Interleave interleave_err;
+
+    uint32_t invalid_input_f2_frames_count;
+    uint32_t valid_input_f2_frames_count;
+    uint32_t invalid_output_f1_frames_count;
+    uint32_t valid_output_f1_frames_count;
+
+    uint32_t input_byte_errors;
+    uint32_t output_byte_errors;
 };
 
-#endif // DEC_F3FRAMETOSECTION_H
+#endif // DEC_F2SECTIONTOF1SECTION_H

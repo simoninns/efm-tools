@@ -207,7 +207,7 @@ uint16_t ChannelToF3Frame::get_bits(QByteArray data, int start_bit, int end_bit)
 }
 
 void ChannelToF3Frame::show_statistics() {
-    qInfo() << "Channel to F3 frame statistics:";
+    qInfo() << "Channel to F3 Frame statistics:";
     qInfo() << "  Channel Frames:";
     qInfo() << "    Total:" << good_frames + undershoot_frames + overshoot_frames;
     qInfo() << "    Good:" << good_frames;

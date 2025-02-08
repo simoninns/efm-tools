@@ -1,6 +1,6 @@
 /************************************************************************
 
-    dec_sectiontof2frame.h
+    dec_f2sectioncorrection.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,52 +22,51 @@
 
 ************************************************************************/
 
-#ifndef DEC_SECTIONTOF2FRAME_H
-#define DEC_SECTIONTOF2FRAME_H
+#ifndef DEC_F2SECTIONCORRECTION_H
+#define DEC_F2SECTIONCORRECTION_H
 
 #include "decoders.h"
-#include "frame_metadata.h"
+#include "section_metadata.h"
 
-class SectionToF2Frame : public Decoder {
+class F2SectionCorrection : public Decoder {
 public:
-    SectionToF2Frame();
-    void push_frame(Section data);
-    QVector<F2Frame> pop_frames();
+    F2SectionCorrection();
+    void push_section(F2Section data);
+    F2Section pop_section();
     bool is_ready() const;
     
     void show_statistics();
-    void correct_invalid_sections(Section next_good_section);
+    void correct_invalid_sections(F2Section next_good_section);
 
 private:
     void process_queue();
-    bool is_section_valid(Section current, Section last_good, uint32_t window_size);
-    void output_section(Section section);
+    bool is_section_valid(F2Section current, F2Section last_good, uint32_t window_size);
+    void output_section(F2Section section);
     void flush_window();
     void correct_and_flush_window();
 
-    QQueue<Section> input_buffer;
-    QQueue<QVector<F2Frame>> output_buffer;
+    QQueue<F2Section> input_buffer;
+    QQueue<F2Section> output_buffer;
 
     bool has_last_good_section;
-    Section last_good_section;
-    QQueue<Section> window;
+    F2Section last_good_section;
+    QQueue<F2Section> window;
     uint32_t window_size;
 
     // Statistics
     uint32_t total_sections;
     uint32_t corrected_sections;
     uint32_t uncorrectable_sections;
-    uint32_t total_f2_frames;
 
     // Time statistics
-    FrameTime absolute_start_time;
-    FrameTime absolute_end_time;
+    SectionTime absolute_start_time;
+    SectionTime absolute_end_time;
     uint32_t current_track;
-    FrameTime current_frame_time;
-    FrameTime current_absolute_time;
+    SectionTime current_section_time;
+    SectionTime current_absolute_time;
     QVector<uint8_t> track_numbers;
-    QVector<FrameTime> track_start_times;
-    QVector<FrameTime> track_end_times;
+    QVector<SectionTime> track_start_times;
+    QVector<SectionTime> track_end_times;
 };
 
-#endif // DEC_SECTIONTOF2FRAME_H
+#endif // DEC_F2SECTIONCORRECTION_H

@@ -1,6 +1,6 @@
 /************************************************************************
 
-    enc_f1frametof2frame.cpp
+    enc_f1sectiontof2section.cpp
 
     ld-efm-encoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,25 +22,25 @@
 
 ************************************************************************/
 
-#include "enc_f1frametof2frame.h"
+#include "enc_f1sectiontof2section.h"
 
-// F1FrameToF2Frame class implementation
-F1FrameToF2Frame::F1FrameToF2Frame() 
+// F1SectionToF2Section class implementation
+F1SectionToF2Section::F1SectionToF2Section() 
     : delay_line1({1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0}),
       delay_line2({2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0}),
       delay_lineM({0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108})
 {
-    valid_f2_frames_count = 0;
+    valid_f2_sections_count = 0;
 }
 
-void F1FrameToF2Frame::push_frame(F1Frame f1_frame) {
-    input_buffer.enqueue(f1_frame);
+void F1SectionToF2Section::push_section(F1Section f1_section) {
+    input_buffer.enqueue(f1_section);
     process_queue();
 }
 
-F2Frame F1FrameToF2Frame::pop_frame() {
+F2Section F1SectionToF2Section::pop_section() {
     if (!is_ready()) {
-        qFatal("F1FrameToF2Frame::pop_frame(): No F2 frames are available.");
+        qFatal("F1SectionToF2Section::pop_section(): No F2 sections are available.");
     }
     return output_buffer.dequeue();
 }
@@ -52,39 +52,46 @@ F2Frame F1FrameToF2Frame::pop_frame() {
 // This will drop 108+2+1 = 111 F2 frames of data - The decoder will also have
 // the same issue and will loose another 111 frames of data (so you need at least
 // 222 frames of lead-in data to ensure the decoder has enough data to start decoding)
-void F1FrameToF2Frame::process_queue() {
+void F1SectionToF2Section::process_queue() {
     while (!input_buffer.isEmpty()) {
-        // Pop the F1 frame and copy the data
-        F1Frame f1_frame = input_buffer.dequeue();
-        QVector<uint8_t> data = f1_frame.get_data();
+        F1Section f1_section = input_buffer.dequeue();
+        F2Section f2_section;
+        f2_section.metadata = f1_section.metadata;
 
-        // Process the data
-        data = delay_line2.push(data);
-        if (data.isEmpty()) continue;
+        for (int index = 0; index < 98; ++index) {
+            // Pop the F1 frame and copy the data
+            F1Frame f1_frame = f1_section.get_frame(index);
+            QVector<uint8_t> data = f1_frame.get_data();
 
-        data = interleave.interleave(data); // 24
-        circ.c2_encode(data); // 24 + 4 = 28
+            // Process the data
+            data = delay_line2.push(data);
+            if (data.isEmpty()) continue;
 
-        data = delay_lineM.push(data); // 28
-        if (data.isEmpty()) continue;
+            data = interleave.interleave(data); // 24
+            circ.c2_encode(data); // 24 + 4 = 28
 
-        circ.c1_encode(data); // 28 + 4 = 32
+            data = delay_lineM.push(data); // 28
+            if (data.isEmpty()) continue;
 
-        data = delay_line1.push(data); // 32     
-        if (data.isEmpty()) continue;
+            circ.c1_encode(data); // 28 + 4 = 32
 
-        data = inverter.invert_parity(data); // 32
+            data = delay_line1.push(data); // 32     
+            if (data.isEmpty()) continue;
 
-        // Put the resulting data into an F2 frame and push it to the output buffer
-        F2Frame f2_frame;
-        f2_frame.set_data(data);
-        f2_frame.frame_metadata = f1_frame.frame_metadata;
-        
-        valid_f2_frames_count++;
-        output_buffer.enqueue(f2_frame);
+            data = inverter.invert_parity(data); // 32
+
+            // Put the resulting data into an F2 frame and push it to the output buffer
+            F2Frame f2_frame;
+            f2_frame.set_data(data);
+            
+            f2_section.set_frame(index, f2_frame);    
+        }
+
+        valid_f2_sections_count++;
+        output_buffer.enqueue(f2_section);
     }
 }
 
-bool F1FrameToF2Frame::is_ready() const {
+bool F1SectionToF2Section::is_ready() const {
     return !output_buffer.isEmpty();
 }

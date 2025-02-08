@@ -1,6 +1,6 @@
 /************************************************************************
 
-    dec_f1frametodata24.h
+    dec_f1sectiontodata24section.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,16 +22,17 @@
 
 ************************************************************************/
 
-#ifndef DEC_F1FRAMETODATA24_H
-#define DEC_F1FRAMETODATA24_H
+#ifndef DEC_F1SECTIONTODATA24SECTION_H
+#define DEC_F1SECTIONTODATA24SECTION_H
 
 #include "decoders.h"
+#include "section.h"
 
-class F1FrameToData24 : public Decoder {
+class F1SectionToData24Section : public Decoder {
 public:
-    F1FrameToData24();
-    void push_frame(F1Frame data);
-    Data24 pop_frame();
+    F1SectionToData24Section();
+    void push_section(F1Section f1_section);
+    Data24Section pop_section();
     bool is_ready() const;
     
     void show_statistics();
@@ -39,15 +40,15 @@ public:
 private:
     void process_queue();
 
-    QQueue<F1Frame> input_buffer;
-    QQueue<Data24> output_buffer;
+    QQueue<F1Section> input_buffer;
+    QQueue<Data24Section> output_buffer;
 
     uint32_t invalid_f1_frames_count;
-    uint32_t valid_f1_frames_count;
+    uint32_t valid_f1_sections_count;
     uint32_t corrupt_bytes_count;
 
-    FrameTime start_time;
-    FrameTime end_time;
+    SectionTime start_time;
+    SectionTime end_time;
 };
 
-#endif // DEC_F1FRAMETODATA24_H
+#endif // DEC_F1SECTIONTODATA24SECTION_H

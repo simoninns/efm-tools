@@ -1,8 +1,8 @@
 /************************************************************************
 
-    frame_metadata.h
+    section_metadata.h
 
-    EFM-library - Frame metadata classes
+    EFM-library - Section metadata classes
     Copyright (C) 2025 Simon Inns
 
     This file is part of EFM-Tools.
@@ -22,18 +22,18 @@
 
 ************************************************************************/
 
-#ifndef FRAME_METADATA_H
-#define FRAME_METADATA_H
+#ifndef SECTION_METADATA_H
+#define SECTION_METADATA_H
 
 #include <QVector>
 #include <cstdint>
 
-// Frame time class - stores ECMA-130 frame time as minutes, seconds, and frames
-class FrameTime {
+// Section time class - stores ECMA-130 frame time as minutes, seconds, and frames
+class SectionTime {
 public:
-    FrameTime() : min(0), sec(0), frame(0) {}
-    FrameTime(uint8_t _min, uint8_t _sec, uint8_t _frame) : min(_min), sec(_sec), frame(_frame) {}
-    virtual ~FrameTime() = default;
+    SectionTime() : min(0), sec(0), frame(0) {}
+    SectionTime(uint8_t _min, uint8_t _sec, uint8_t _frame) : min(_min), sec(_sec), frame(_frame) {}
+    virtual ~SectionTime() = default;
 
     uint8_t get_min() const { return min; }
     uint8_t get_sec() const { return sec; }
@@ -50,14 +50,14 @@ public:
     int32_t get_time_in_frames() const { return (min * 60 + sec) * 75 + frame; }
     void set_time_in_frames(int32_t time_in_frames);
 
-    bool operator==(const FrameTime& other) const;
-    bool operator!=(const FrameTime& other) const;
-    bool operator<(const FrameTime& other) const;
-    bool operator>(const FrameTime& other) const;
-    bool operator<=(const FrameTime& other) const { return !(*this > other); }
-    bool operator>=(const FrameTime& other) const { return !(*this < other); }
-    FrameTime operator+(const FrameTime& other) const;
-    FrameTime operator-(const FrameTime& other) const;
+    bool operator==(const SectionTime& other) const;
+    bool operator!=(const SectionTime& other) const;
+    bool operator<(const SectionTime& other) const;
+    bool operator>(const SectionTime& other) const;
+    bool operator<=(const SectionTime& other) const { return !(*this > other); }
+    bool operator>=(const SectionTime& other) const { return !(*this < other); }
+    SectionTime operator+(const SectionTime& other) const;
+    SectionTime operator-(const SectionTime& other) const;
 
 private:
     uint8_t min;
@@ -65,13 +65,13 @@ private:
     uint8_t frame;    
 };
 
-// Frame type class - stores the type of frame (LEAD_IN, LEAD_OUT, USER_DATA)
-class FrameType {
+// Section type class - stores the type of section (LEAD_IN, LEAD_OUT, USER_DATA)
+class SectionType {
 public:
     enum Type { LEAD_IN, LEAD_OUT, USER_DATA };
 
-    FrameType() : type(USER_DATA) {}
-    FrameType(Type _type) : type(_type) {}
+    SectionType() : type(USER_DATA) {}
+    SectionType(Type _type) : type(_type) {}
 
     Type get_type() const { return type; }
     void set_type(Type _type) { type = _type; }
@@ -85,11 +85,11 @@ public:
         }
     }
 
-    bool operator==(const FrameType& other) const {
+    bool operator==(const SectionType& other) const {
         return type == other.type;
     }
 
-    bool operator!=(const FrameType& other) const {
+    bool operator!=(const SectionType& other) const {
         return type != other.type;
     }
 
@@ -97,10 +97,9 @@ private:
     Type type;
 };
 
-// Frame metadata class - stores the frame type, frame time, absolute frame time, and track number
-// This data is common for Data24, F1 and F2 frames
-// The section index is used to identify the section number when translated from F2 frames (0-97)
-class FrameMetadata {
+// Section metadata class - stores the Section type, Section time, absolute Section time, and track number
+// This data is common for Data24, F1 and F2 Sections
+class SectionMetadata {
 public:
     enum QModes {
         QMODE_1,
@@ -109,17 +108,17 @@ public:
         QMODE_4
     };
 
-    FrameMetadata() : frame_type(FrameType::USER_DATA), frame_time(FrameTime()), absolute_frame_time(FrameTime()), track_number(0), valid_data(false),
+    SectionMetadata() : section_type(SectionType::USER_DATA), section_time(SectionTime()), absolute_section_time(SectionTime()), track_number(0), valid_data(false),
         is_audio_flag(true), is_copy_prohibited_flag(true), is_preemphasis_flag(false), is_2_channel_flag(true), p_flag(true), q_mode(QModes::QMODE_1) {}
 
-    FrameType get_frame_type() const { return frame_type; }
-    void set_frame_type(FrameType _frame_type);
+    SectionType get_section_type() const { return section_type; }
+    void set_section_type(SectionType _section_type);
 
-    FrameTime get_frame_time() const { return frame_time; }
-    void set_frame_time(const FrameTime& _frame_time) { frame_time = _frame_time; }
+    SectionTime get_section_time() const { return section_time; }
+    void set_section_time(const SectionTime& _section_time) { section_time = _section_time; }
 
-    FrameTime get_absolute_frame_time() const { return absolute_frame_time; }
-    void set_absolute_frame_time(const FrameTime& _frame_time) { absolute_frame_time = _frame_time; }
+    SectionTime get_absolute_section_time() const { return absolute_section_time; }
+    void set_absolute_section_time(const SectionTime& _section_time) { absolute_section_time = _section_time; }
 
     uint8_t get_track_number() const { return track_number; }
     void set_track_number(uint8_t _track_number);
@@ -148,9 +147,9 @@ private:
 
     // Q-Channel metadata
     QModes q_mode;
-    FrameType frame_type;
-    FrameTime frame_time;
-    FrameTime absolute_frame_time;
+    SectionType section_type;
+    SectionTime section_time;
+    SectionTime absolute_section_time;
     uint8_t track_number;
     bool valid_data;
 
@@ -161,4 +160,4 @@ private:
     bool is_2_channel_flag;
 };
 
-#endif // FRAME_METADATA_H
+#endif // SECTION_METADATA_H
