@@ -81,9 +81,8 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     f2_section_to_f1_section.set_show_debug(true);
     f1_section_to_data24_section.set_show_debug(true);
 
-    uint32_t data24_count = 0;
-    uint32_t f1_frame_count = 0;
-    uint32_t f2_frame_count = 0;
+    uint32_t data24_frame_count = 0;
+    uint32_t f1_section_count = 0;
     uint32_t f3_frame_count = 0;
     uint32_t f2_section_count = 0;
 
@@ -142,7 +141,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
             if (showF2) f2_section.show_data();
             f2_section_to_f1_section.push_section(f2_section);
-            // Missing counter here?
         }
 
         // Are there any F1 sections ready?
@@ -150,7 +148,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             F1Section f1_section = f2_section_to_f1_section.pop_section();
             if (showF1) f1_section.show_data();
             f1_section_to_data24_section.push_section(f1_section);
-            f1_frame_count++;
+            f1_section_count++;
         }
 
         // Are there any data24 frames ready?
@@ -161,7 +159,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             for (int index = 0; index < 98; index++) {
                 Data24 data24 = data24section.get_frame(index);
                 output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
-                data24_count += 1;
+                data24_frame_count += 1;
             }
 
             if (showOutput) {
@@ -180,7 +178,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     f2_section_to_f1_section.show_statistics(); qInfo() << "";
     f1_section_to_data24_section.show_statistics(); qInfo() << "";
     
-    qInfo() << "Processed" << data24_count << "Data24 Frames," << f1_frame_count << "F1 Frames," << f2_frame_count << "F2 Frames," << f3_frame_count << "F3 Frames";
+    qInfo() << "Processed" << data24_frame_count << "Data24 Frames," << f1_section_count << "F1 Sections," << f2_section_count << "F2 Sections," << f3_frame_count << "F3 Frames";
 
     // Should we add a wav header to the output data?
     if (is_output_data_wav) {
