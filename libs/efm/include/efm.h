@@ -33,7 +33,7 @@ class Efm {
 public:
     Efm();
     uint16_t fourteen_to_eight(uint16_t efm);
-    uint16_t eight_to_fourteen(uint16_t value);
+    QString eight_to_fourteen(uint16_t value);
 
 private:
     QHash<uint16_t, uint16_t> efmHash;

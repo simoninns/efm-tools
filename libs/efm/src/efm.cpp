@@ -45,9 +45,17 @@ uint16_t Efm::fourteen_to_eight(uint16_t efm) {
     return 300;
 }
 
-uint16_t Efm::eight_to_fourteen(uint16_t value) {
+QString Efm::eight_to_fourteen(uint16_t value) {
     if (value < 258) {
-        return efm_lut[value];
+        uint16_t efm = efm_lut[value];
+
+        // Convert the 14-bit EFM code to a 14-bit string
+        QString efm_string;
+        for (int i = 13; i >= 0; --i) {
+            efm_string.append((efm & (1 << i)) ? '1' : '0');
+        }
+
+        return efm_string;
     } else {
         qFatal("Efm::eight_to_fourteen(): Value must be in the range 0 to 257.");
     }

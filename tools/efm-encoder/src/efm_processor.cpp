@@ -155,7 +155,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             // Create a Data24 object and set the data
             Data24 data24;
             data24.set_data(input_data.mid(index * 24, 24));
-            data24_section.set_frame(index, data24);
+            data24_section.push_frame(data24);
         }
         if (showInput) data24_section.show_data();
 

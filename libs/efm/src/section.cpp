@@ -121,7 +121,7 @@ Data24 Data24Section::get_frame(int index) const {
 }
 
 void Data24Section::set_frame(int index, Data24 in_frame) {
-    if (index >= 98 || index < 0) {
+    if (index >= frames.size() || index < 0) {
         qFatal("Data24Section::set_frame - Index %d out of range", index);
     }
     frames[index] = in_frame;

@@ -65,18 +65,39 @@ void F1SectionToF2Section::process_queue() {
 
             // Process the data
             data = delay_line2.push(data);
-            if (data.isEmpty()) continue;
+            if (data.isEmpty()) {
+                // Generate a blank F2 frame (to keep the section in sync)
+                F2Frame f2_frame;
+                QVector<uint8_t> blank_data(32, 0);
+                f2_frame.set_data(blank_data);
+                f2_section.push_frame(f2_frame);
+                continue;
+            }
 
             data = interleave.interleave(data); // 24
             circ.c2_encode(data); // 24 + 4 = 28
 
             data = delay_lineM.push(data); // 28
-            if (data.isEmpty()) continue;
+            if (data.isEmpty()) {
+                // Generate a blank F2 frame (to keep the section in sync)
+                F2Frame f2_frame;
+                QVector<uint8_t> blank_data(32, 0);
+                f2_frame.set_data(blank_data);
+                f2_section.push_frame(f2_frame);
+                continue;
+            }
 
             circ.c1_encode(data); // 28 + 4 = 32
 
             data = delay_line1.push(data); // 32     
-            if (data.isEmpty()) continue;
+            if (data.isEmpty()) {
+                // Generate a blank F2 frame (to keep the section in sync)
+                F2Frame f2_frame;
+                QVector<uint8_t> blank_data(32, 0);
+                f2_frame.set_data(blank_data);
+                f2_section.push_frame(f2_frame);
+                continue;
+            }
 
             data = inverter.invert_parity(data); // 32
 
@@ -84,7 +105,7 @@ void F1SectionToF2Section::process_queue() {
             F2Frame f2_frame;
             f2_frame.set_data(data);
             
-            f2_section.set_frame(index, f2_frame);    
+            f2_section.push_frame(f2_frame);    
         }
 
         valid_f2_sections_count++;

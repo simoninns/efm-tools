@@ -59,7 +59,7 @@ void Data24SectionToF1Section::process_queue() {
 
             F1Frame f1_frame;
             f1_frame.set_data(data);
-            f1_section.set_frame(index, f1_frame);
+            f1_section.push_frame(f1_frame);
         }
 
         valid_f1_sections_count++;

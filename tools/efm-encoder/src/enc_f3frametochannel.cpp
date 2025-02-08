@@ -71,7 +71,7 @@ void F3FrameToChannel::process_queue() {
 
         // Ensure the F3 frame data is 32 bytes long
         if (f3_frame_data.size() != 32) {
-            qFatal("F3FrameToChannel::process_queue(): F3 frame data must be 24 bytes long.");
+            qFatal("F3FrameToChannel::process_queue(): F3 frame data must be 32 bytes long.");
         }
 
         QString channel_frame;
