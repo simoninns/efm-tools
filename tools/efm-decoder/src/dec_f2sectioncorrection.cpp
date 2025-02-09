@@ -137,16 +137,30 @@ void F2SectionCorrection::process_queue() {
                         output_section(f2_section_current);
                         last_good_section = f2_section_current;
                         total_sections++;
-                        //if (show_debug) qDebug() << "F2SectionCorrection::process_queue(): Valid section with absolute time" << f2_section_current.metadata.get_absolute_section_time().to_string();
+                        if (show_debug) qDebug() << "F2SectionCorrection::process_queue(): Valid section with absolute time" << f2_section_current.metadata.get_absolute_section_time().to_string();
                     }
                 } else {
                     // The current section's valid metadata doesn't match the expected time, so it's
                     // likely we have a skip in the continuity of the sections.  We can't correct this
                     // so we have to drop the window, flush the CIRC delay lines and start again from
                     // the current section.
-                    if (show_debug) qDebug() << "F2SectionCorrection::process_queue(): Section time mismatch, expected" <<
-                        expected_absolute_time.to_string() << "got" << f2_section_current.metadata.get_absolute_section_time().to_string();
-                    qFatal("F2SectionCorrection::process_queue(): Section time mismatch, can't correct.");
+                    if (show_debug) qDebug() << "F2SectionCorrection::process_queue(): Got section with valid metadata but the expected absolute time was" <<
+                        expected_absolute_time.to_string() << "but the actual metadata was" << f2_section_current.metadata.get_absolute_section_time().to_string();
+
+                    // This can happen during lead-in as the original media settles.  Since we have
+                    // valid metadata, we can see if the track number is zero (lead-in)...
+                    if (f2_section_current.metadata.get_track_number() == 0) {
+                        if (f2_section_current.metadata.get_absolute_section_time() < last_good_section.metadata.get_absolute_section_time()) {
+                            last_good_section = f2_section_current;
+                            if (show_debug) qDebug() << "F2SectionCorrection::process_queue(): Lead-in section with absolute time" << f2_section_current.metadata.get_absolute_section_time().to_string();
+                            output_section(f2_section_current);
+                        }
+                    } else {
+                        // We have a track number, so this is a real issue due to skipping
+                        if (show_debug) qDebug() << "F2SectionCorrection::process_queue(): Track number is" << f2_section_current.metadata.get_track_number() <<
+                            "and track time is" << f2_section_current.metadata.get_section_time().to_string();
+                        qFatal("F2SectionCorrection::process_queue(): Section time mismatch, can't correct.");
+                    }
                 }
             } else {
                 // If the metadata is invalid, we can only put it in the 
