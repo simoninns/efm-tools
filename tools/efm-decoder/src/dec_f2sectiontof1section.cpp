@@ -36,7 +36,8 @@ F2SectionToF1Section::F2SectionToF1Section()
       invalid_output_f1_frames_count(0),
       valid_output_f1_frames_count(0),
       input_byte_errors(0),
-      output_byte_errors(0)
+      output_byte_errors(0),
+      dl_lost_frames_count(0)
 {}
 
 void F2SectionToF1Section::push_section(F2Section f2_section) {
@@ -91,6 +92,7 @@ void F2SectionToF1Section::process_queue() {
                 QVector<uint8_t> empty_data(24, 0);
                 f1_frame.set_data(empty_data);
                 f1_section.push_frame(f1_frame);
+                dl_lost_frames_count++;
                 continue;
             }
 
@@ -108,6 +110,7 @@ void F2SectionToF1Section::process_queue() {
                 QVector<uint8_t> empty_data(24, 0);
                 f1_frame.set_data(empty_data);
                 f1_section.push_frame(f1_frame);
+                dl_lost_frames_count++;
                 continue;
             }
 
@@ -125,6 +128,7 @@ void F2SectionToF1Section::process_queue() {
                 QVector<uint8_t> empty_data(24, 0);
                 f1_frame.set_data(empty_data);
                 f1_section.push_frame(f1_frame);
+                dl_lost_frames_count++;
                 continue;
             }
 
@@ -157,15 +161,19 @@ void F2SectionToF1Section::show_statistics() {
     qInfo() << "  Input F2 Frames:";
     qInfo() << "    Valid frames:" << valid_input_f2_frames_count;
     qInfo() << "    Corrupt frames:" << invalid_input_f2_frames_count;
+    qInfo() << "    Delay line lost frames:" << dl_lost_frames_count;
     qInfo() << "    Input byte errors:" << input_byte_errors;
+    
     qInfo() << "  Output F1 Frames (after CIRC):";
     qInfo() << "    Valid frames:" << valid_output_f1_frames_count;
     qInfo() << "    Corrupt frames:" << invalid_output_f1_frames_count;
     qInfo() << "    Output byte errors:" << output_byte_errors;
+
     qInfo() << "  C1 decoder:";
     qInfo() << "    Valid C1s:" << circ.get_valid_c1s();
     qInfo() << "    Fixed C1s:" << circ.get_fixed_c1s();
     qInfo() << "    Error C1s:" << circ.get_error_c1s();
+    
     qInfo() << "  C2 decoder:";
     qInfo() << "    Valid C2s:" << circ.get_valid_c2s();
     qInfo() << "    Fixed C2s:" << circ.get_fixed_c2s();

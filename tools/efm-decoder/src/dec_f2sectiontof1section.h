@@ -61,10 +61,12 @@ private:
 
     Interleave interleave_err;
 
+    // Statistics
     uint32_t invalid_input_f2_frames_count;
     uint32_t valid_input_f2_frames_count;
     uint32_t invalid_output_f1_frames_count;
     uint32_t valid_output_f1_frames_count;
+    uint32_t dl_lost_frames_count;
 
     uint32_t input_byte_errors;
     uint32_t output_byte_errors;

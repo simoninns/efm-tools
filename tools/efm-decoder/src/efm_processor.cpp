@@ -77,9 +77,9 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     t_values_to_channel.set_show_debug(false);
     channel_to_f3.set_show_debug(false);
     f3_frame_to_f2_section.set_show_debug(false);
-    f2_section_correction.set_show_debug(false);
+    f2_section_correction.set_show_debug(true);
     f2_section_to_f1_section.set_show_debug(true);
-    f1_section_to_data24_section.set_show_debug(true);
+    f1_section_to_data24_section.set_show_debug(false);
 
     uint32_t data24_frame_count = 0;
     uint32_t f1_section_count = 0;
