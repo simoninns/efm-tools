@@ -191,7 +191,7 @@ SectionMetadata Subcode::from_data(const QByteArray& data) {
             "calculated:" << QString::number(calculate_q_channel_crc16(q_channel), 16);
 
         SectionTime bad_abs_time = SectionTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9]));
-        qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex() << "bad ABS time:" << bad_abs_time.to_string();
+        qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex() << "potentially corrupt absolute time is:" << bad_abs_time.to_string();
         section_metadata.set_valid(false);
     }
 

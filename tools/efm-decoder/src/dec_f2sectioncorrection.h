@@ -36,14 +36,10 @@ public:
     bool is_ready() const;
     
     void show_statistics();
-    void correct_invalid_sections(F2Section next_good_section);
 
 private:
     void process_queue();
-    bool is_section_valid(F2Section current, F2Section last_good, uint32_t window_size);
     void output_section(F2Section section);
-    void flush_window();
-    void correct_and_flush_window();
 
     QQueue<F2Section> input_buffer;
     QQueue<F2Section> output_buffer;
@@ -61,9 +57,6 @@ private:
     // Time statistics
     SectionTime absolute_start_time;
     SectionTime absolute_end_time;
-    uint32_t current_track;
-    SectionTime current_section_time;
-    SectionTime current_absolute_time;
     QVector<uint8_t> track_numbers;
     QVector<SectionTime> track_start_times;
     QVector<SectionTime> track_end_times;
