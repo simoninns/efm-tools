@@ -109,7 +109,7 @@ void F2SectionCorrection::process_queue() {
                                 qFatal("F2SectionCorrection::process_queue(): Track number change not supported.");
                             } else {
                                 // The track number is the same, so we can just update the track time
-                                corrected_metadata.set_section_time(corrected_metadata.get_section_time() + SectionTime(0,0,1 + i));
+                                corrected_metadata.set_section_time(corrected_metadata.get_section_time() + (1 + i));
                             }
 
                             // Correct the section
@@ -124,7 +124,7 @@ void F2SectionCorrection::process_queue() {
                                 " with absolute time " << section_absolute_time.to_string() <<
                                 ", track number " << corrected_metadata.get_track_number() <<
                                 " and track time " << corrected_metadata.get_section_time().to_string();
-                            section_absolute_time = section_absolute_time + SectionTime(0,0,1);
+                            section_absolute_time = section_absolute_time + 1;
                         }
 
                         // Now we can output the current section

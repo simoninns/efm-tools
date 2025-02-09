@@ -25,109 +25,88 @@
 #include "section_metadata.h"
 
 // Section time class ---------------------------------------------------------------------------------------------------
-void SectionTime::set_min(uint8_t _min) {
-    if (_min > 59) {
-        qFatal("SectionTime::set_min(): Invalid minute value of %d", _min);
+SectionTime::SectionTime() : frames(0) {
+    // There are 75 frames per second, 60 seconds per minute, and 60 minutes per hour
+    // so the maximum number of frames is 75 * 60 * 60 = 270000
+    if (frames >= 270000) {
+        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
     }
-    min = _min;
-}
+} 
 
-void SectionTime::set_sec(uint8_t _sec) {
-    if (_sec > 59) {
-        qFatal("SectionTime::set_sec(): Invalid second value of %d", _sec);
-    }
-    sec = _sec;
-}
-
-void SectionTime::set_frame(uint8_t _frame) {
-    if (_frame > 74) {
-        qFatal("SectionTime::set_frame(): Invalid frame value of %d", _frame);
-    }
-    frame = _frame;
-}
-
-QByteArray SectionTime::to_bcd() const {
-    QByteArray bcd;
-    bcd.append((min / 10) << 4 | (min % 10));
-    bcd.append((sec / 10) << 4 | (sec % 10));
-    bcd.append((frame / 10) << 4 | (frame % 10));
-    return bcd;
-}
-
-// Increment the frame time by one frame, wrapping around as needed
-void SectionTime::increment_frame() {
-    frame++;
-    if (frame > 74) {
-        frame = 0;
-        sec++;
-        if (sec > 59) {
-            sec = 0;
-            min++;
-            if (min > 59) {
-                min = 0;
-                qWarning("SectionTime::increment_frame(): Section time has exceeded 60 minutes - wrapping around");
-            }
-        }
+SectionTime::SectionTime(uint32_t _frames) : frames(_frames) {
+    if (frames >= 270000) {
+        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
     }
 }
 
-void SectionTime::set_time_in_frames(int32_t time_in_frames) {
-    if (time_in_frames < 0) {
-        qFatal("SectionTime::set_time_in_frames(): Negative time in sections");
+SectionTime::SectionTime(uint8_t _minutes, uint8_t _seconds, uint8_t _frames) {
+    set_time(_minutes, _seconds, _frames);
+}
+
+void SectionTime::set_frames(uint32_t _frames) {
+    if (frames >= 270000) {
+        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
     }
 
-    min = time_in_frames / (60 * 75);
-    sec = (time_in_frames / 75) % 60;
-    frame = time_in_frames % 75;
+    frames = _frames;
 }
 
-bool SectionTime::operator==(const SectionTime& other) const {
-    return min == other.min && sec == other.sec && frame == other.frame;
-}
+void SectionTime::set_time(uint8_t _minutes, uint8_t _seconds, uint8_t _frames) {
+    // Set the time in minutes, seconds, and frames
 
-bool SectionTime::operator!=(const SectionTime& other) const {
-    return !(*this == other);
-}
-
-bool SectionTime::operator<(const SectionTime& other) const {
-    if (min != other.min) return min < other.min;
-    if (sec != other.sec) return sec < other.sec;
-    return frame < other.frame;
-}
-
-bool SectionTime::operator>(const SectionTime& other) const {
-    return other < *this;
-}
-
-SectionTime SectionTime::operator+(const SectionTime& other) const {
-    SectionTime result = *this;
-    result.frame += other.frame;
-    result.sec += other.sec + result.frame / 75;
-    result.frame %= 75;
-    result.min += other.min + result.sec / 60;
-    result.sec %= 60;
-    result.min %= 60;
-    return result;
-}
-
-SectionTime SectionTime::operator-(const SectionTime& other) const {
-    SectionTime result = *this;
-    int totalFrames1 = (min * 60 + sec) * 75 + frame;
-    int totalFrames2 = (other.min * 60 + other.sec) * 75 + other.frame;
-    int diffFrames = totalFrames1 - totalFrames2;
-
-    if (diffFrames < 0) {
-        qFatal("SectionTime::operator-(): Resulting section time is negative");
+    // Ensure the time is sane
+    if (_minutes >= 60) {
+        _minutes = 59;
+        qDebug().nospace() << "SectionTime::set_time(): Invalid minutes value " << _minutes << ", setting to 59";
+    }
+    if (_seconds >= 60) {
+        _seconds = 59;
+        qDebug().nospace() << "SectionTime::set_time(): Invalid seconds value " << _seconds << ", setting to 59";
+    }
+    if (_frames >= 75) {
+        _frames = 74;
+        qDebug().nospace() << "SectionTime::set_time(): Invalid frames value " << _frames << ", setting to 74";
     }
 
-    result.min = (diffFrames / 75) / 60;
-    result.sec = (diffFrames / 75) % 60;
-    result.frame = diffFrames % 75;
-    return result;
+    frames = (_minutes * 60 + _seconds) * 75 + _frames;
 }
 
 QString SectionTime::to_string() const {
-    return QString("%1:%2.%3").arg(min, 2, 10, QChar('0')).arg(sec, 2, 10, QChar('0')).arg(frame, 2, 10, QChar('0'));
+    // Return the time in the format MM:SS:FF
+    return QString("%1:%2:%3").arg(frames / (75 * 60), 2, 10, QChar('0')).arg((frames / 75) % 60, 2, 10, QChar('0')).arg(frames % 75, 2, 10, QChar('0'));
+}
+
+QByteArray SectionTime::to_bcd() {
+    // Return 3 bytes of BCD data representing the time as MM:SS:FF
+    QByteArray bcd;
+
+    uint32_t mins = frames / (75 * 60);
+    uint32_t secs = (frames / 75) % 60;
+    uint32_t frms = frames % 75;
+
+    bcd.append(int_to_bcd(mins));
+    bcd.append(int_to_bcd(secs));
+    bcd.append(int_to_bcd(frms));
+    
+    return bcd;
+}
+
+uint8_t SectionTime::int_to_bcd(uint32_t value) {
+    if (value > 99) {
+        qFatal("SectionTime::int_to_bcd(): Value must be in the range 0 to 99.");
+    }
+
+    uint16_t bcd = 0;
+    uint16_t factor = 1;
+
+    while (value > 0) {
+        bcd += (value % 10) * factor;
+        value /= 10;
+        factor *= 16;
+    }
+
+    // Ensure the result is always 1 byte (00-99)
+    return bcd & 0xFF;
 }
 
 // Frame metadata class -----------------------------------------------------------------------------------------------

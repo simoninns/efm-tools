@@ -269,13 +269,13 @@ QByteArray Subcode::to_data(const SectionMetadata& section_metadata) {
 
         q_channel_data[1] = tno;
         q_channel_data[2] = pointer;
-        q_channel_data[3] = int_to_bcd2(f_time.get_min());
-        q_channel_data[4] = int_to_bcd2(f_time.get_sec());
-        q_channel_data[5] = int_to_bcd2(f_time.get_frame());
+        q_channel_data[3] = f_time.to_bcd()[0];
+        q_channel_data[4] = f_time.to_bcd()[1];
+        q_channel_data[5] = f_time.to_bcd()[2];
         q_channel_data[6] = zero;
-        q_channel_data[7] = int_to_bcd2(ap_time.get_min());
-        q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
-        q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
+        q_channel_data[7] = ap_time.to_bcd()[0];
+        q_channel_data[8] = ap_time.to_bcd()[1];
+        q_channel_data[9] = ap_time.to_bcd()[2];
     }
  
     if (frame_type == SectionType::USER_DATA) {
@@ -285,13 +285,13 @@ QByteArray Subcode::to_data(const SectionMetadata& section_metadata) {
 
         q_channel_data[1] = tno;
         q_channel_data[2] = index;
-        q_channel_data[3] = int_to_bcd2(f_time.get_min());
-        q_channel_data[4] = int_to_bcd2(f_time.get_sec());
-        q_channel_data[5] = int_to_bcd2(f_time.get_frame());
+        q_channel_data[3] = f_time.to_bcd()[0];
+        q_channel_data[4] = f_time.to_bcd()[1];
+        q_channel_data[5] = f_time.to_bcd()[2];
         q_channel_data[6] = zero;
-        q_channel_data[7] = int_to_bcd2(ap_time.get_min());
-        q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
-        q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
+        q_channel_data[7] = ap_time.to_bcd()[0];
+        q_channel_data[8] = ap_time.to_bcd()[1];
+        q_channel_data[9] = ap_time.to_bcd()[2];
     }
 
     if (frame_type == SectionType::LEAD_OUT) {
@@ -301,13 +301,13 @@ QByteArray Subcode::to_data(const SectionMetadata& section_metadata) {
 
         q_channel_data[1] = tno;
         q_channel_data[2] = index;
-        q_channel_data[3] = int_to_bcd2(f_time.get_min());
-        q_channel_data[4] = int_to_bcd2(f_time.get_sec());
-        q_channel_data[5] = int_to_bcd2(f_time.get_frame());
+        q_channel_data[3] = f_time.to_bcd()[0];
+        q_channel_data[4] = f_time.to_bcd()[1];
+        q_channel_data[5] = f_time.to_bcd()[2];
         q_channel_data[6] = zero;
-        q_channel_data[7] = int_to_bcd2(ap_time.get_min());
-        q_channel_data[8] = int_to_bcd2(ap_time.get_sec());
-        q_channel_data[9] = int_to_bcd2(ap_time.get_frame());
+        q_channel_data[7] = ap_time.to_bcd()[0];
+        q_channel_data[8] = ap_time.to_bcd()[1];
+        q_channel_data[9] = ap_time.to_bcd()[2];
     }
 
     // Set the CRC
@@ -441,7 +441,7 @@ bool Subcode::repair_data(QByteArray &q_channel_data) {
 // Output is always 2 nybbles (00-99)
 uint8_t Subcode::int_to_bcd2(uint8_t value) {
     if (value > 99) {
-        qFatal("Subcode::int_to_bcd2(): Value must be in the range 0 to 99.");
+        qFatal("Subcode::int_to_bcd2(): Value must be in the range 0 to 99. Got %d", value);
     }
 
     uint16_t bcd = 0;

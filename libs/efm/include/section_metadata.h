@@ -25,44 +25,41 @@
 #ifndef SECTION_METADATA_H
 #define SECTION_METADATA_H
 
+#include <QDebug>
 #include <QVector>
 #include <cstdint>
 
-// Section time class - stores ECMA-130 frame time as minutes, seconds, and frames
+// Section time class - stores ECMA-130 frame time as minutes, seconds, and frames (1/75th of a second)
 class SectionTime {
 public:
-    SectionTime() : min(0), sec(0), frame(0) {}
-    SectionTime(uint8_t _min, uint8_t _sec, uint8_t _frame) : min(_min), sec(_sec), frame(_frame) {}
-    virtual ~SectionTime() = default;
+    SectionTime();
+    SectionTime(uint32_t _frames);
+    SectionTime(uint8_t minutes, uint8_t seconds, uint8_t frames);
 
-    uint8_t get_min() const { return min; }
-    uint8_t get_sec() const { return sec; }
-    uint8_t get_frame() const { return frame; }
+    uint32_t get_frames() const { return frames; }
+    void set_frames(uint32_t _frames);
+    void set_time(uint8_t _minutes, uint8_t _seconds, uint8_t _frames);
 
-    void set_min(uint8_t _min);
-    void set_sec(uint8_t _sec);
-    void set_frame(uint8_t _frame);
-
-    QByteArray to_bcd() const;
-    void increment_frame();
     QString to_string() const;
+    QByteArray to_bcd();
 
-    int32_t get_time_in_frames() const { return (min * 60 + sec) * 75 + frame; }
-    void set_time_in_frames(int32_t time_in_frames);
-
-    bool operator==(const SectionTime& other) const;
-    bool operator!=(const SectionTime& other) const;
-    bool operator<(const SectionTime& other) const;
-    bool operator>(const SectionTime& other) const;
+    bool operator==(const SectionTime& other) const { return frames == other.frames; }
+    bool operator!=(const SectionTime& other) const { return frames != other.frames; }
+    bool operator<(const SectionTime& other) const { return frames < other.frames; }
+    bool operator>(const SectionTime& other) const { return frames > other.frames; }
     bool operator<=(const SectionTime& other) const { return !(*this > other); }
     bool operator>=(const SectionTime& other) const { return !(*this < other); }
-    SectionTime operator+(const SectionTime& other) const;
-    SectionTime operator-(const SectionTime& other) const;
+    SectionTime operator+(const SectionTime& other) const { return SectionTime(frames + other.frames); }
+    SectionTime operator-(const SectionTime& other) const { return SectionTime(frames - other.frames); }
+    SectionTime operator++() { ++frames; return *this; }
+    SectionTime operator++(int) { SectionTime tmp(*this); frames++; return tmp; }
+    SectionTime operator--() { --frames; return *this; }
+    SectionTime operator--(int) { SectionTime tmp(*this); frames--; return tmp; }
+    
 
 private:
-    uint8_t min;
-    uint8_t sec;
-    uint8_t frame;    
+    uint32_t frames;
+    uint8_t int_to_bcd(uint32_t value);
 };
 
 // Section type class - stores the type of section (LEAD_IN, LEAD_OUT, USER_DATA)

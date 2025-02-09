@@ -165,7 +165,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         data24_section_count++;
 
         // Adjust the section time
-        section_time.increment_frame();
+        section_time++;
 
         // Are there any F1 sections ready?
         while (data24_section_to_f1_section.is_ready()) {
