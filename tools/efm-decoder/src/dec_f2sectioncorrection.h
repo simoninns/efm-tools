@@ -39,6 +39,13 @@ public:
 
 private:
     void process_queue();
+
+    void waiting_for_first_valid_section(F2Section& f2_section_current);
+    void waiting_for_section(F2Section& f2_section_current);
+    void got_valid_section_correct_time(F2Section& f2_section_current, SectionTime expected_absolute_time);
+    void got_valid_section_incorrect_time(F2Section& f2_section_current, SectionTime expected_absolute_time);
+    void got_invalid_section(F2Section& f2_section_current);
+
     void output_section(F2Section section);
 
     QQueue<F2Section> input_buffer;
