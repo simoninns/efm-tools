@@ -109,16 +109,19 @@ void F1SectionToData24Section::show_statistics() {
     qInfo() << "F1 Section to Data24 Section statistics:";
 
     qInfo() << "  Frames:";
+    qInfo() << "    Total F1 frames:" << valid_f1_sections_count + invalid_f1_frames_count;
     qInfo() << "    Valid F1 frames:" << valid_f1_sections_count;
     qInfo() << "    Invalid F1 frames:" << invalid_f1_frames_count;
 
     qInfo() << "  Bytes:";
     uint32_t valid_bytes = (valid_f1_sections_count + invalid_f1_frames_count) * 24;
+    qInfo().nospace() << "    Total bytes: " << valid_bytes + corrupt_bytes_count;
     qInfo().nospace() << "    Valid bytes: " << valid_bytes;
     qInfo().nospace() << "    Corrupt bytes: " << corrupt_bytes_count;
     qInfo().nospace().noquote() << "    Data loss: " << QString::number((corrupt_bytes_count * 100.0) / valid_bytes, 'f', 3) << "%";
 
     qInfo() << "  Audio Samples (16L+16R):";
+    qInfo().nospace() << "    Total samples: " << (valid_bytes / 4) + (corrupt_bytes_count / 4);
     qInfo().nospace() << "    Valid samples: " << valid_bytes / 4;
     qInfo().nospace() << "    Corrupt samples: " << corrupt_bytes_count / 4;    
 

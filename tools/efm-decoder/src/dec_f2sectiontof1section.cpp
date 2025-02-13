@@ -105,7 +105,9 @@ void F2SectionToF1Section::process_queue() {
                 // Output an empty F1 frame (ensures the section is complete)
                 F1Frame f1_frame;
                 QVector<uint8_t> empty_data(24, 0);
+                QVector<uint8_t> empty_error_data(24, 1);
                 f1_frame.set_data(empty_data);
+                f1_frame.set_error_data(empty_error_data);
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
                 continue;
@@ -123,7 +125,9 @@ void F2SectionToF1Section::process_queue() {
                 // Output an empty F1 frame (ensures the section is complete)
                 F1Frame f1_frame;
                 QVector<uint8_t> empty_data(24, 0);
+                QVector<uint8_t> empty_error_data(24, 1);
                 f1_frame.set_data(empty_data);
+                f1_frame.set_error_data(empty_error_data);
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
                 continue;
@@ -141,7 +145,9 @@ void F2SectionToF1Section::process_queue() {
                 // Output an empty F1 frame (ensures the section is complete)
                 F1Frame f1_frame;
                 QVector<uint8_t> empty_data(24, 0);
+                QVector<uint8_t> empty_error_data(24, 1);
                 f1_frame.set_data(empty_data);
+                f1_frame.set_error_data(empty_error_data);
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
                 continue;
@@ -175,9 +181,8 @@ void F2SectionToF1Section::show_statistics() {
     qInfo() << "F2 Section to F1 Section statistics:";
     qInfo() << "  Input F2 Frames:";
     qInfo() << "    Valid frames:" << valid_input_f2_frames_count;
-    qInfo() << "    Corrupt frames:" << invalid_input_f2_frames_count;
+    qInfo() << "    Corrupt frames:" << invalid_input_f2_frames_count << "frames containing" << input_byte_errors << "byte errors";
     qInfo() << "    Delay line lost frames:" << dl_lost_frames_count;
-    qInfo() << "    Input byte errors:" << input_byte_errors;
     qInfo() << "    Continuity errors:" << continuity_error_count;
     
     qInfo() << "  Output F1 Frames (after CIRC):";
