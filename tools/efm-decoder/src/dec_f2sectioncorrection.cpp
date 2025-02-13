@@ -25,13 +25,24 @@
 #include "dec_f2sectioncorrection.h"
 
 F2SectionCorrection::F2SectionCorrection() {
-    has_last_good_section = false;
-    last_good_section = F2Section();
-    window_size = 6;
+    leadin_complete = false;
+
+    // The maximum gap size is the maximum number of missing sections that can be corrected
+    // by examining the time difference between the first and last valid sections surrounding
+    // the gap
+    maximum_gap_size = 3;
+
+    // The maximum internal buffer size is the maximum number of sections that can be stored
+    // in the internal buffer before outputting them.  This effects the maximum time range
+    // that out of order sections can be corrected in.
+    // 
+    // Note: Each section is 1/75 of a second, so a 5 second buffer is 375 sections
+    maximum_internal_buffer_size = 375;  
 
     total_sections = 0;
     corrected_sections = 0;
     uncorrectable_sections = 0;
+    pre_leadin_sections = 0;
 
     // Time statistics
     absolute_start_time = SectionTime(59,59,74);
@@ -60,151 +71,184 @@ void F2SectionCorrection::process_queue() {
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
         // Dequeue the next section
-        F2Section f2_section_current = input_buffer.dequeue();
+        F2Section f2_section = input_buffer.dequeue();
         
         // Do we have a last known good section?
-        if (!has_last_good_section) {
-            waiting_for_first_valid_section(f2_section_current);
+        if (!leadin_complete) {
+            wait_for_input_to_settle(f2_section);
         } else {
-            waiting_for_section(f2_section_current);
+            waiting_for_section(f2_section);
         }
     }
 }
 
-void F2SectionCorrection::waiting_for_first_valid_section(F2Section& f2_section_current) {
-    // Is the metadata of the current section valid?
-    if (f2_section_current.metadata.is_valid()) {
-        // We have a valid section
-        last_good_section = f2_section_current;
-        has_last_good_section = true;
-        if (show_debug) qDebug() << "F2SectionCorrection::waiting_for_first_valid_section(): Found first valid section with abs time" << f2_section_current.metadata.get_absolute_section_time().to_string();
+// This function waits for the input to settle before processing the sections.
+// Especially if the input EFM is from a whole disc capture, there will be frames
+// at the start in a random order (from the disc spinning up) and we need to wait
+// until we receive a few valid sections in chronological order before we can start
+// processing them.
+//
+// This function collects sections until there are 5 valid, chronological sections
+// in a row.  Once we have these, we can start processing the sections.
+void F2SectionCorrection::wait_for_input_to_settle(F2Section& f2_section) {
+    // Does the current section have valid metadata?
+    if (f2_section.metadata.is_valid()) {
+        // Do we have any sections in the leadin buffer?
+        if (leadin_buffer.size() > 0) {
+            // Ensure that the current section's time-stamp is one greater than the last section in the leadin buffer
+            SectionTime expected_absolute_time = leadin_buffer.last().metadata.get_absolute_section_time() + 1;
+            if (f2_section.metadata.get_absolute_section_time() == expected_absolute_time) {
+                // Add the new section to the leadin buffer
+                leadin_buffer.enqueue(f2_section);
+                if (show_debug) qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Added valid section to leadin buffer with absolute time" <<
+                    f2_section.metadata.get_absolute_section_time().to_string();
 
-        // Output the first valid section
-        output_section(f2_section_current);
-        total_sections++;
-    } else {
-        // We have an invalid section
-        // We can't do anything with this section
-        uncorrectable_sections++;
-        if (show_debug) qDebug() << "F2SectionCorrection::waiting_for_first_valid_section(): Got invalid section whilst waiting fo the first valid (discarded).";
-    }
-}
+                // Do we have 5 valid, contigious sections in the leadin buffer?
+                if (leadin_buffer.size() >= 5) {
+                    leadin_complete = true;
 
-void F2SectionCorrection::waiting_for_section(F2Section& f2_section_current) {
-    // We have a last know good section
-    // Is the metadata of the current section valid?
-    if (f2_section_current.metadata.is_valid()) {
-        // We have a section with valid metadata
-        // Does it match the last known good section (plus the additional windowed sections?)
-        SectionTime expected_absolute_time = last_good_section.metadata.get_absolute_section_time() + window.size() + 1;
-
-        if (f2_section_current.metadata.get_absolute_section_time() == expected_absolute_time) {
-            got_valid_section_correct_time(f2_section_current, expected_absolute_time);
-        } else {
-            got_valid_section_incorrect_time(f2_section_current, expected_absolute_time);
-        }
-    } else {
-        got_invalid_section(f2_section_current);
-    }
-}
-
-void F2SectionCorrection::got_valid_section_correct_time(F2Section& f2_section_current, SectionTime expected_absolute_time) {
-    // Are there any sections in the window?
-    if (window.size() > 0) {
-        if (show_debug) qDebug() << "F2SectionCorrection::got_valid_section_correct_time(): Got valid section with absolute time" <<
-            f2_section_current.metadata.get_absolute_section_time().to_string() << "- correcting windowed sections.";
-        // The section has the correct time, so we can correct the windowed sections
-        // based on the last known good and the current section
-        SectionTime section_absolute_time = last_good_section.metadata.get_absolute_section_time() + 1;
-        for (int i = 0; i < window.size(); i++) {
-            F2Section window_section = window.dequeue();
-
-            // Now we have to correct the metadata including the absolute time, track number, q-mode, track time, etc.
-            SectionMetadata corrected_metadata = last_good_section.metadata; // Start with the last know good metadata
-            corrected_metadata.set_absolute_section_time(corrected_metadata.get_absolute_section_time() + (1 + i)); // Set the absolute time
-
-            // Is the track number the same?
-            if (corrected_metadata.get_track_number() != last_good_section.metadata.get_track_number()) {
-                // The track number has changed, so we have to update the track number and the track start time
-                qFatal("F2SectionCorrection::got_valid_section_correct_time(): Track number change not supported.");
+                    // Feed the leadin buffer into the section correction process
+                    qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Leadin buffer complete, pushing collected sections for processing.";
+                    while (!leadin_buffer.isEmpty()) {
+                        F2Section leadin_section = leadin_buffer.dequeue();
+                        waiting_for_section(leadin_section);
+                    }
+                }
             } else {
-                // The track number is the same, so we can just update the track time
-                corrected_metadata.set_section_time(corrected_metadata.get_section_time() + (1 + i));
+                // The current section's time-stamp is not one greater than the last section in the leadin buffer
+                // This invalidates the whole leadin buffer
+                pre_leadin_sections += leadin_buffer.size() + 1;
+                leadin_buffer.clear();
+                if (show_debug) qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Got section with invalid absolute time whilst waiting for input to settle (lead in buffer discarded).";
+            }
+        } else {
+            // The leadin buffer is empty, so we can just add the section
+            leadin_buffer.enqueue(f2_section);
+            if (show_debug) qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Added section to lead in buffer with absolute time" << f2_section.metadata.get_absolute_section_time().to_string();
+        }
+    } else {
+        // The current section doesn't have valid metadata
+        // This invalidates the whole buffer
+        pre_leadin_sections += leadin_buffer.size() + 1;
+        leadin_buffer.clear();
+        if (show_debug) qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Got invalid metadata section whilst waiting for input to settle (lead in buffer discarded).";
+    }
+}
+
+void F2SectionCorrection::waiting_for_section(F2Section& f2_section) {
+    // What is the next expected section time?
+    SectionTime expected_absolute_time = get_expected_absolute_time();
+
+    // Push the section into the internal buffer
+    if (show_debug) {
+        if (f2_section.metadata.is_valid()) {
+            //qDebug() << "F2SectionCorrection::waiting_for_section(): Expected absolute time is" << expected_absolute_time.to_string() << "actual absolute time is" << f2_section.metadata.get_absolute_section_time().to_string();
+        } else {
+            qDebug() << "F2SectionCorrection::waiting_for_section(): Pushing F2 Section with invalid metadata CRC to internal buffer.  Expected absolute time is" << expected_absolute_time.to_string();
+        }
+    }
+
+    internal_buffer.enqueue(f2_section);
+    correct_internal_buffer();
+    if (internal_buffer.size() > maximum_internal_buffer_size) output_sections();
+}
+
+// Figure out what absolute time is expected for the next section by looking at the internal buffer
+SectionTime F2SectionCorrection::get_expected_absolute_time() {
+    SectionTime expected_absolute_time = SectionTime(0,0,0);
+
+    // Find the last valid section in the internal buffer
+    for (int i = internal_buffer.size() - 1; i >= 0; --i) {
+        if (internal_buffer[i].metadata.is_valid()) {
+            // The expected time is the time of the last valid section in the internal buffer plus any following sections
+            // until the end of the buffer
+            expected_absolute_time = internal_buffer[i].metadata.get_absolute_section_time() + (internal_buffer.size() - i);
+            break;
+        }
+    }
+
+    return expected_absolute_time;
+}
+
+// This function corrects any missing sections in the internal buffer (if possible)
+void F2SectionCorrection::correct_internal_buffer() {
+    // Sanity check - there cannot be an invalid section at the start of the buffer
+    if (internal_buffer.size() > 0 && !internal_buffer.first().metadata.is_valid()) {
+        if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Invalid section at start of internal buffer!";
+        qFatal("F2SectionCorrection::correct_internal_buffer(): Exiting due to invalid section at start of internal buffer.");
+        return;
+    }
+
+    // Sanity check - there cannot be an invalid section at the end of the buffer
+    if (internal_buffer.size() > 0 && !internal_buffer.last().metadata.is_valid()) {
+        if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Invalid section at end of internal buffer - cannot correct internal buffer until valid section is pushed";
+        return;
+    }
+
+    // Sanity check - there must be at least 3 sections in the buffer
+    if (internal_buffer.size() < 3) {
+        if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Not enough sections in internal buffer to correct.";
+        return;
+    }
+
+    // Starting from the second section in the buffer, look for an invalid section
+    for (int index = 1; index < internal_buffer.size(); ++index) {
+        // Is the current section invalid?
+        int32_t error_start = -1;
+        int32_t error_end = -1;
+
+        if (!internal_buffer[index].metadata.is_valid()) {
+            error_start = index -1; // This is the "last known good" section
+
+            // Count how many invalid sections there are before the next valid section
+            for (int i = index + 1; i < internal_buffer.size(); ++i) {
+                if (internal_buffer[i].metadata.is_valid()) {
+                    error_end = i;
+                    break;
+                }
             }
 
-            // Correct the section
-            window_section.metadata = corrected_metadata;
+            int32_t gap_length = error_end - error_start - 1;
+            int32_t time_difference = internal_buffer[error_end].metadata.get_absolute_section_time().get_frames() - internal_buffer[error_start].metadata.get_absolute_section_time().get_frames() - 1;
+
+            if (show_debug) qDebug().nospace().noquote() << "F2SectionCorrection::correct_internal_buffer(): Error start position "<< error_start << " (" << internal_buffer[error_start].metadata.get_absolute_section_time().to_string() <<
+                ") Error end position " << error_end << " (" << internal_buffer[error_end].metadata.get_absolute_section_time().to_string() << ") gap length is " << gap_length << " time difference is " << time_difference;
             
-            // Put the window in the output buffer
-            output_section(window_section);
-            total_sections++;
-            corrected_sections++;
+            // Is the gap length below the allowed maximum?
+            if (gap_length > maximum_gap_size) {
+                // The gap is too large to correct
+                qFatal("F2SectionCorrection::correct_internal_buffer(): Exiting due to gap too large in internal buffer.");
+            }
 
-            if (show_debug) qDebug().nospace().noquote() << "F2SectionCorrection::got_valid_section_correct_time(): Corrected windowed section " << i <<
-                " with absolute time " << section_absolute_time.to_string() <<
-                ", track number " << corrected_metadata.get_track_number() <<
-                " and track time " << corrected_metadata.get_section_time().to_string();
-            section_absolute_time = section_absolute_time + 1;
+            // Can we correct the error?
+            if (gap_length == time_difference) {
+                // We can correct the error
+                for (int i = error_start + 1; i < error_end; ++i) {
+                    F2Section corrected_section = internal_buffer[error_start];
+                    corrected_section.metadata.set_absolute_section_time(corrected_section.metadata.get_absolute_section_time() + 1);
+                    corrected_section.metadata.set_valid(true);
+
+                    // TODO: Correct the track number and track time too!
+
+                    internal_buffer[i] = corrected_section;
+                    corrected_sections++;
+                    if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Corrected section" << i << "with absolute time" << corrected_section.metadata.get_absolute_section_time().to_string();
+                }
+            } else {
+                // We cannot correct the error
+                qFatal("F2SectionCorrection::correct_internal_buffer(): Exiting due to uncorrectable error in internal buffer.");
+            }
         }
-
-        // Now we can output the current section
-        output_section(f2_section_current);
-        last_good_section = f2_section_current;
-        total_sections++;
-    } else {
-        // Nothing in the window, so we can simply output the current section
-        // and make it the last known good section
-        output_section(f2_section_current);
-        last_good_section = f2_section_current;
-        total_sections++;
-        if (show_debug) qDebug() << "F2SectionCorrection::got_valid_section_correct_time(): Valid section with absolute time" << f2_section_current.metadata.get_absolute_section_time().to_string();
-    }
-}
-
-void F2SectionCorrection::got_valid_section_incorrect_time(F2Section& f2_section_current, SectionTime expected_absolute_time) {
-    // The current section's valid metadata doesn't match the expected time, so it's
-    // likely we have a skip in the continuity of the sections.  We can't correct this
-    // so we have to drop the window, flush the CIRC delay lines and start again from
-    // the current section.
-    if (show_debug) qDebug() << "F2SectionCorrection::got_valid_section_incorrect_time(): Got section with valid metadata but the expected absolute time was" <<
-        expected_absolute_time.to_string() << "but the actual metadata was" << f2_section_current.metadata.get_absolute_section_time().to_string();
-
-    // This can happen during lead-in as the original media settles.  Since we have
-    // valid metadata, we can see if the track number is zero (lead-in)...
-    if (f2_section_current.metadata.get_track_number() == 0) {
-        if (f2_section_current.metadata.get_absolute_section_time() < last_good_section.metadata.get_absolute_section_time()) {
-            last_good_section = f2_section_current;
-            if (show_debug) qDebug() << "F2SectionCorrection::got_valid_section_incorrect_time(): Lead-in section with absolute time" << f2_section_current.metadata.get_absolute_section_time().to_string();
-            output_section(f2_section_current);
-        }
-    } else {
-        // We have a track number, so this is a real issue due to skipping
-        if (show_debug) qDebug() << "F2SectionCorrection::got_valid_section_incorrect_time(): Track number is" << f2_section_current.metadata.get_track_number() <<
-            "and track time is" << f2_section_current.metadata.get_section_time().to_string();
-        qFatal("F2SectionCorrection::got_valid_section_incorrect_time(): Section time mismatch, can't correct.");
-    }
-}
-
-void F2SectionCorrection::got_invalid_section(F2Section& f2_section_current) {
-    // If the metadata is invalid, we can only put it in the 
-    // window and try to correct it later
-
-    // Is there space in the window?
-    if (window.size() < window_size) {
-        // Add the section to the window
-        window.enqueue(f2_section_current);
-        if (show_debug) qDebug().nospace() << "F2SectionCorrection::got_invalid_section(): Added section (with invalid metadata) to window (window size is " << window.size() << ")";
-    } else {
-        // The window is full, we can't correct this section
-        qFatal("F2SectionCorrection::got_invalid_section(): Window is full, can't correct section.");
-
-        uncorrectable_sections++; // Dummy for now
     }
 }
 
 // This function queues up the processed output sections and keeps track of the statistics
-void F2SectionCorrection::output_section(F2Section section) {
-    // Add the section to the output buffer
+void F2SectionCorrection::output_sections() {
+    // Pop
+    F2Section section = internal_buffer.dequeue();
+
+    // Push
+    total_sections++;
     output_buffer.enqueue(section);
 
     // Statistics generation...
@@ -230,12 +274,23 @@ void F2SectionCorrection::output_section(F2Section section) {
     }
 }
 
+void F2SectionCorrection::flush() {
+    // Flush the internal buffer
+
+    // TODO: What about any remaining invalid sections in the internal buffer?
+
+    while (!internal_buffer.isEmpty()) {
+        output_sections();
+    }
+}
+
 void F2SectionCorrection::show_statistics() {
     qInfo() << "F2 Section Metadata Correction statistics:";
     qInfo() << "  F2 Sections:";
     qInfo().nospace() << "    Total: " << total_sections << " (" << total_sections * 98 << " F2)";
     qInfo() << "    Corrected:" << corrected_sections;
     qInfo() << "    Uncorrectable:" << uncorrectable_sections;
+    qInfo() << "    Pre-Leadin:" << pre_leadin_sections;
 
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << absolute_start_time.to_string();

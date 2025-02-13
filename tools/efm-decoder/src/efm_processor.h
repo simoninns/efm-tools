@@ -26,6 +26,17 @@
 #define EFM_PROCESSOR_H
 
 #include <QString>
+#include <QDebug>
+#include <QFile>
+
+#include "decoders.h"
+#include "dec_tvaluestochannel.h"
+
+#include "dec_channeltof3frame.h"
+#include "dec_f3frametof2section.h"
+#include "dec_f2sectioncorrection.h"
+#include "dec_f2sectiontof1section.h"
+#include "dec_f1sectiontodata24section.h"
 
 class EfmProcessor
 {
@@ -33,6 +44,7 @@ public:
     EfmProcessor();
 
     bool process(QString input_filename, QString output_filename);
+    void process_pipeline(QFile& output_file);
     void set_show_data(bool _showOutput, bool _showF1, bool _showF2, bool _showF3);
     void set_output_type(bool _wavOutput);
 
@@ -42,6 +54,20 @@ private:
     bool showF2;
     bool showF3;
     bool is_output_data_wav;
+
+    // Statistics
+    uint32_t data24_frame_count;
+    uint32_t f1_section_count;
+    uint32_t f3_frame_count;
+    uint32_t f2_section_count;
+
+    // Decoders
+    TvaluesToChannel t_values_to_channel;
+    ChannelToF3Frame channel_to_f3;
+    F3FrameToF2Section f3_frame_to_f2_section;
+    F2SectionCorrection f2_section_correction;
+    F2SectionToF1Section f2_section_to_f1_section;
+    F1SectionToData24Section f1_section_to_data24_section;
 };
 
 #endif // EFM_PROCESSOR_H

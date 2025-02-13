@@ -34,32 +34,38 @@ public:
     void push_section(F2Section data);
     F2Section pop_section();
     bool is_ready() const;
+    void flush();
     
     void show_statistics();
 
 private:
     void process_queue();
 
-    void waiting_for_first_valid_section(F2Section& f2_section_current);
-    void waiting_for_section(F2Section& f2_section_current);
-    void got_valid_section_correct_time(F2Section& f2_section_current, SectionTime expected_absolute_time);
-    void got_valid_section_incorrect_time(F2Section& f2_section_current, SectionTime expected_absolute_time);
-    void got_invalid_section(F2Section& f2_section_current);
+    void wait_for_input_to_settle(F2Section& f2_section);
+    void waiting_for_section(F2Section& f2_section);
+    SectionTime get_expected_absolute_time();
 
-    void output_section(F2Section section);
+    void correct_internal_buffer();
+    void output_sections();
 
     QQueue<F2Section> input_buffer;
+    QQueue<F2Section> leadin_buffer;
+    QQueue<F2Section> internal_buffer;
     QQueue<F2Section> output_buffer;
 
-    bool has_last_good_section;
-    F2Section last_good_section;
+    SectionTime internal_buffer_median_time;
+
+    bool leadin_complete;
+
     QQueue<F2Section> window;
-    uint32_t window_size;
+    uint32_t maximum_gap_size;
+    uint32_t maximum_internal_buffer_size;
 
     // Statistics
     uint32_t total_sections;
     uint32_t corrected_sections;
     uint32_t uncorrectable_sections;
+    uint32_t pre_leadin_sections;
 
     // Time statistics
     SectionTime absolute_start_time;

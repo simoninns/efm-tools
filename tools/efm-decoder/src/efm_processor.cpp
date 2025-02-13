@@ -22,21 +22,13 @@
 
 ************************************************************************/
 
-#include <QDebug>
-#include <QString>
-#include <QFile>
-
 #include "efm_processor.h"
-#include "decoders.h"
-#include "dec_tvaluestochannel.h"
-
-#include "dec_channeltof3frame.h"
-#include "dec_f3frametof2section.h"
-#include "dec_f2sectioncorrection.h"
-#include "dec_f2sectiontof1section.h"
-#include "dec_f1sectiontodata24section.h"
 
 EfmProcessor::EfmProcessor() {
+    data24_frame_count = 0;
+    f1_section_count = 0;
+    f3_frame_count = 0;
+    f2_section_count = 0;
 }
 
 bool EfmProcessor::process(QString input_filename, QString output_filename) {
@@ -63,15 +55,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         qDebug() << "EfmProcessor::process(): Outputting to WAV file, adding header";
         QByteArray header(44, 0);
         output_file.write(header);
-    }
-
-    // Prepare the decoders
-    TvaluesToChannel t_values_to_channel;
-    ChannelToF3Frame channel_to_f3;
-    F3FrameToF2Section f3_frame_to_f2_section;
-    F2SectionCorrection f2_section_correction;
-    F2SectionToF1Section f2_section_to_f1_section;
-    F1SectionToData24Section f1_section_to_data24_section;
+    }    
 
     // Set the debug flags
     t_values_to_channel.set_show_debug(false);
@@ -80,11 +64,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     f2_section_correction.set_show_debug(true);
     f2_section_to_f1_section.set_show_debug(true);
     f1_section_to_data24_section.set_show_debug(false);
-
-    uint32_t data24_frame_count = 0;
-    uint32_t f1_section_count = 0;
-    uint32_t f3_frame_count = 0;
-    uint32_t f2_section_count = 0;
 
     // Get the total size of the input file for progress reporting
     qint64 total_size = input_file.size();
@@ -110,63 +89,13 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             t_values_to_channel.push_frame(t_values);
         }
 
-        // Are there any T-values ready?
-        while(t_values_to_channel.is_ready()) {
-            QByteArray channel_data = t_values_to_channel.pop_frame();
-            channel_to_f3.push_frame(channel_data);
-        }
-
-        // Are there any F3 frames ready?
-        while(channel_to_f3.is_ready()) {
-            F3Frame f3_frame = channel_to_f3.pop_frame();
-            if (showF3) f3_frame.show_data();
-            f3_frame_to_f2_section.push_frame(f3_frame);
-            f3_frame_count++;
-        }
-
-        // Note: Once we have F2 frames, we have to group them into 98 frame
-        // sections due to the Q-channel metadata which is spread over 98 frames
-        // otherwise we can't keep track of the metadata as we decode the data...
-
-        // Are there any F2 sections ready?
-        while(f3_frame_to_f2_section.is_ready()) {
-            F2Section section = f3_frame_to_f2_section.pop_section();
-            f2_section_correction.push_section(section);
-            f2_section_count++;
-        }
-
-        // Are there any corrected F2 sections ready?
-        while(f2_section_correction.is_ready()) {
-            F2Section f2_section = f2_section_correction.pop_section();
-
-            if (showF2) f2_section.show_data();
-            f2_section_to_f1_section.push_section(f2_section);
-        }
-
-        // Are there any F1 sections ready?
-        while(f2_section_to_f1_section.is_ready()) {
-            F1Section f1_section = f2_section_to_f1_section.pop_section();
-            if (showF1) f1_section.show_data();
-            f1_section_to_data24_section.push_section(f1_section);
-            f1_section_count++;
-        }
-
-        // Are there any data24 frames ready?
-        while(f1_section_to_data24_section.is_ready()) {
-            Data24Section data24section = f1_section_to_data24_section.pop_section();
-
-            // Each Data24 section contains 98 frames that we need to write to the output file
-            for (int index = 0; index < 98; index++) {
-                Data24 data24 = data24section.get_frame(index);
-                output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
-                data24_frame_count += 1;
-            }
-
-            if (showOutput) {
-                data24section.show_data();
-            }
-        }
+        process_pipeline(output_file);
     }
+
+    // We are out of data flush the pipeline
+    qInfo() << "Flushing decoding pipelines";
+    f2_section_correction.flush();
+    process_pipeline(output_file);
 
     // Show summary
     qInfo() << "Decoding complete";
@@ -217,6 +146,65 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
 
     qInfo() << "Encoding complete";
     return true;
+}
+
+void EfmProcessor::process_pipeline(QFile& output_file) {
+    // Are there any T-values ready?
+    while(t_values_to_channel.is_ready()) {
+        QByteArray channel_data = t_values_to_channel.pop_frame();
+        channel_to_f3.push_frame(channel_data);
+    }
+
+    // Are there any F3 frames ready?
+    while(channel_to_f3.is_ready()) {
+        F3Frame f3_frame = channel_to_f3.pop_frame();
+        if (showF3) f3_frame.show_data();
+        f3_frame_to_f2_section.push_frame(f3_frame);
+        f3_frame_count++;
+    }
+
+    // Note: Once we have F2 frames, we have to group them into 98 frame
+    // sections due to the Q-channel metadata which is spread over 98 frames
+    // otherwise we can't keep track of the metadata as we decode the data...
+
+    // Are there any F2 sections ready?
+    while(f3_frame_to_f2_section.is_ready()) {
+        F2Section section = f3_frame_to_f2_section.pop_section();
+        f2_section_correction.push_section(section);
+        f2_section_count++;
+    }
+
+    // Are there any corrected F2 sections ready?
+    while(f2_section_correction.is_ready()) {
+        F2Section f2_section = f2_section_correction.pop_section();
+
+        if (showF2) f2_section.show_data();
+        f2_section_to_f1_section.push_section(f2_section);
+    }
+
+    // Are there any F1 sections ready?
+    while(f2_section_to_f1_section.is_ready()) {
+        F1Section f1_section = f2_section_to_f1_section.pop_section();
+        if (showF1) f1_section.show_data();
+        f1_section_to_data24_section.push_section(f1_section);
+        f1_section_count++;
+    }
+
+    // Are there any data24 frames ready?
+    while(f1_section_to_data24_section.is_ready()) {
+        Data24Section data24section = f1_section_to_data24_section.pop_section();
+
+        // Each Data24 section contains 98 frames that we need to write to the output file
+        for (int index = 0; index < 98; index++) {
+            Data24 data24 = data24section.get_frame(index);
+            output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
+            data24_frame_count += 1;
+        }
+
+        if (showOutput) {
+            data24section.show_data();
+        }
+    }
 }
 
 void EfmProcessor::set_show_data(bool _showOutput, bool _showF1, bool _showF2, bool _showF3) {
