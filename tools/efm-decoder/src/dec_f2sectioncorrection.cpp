@@ -43,6 +43,7 @@ F2SectionCorrection::F2SectionCorrection() {
     corrected_sections = 0;
     uncorrectable_sections = 0;
     pre_leadin_sections = 0;
+    missing_sections = 0;
 
     // Time statistics
     absolute_start_time = SectionTime(59,59,74);
@@ -136,16 +137,55 @@ void F2SectionCorrection::wait_for_input_to_settle(F2Section& f2_section) {
 }
 
 void F2SectionCorrection::waiting_for_section(F2Section& f2_section) {
+    // Check that this isn't the first section in the internal buffer (as we can't calculate
+    /// the expected time for the first section)
+    if (internal_buffer.size() == 0) {
+        if (f2_section.metadata.is_valid()) {
+            // The internal buffer is empty, so we can just add the section
+            internal_buffer.enqueue(f2_section);
+            if (show_debug) qDebug() << "F2SectionCorrection::waiting_for_section(): Added section to internal buffer with absolute time" << f2_section.metadata.get_absolute_section_time().to_string();
+            return;
+        } else {
+            qDebug() << "F2SectionCorrection::waiting_for_section(): Got invalid metadata section whilst waiting for first section.";
+            return;
+        }
+    }
+
     // What is the next expected section time?
     SectionTime expected_absolute_time = get_expected_absolute_time();
 
     // Push the section into the internal buffer
     if (show_debug) {
         if (f2_section.metadata.is_valid()) {
-            //qDebug() << "F2SectionCorrection::waiting_for_section(): Expected absolute time is" << expected_absolute_time.to_string() << "actual absolute time is" << f2_section.metadata.get_absolute_section_time().to_string();
+            //if (show_debug) qDebug() << "F2SectionCorrection::waiting_for_section(): Expected absolute time is" << expected_absolute_time.to_string() << "actual absolute time is" << f2_section.metadata.get_absolute_section_time().to_string();
         } else {
-            qDebug() << "F2SectionCorrection::waiting_for_section(): Pushing F2 Section with invalid metadata CRC to internal buffer.  Expected absolute time is" << expected_absolute_time.to_string();
+            if (show_debug) qDebug() << "F2SectionCorrection::waiting_for_section(): Pushing F2 Section with invalid metadata CRC to internal buffer.  Expected absolute time is" << expected_absolute_time.to_string();
         }
+    }
+
+    // Check for a missing section...
+    if (f2_section.metadata.is_valid() && f2_section.metadata.get_absolute_section_time() != expected_absolute_time) {
+        // We have a missing section
+        missing_sections++;
+        if (show_debug) qWarning() << "F2SectionCorrection::waiting_for_section(): Missing section detected, expected absolute time is" << expected_absolute_time.to_string() <<
+            "actual absolute time is" << f2_section.metadata.get_absolute_section_time().to_string();
+        
+        // We have to insert a dummy section into the internal buffer or this
+        // will throw off the correction process due to the delay lines
+        F2Section missing_section;
+        missing_section.metadata.set_absolute_section_time(expected_absolute_time);
+        missing_section.metadata.set_valid(true);
+
+        // Push 98 error frames in to the missing section
+        for (int i = 0; i < 98; ++i) {
+            F2Frame error_frame;
+            error_frame.set_data(QVector<uint8_t>(32, 0x00));
+            error_frame.set_error_data(QVector<uint8_t>(32, 0x01));
+            missing_section.push_frame(error_frame);
+        }
+
+        // Push it into the internal buffer
+        internal_buffer.enqueue(missing_section);
     }
 
     internal_buffer.enqueue(f2_section);
@@ -291,6 +331,7 @@ void F2SectionCorrection::show_statistics() {
     qInfo() << "    Corrected:" << corrected_sections;
     qInfo() << "    Uncorrectable:" << uncorrectable_sections;
     qInfo() << "    Pre-Leadin:" << pre_leadin_sections;
+    qInfo() << "    Missing:" << missing_sections;
 
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << absolute_start_time.to_string();

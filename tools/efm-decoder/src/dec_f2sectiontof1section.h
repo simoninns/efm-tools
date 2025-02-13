@@ -67,9 +67,13 @@ private:
     uint32_t invalid_output_f1_frames_count;
     uint32_t valid_output_f1_frames_count;
     uint32_t dl_lost_frames_count;
+    uint32_t continuity_error_count;
 
     uint32_t input_byte_errors;
     uint32_t output_byte_errors;
+
+    // Continuity check
+    int32_t last_frame_number;
 };
 
 #endif // DEC_F2SECTIONTOF1SECTION_H

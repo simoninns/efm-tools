@@ -66,6 +66,7 @@ private:
     uint32_t corrected_sections;
     uint32_t uncorrectable_sections;
     uint32_t pre_leadin_sections;
+    uint32_t missing_sections;
 
     // Time statistics
     SectionTime absolute_start_time;

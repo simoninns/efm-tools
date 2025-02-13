@@ -37,7 +37,9 @@ F2SectionToF1Section::F2SectionToF1Section()
       valid_output_f1_frames_count(0),
       input_byte_errors(0),
       output_byte_errors(0),
-      dl_lost_frames_count(0)
+      dl_lost_frames_count(0),
+      last_frame_number(-1),
+      continuity_error_count(0)
 {}
 
 void F2SectionToF1Section::push_section(F2Section f2_section) {
@@ -70,6 +72,19 @@ void F2SectionToF1Section::process_queue() {
         // Sanity check the F2 section
         if (f2_section.is_complete() == false) {
             qFatal("F2SectionToF1Section::process_queue - F2 Section is not complete");
+        }
+
+        // Check section continuity
+        if (last_frame_number != -1) {
+            if (f2_section.metadata.get_absolute_section_time().get_frames() != last_frame_number + 1) {
+                qWarning() << "F2 Section continuity error last frame:" << last_frame_number << "current frame:" << f2_section.metadata.get_absolute_section_time().get_frames();
+                qWarning() << "Last section time:" << f2_section.metadata.get_absolute_section_time().to_string();
+                qWarning() << "This is a bug in the F2 Metadata correction and should be reported";
+                continuity_error_count++;
+            }
+            last_frame_number = f2_section.metadata.get_absolute_section_time().get_frames();
+        } else {
+            last_frame_number = f2_section.metadata.get_absolute_section_time().get_frames();
         }
 
         for (int index = 0; index < 98; index++) {
@@ -163,6 +178,7 @@ void F2SectionToF1Section::show_statistics() {
     qInfo() << "    Corrupt frames:" << invalid_input_f2_frames_count;
     qInfo() << "    Delay line lost frames:" << dl_lost_frames_count;
     qInfo() << "    Input byte errors:" << input_byte_errors;
+    qInfo() << "    Continuity errors:" << continuity_error_count;
     
     qInfo() << "  Output F1 Frames (after CIRC):";
     qInfo() << "    Valid frames:" << valid_output_f1_frames_count;
