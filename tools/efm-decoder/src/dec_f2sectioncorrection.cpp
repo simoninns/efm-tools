@@ -39,6 +39,9 @@ F2SectionCorrection::F2SectionCorrection() {
     // Note: Each section is 1/75 of a second, so a 5 second buffer is 375 sections
     maximum_internal_buffer_size = 375;  
 
+    // Note: The reason for the internal buffer is to allow for skips back in time, so that
+    // we can correct for missing sections.  However, this check is not implemented yet.
+
     total_sections = 0;
     corrected_sections = 0;
     uncorrectable_sections = 0;
@@ -264,15 +267,14 @@ void F2SectionCorrection::correct_internal_buffer() {
             if (gap_length == time_difference) {
                 // We can correct the error
                 for (int i = error_start + 1; i < error_end; ++i) {
-                    F2Section corrected_section = internal_buffer[error_start];
-                    corrected_section.metadata.set_absolute_section_time(corrected_section.metadata.get_absolute_section_time() + 1);
-                    corrected_section.metadata.set_valid(true);
+                    SectionTime expected_time = internal_buffer[error_start].metadata.get_absolute_section_time() + (i - error_start);
+                    internal_buffer[i].metadata.set_absolute_section_time(expected_time);
+                    internal_buffer[i].metadata.set_valid(true);
 
-                    // TODO: Correct the track number and track time too!
+                    // To do fix track time and track number correction here
 
-                    internal_buffer[i] = corrected_section;
                     corrected_sections++;
-                    if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Corrected section" << i << "with absolute time" << corrected_section.metadata.get_absolute_section_time().to_string();
+                    if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Corrected section" << i << "with absolute time" << internal_buffer[i].metadata.get_absolute_section_time().to_string();
                 }
             } else {
                 // We cannot correct the error
