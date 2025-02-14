@@ -27,6 +27,7 @@
 
 #include <QVector>
 #include "frame.h"
+#include "audio.h"
 #include "section_metadata.h"
 
 class F2Section {
@@ -76,5 +77,21 @@ public:
 private:
     QVector<Data24> frames;
 };
+
+class AudioSection {
+    public:
+    AudioSection();
+        void push_frame(Audio in_frame);
+        Audio get_frame(int index) const;
+        void set_frame(int index, Audio in_frame);
+        bool is_complete() const;
+        void clear();
+        void show_data();
+    
+        SectionMetadata metadata;
+    
+    private:
+        QVector<Audio> frames;
+    };
 
 #endif // SECTION_H

@@ -1,13 +1,13 @@
 /************************************************************************
 
-    dec_f1sectiontodata24section.h
+    audio.h
 
-    ld-efm-decoder - EFM data decoder
+    EFM-library - Audio frame type class
     Copyright (C) 2025 Simon Inns
 
-    This file is part of ld-decode-tools.
+    This file is part of EFM-Tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,30 +22,33 @@
 
 ************************************************************************/
 
-#ifndef DEC_F1SECTIONTODATA24SECTION_H
-#define DEC_F1SECTIONTODATA24SECTION_H
+#ifndef AUDIO_H
+#define AUDIO_H
 
-#include "decoders.h"
-#include "section.h"
+#include <QVector>
+#include <cstdint>
+#include <QDebug>
 
-class F1SectionToData24Section : public Decoder {
+// Audio class
+class Audio {
 public:
-    F1SectionToData24Section();
-    void push_section(F1Section f1_section);
-    Data24Section pop_section();
-    bool is_ready() const;
-    
-    void show_statistics();
+    void set_data(const QVector<int16_t>& data);
+    QVector<int16_t> get_data() const;
+
+    void set_error_data(const QVector<int16_t>& error_data);
+    QVector<int16_t> get_error_data() const;
+    uint32_t count_errors() const;
+
+    bool is_full() const;
+    bool is_empty() const;
+
+    void show_data();
+
+    int get_frame_size() const;
 
 private:
-    void process_queue();
-
-    QQueue<F1Section> input_buffer;
-    QQueue<Data24Section> output_buffer;
-
-    uint32_t invalid_f1_frames_count;
-    uint32_t valid_f1_frames_count;
-    uint32_t corrupt_bytes_count;
+    QVector<int16_t> audio_data;
+    QVector<int16_t> audio_error_data;
 };
 
-#endif // DEC_F1SECTIONTODATA24SECTION_H
+#endif // AUDIO_H

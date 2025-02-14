@@ -140,3 +140,42 @@ void Data24Section::show_data() {
         frames[i].show_data();
     }
 }
+
+AudioSection::AudioSection() {
+    frames.reserve(98);
+}
+
+void AudioSection::push_frame(Audio in_frame) {
+    if (frames.size() >= 98) {
+        qFatal("AudioSection::push_frame - Section is full");
+    }
+    frames.push_back(in_frame);
+}
+
+Audio AudioSection::get_frame(int index) const {
+    if (index >= frames.size() || index < 0) {
+        qFatal("AudioSection::get_frame - Index %d out of range", index);
+    }
+    return frames.at(index);
+}
+
+void AudioSection::set_frame(int index, Audio in_frame) {
+    if (index >= frames.size() || index < 0) {
+        qFatal("AudioSection::set_frame - Index %d out of range", index);
+    }
+    frames[index] = in_frame;
+}
+
+bool AudioSection::is_complete() const {
+    return frames.size() == 98;
+}
+
+void AudioSection::clear() {
+    frames.clear();
+}
+
+void AudioSection::show_data() {
+    for (int i = 0; i < frames.size(); ++i) {
+        frames[i].show_data();
+    }
+}

@@ -37,6 +37,7 @@
 #include "dec_f2sectioncorrection.h"
 #include "dec_f2sectiontof1section.h"
 #include "dec_f1sectiontodata24section.h"
+#include "dec_data24toaudio.h"
 
 class EfmProcessor
 {
@@ -45,12 +46,13 @@ public:
 
     bool process(QString input_filename, QString output_filename);
     void process_pipeline(QFile& output_file, QFile& metadata_file);
-    void set_show_data(bool _showOutput, bool _showF1, bool _showF2, bool _showF3);
+    void set_show_data(bool _showAudio, bool _showData24, bool _showF1, bool _showF2, bool _showF3);
     void set_output_type(bool _wavOutput);
-    void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24);
+    void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio);
 
 private:
-    bool showOutput;
+    bool showAudio;
+    bool showData24;
     bool showF1;
     bool showF2;
     bool showF3;
@@ -61,6 +63,7 @@ private:
     uint32_t f1_section_count;
     uint32_t f3_frame_count;
     uint32_t f2_section_count;
+    uint32_t audio_frame_count;
 
     // Decoders
     TvaluesToChannel t_values_to_channel;
@@ -69,6 +72,7 @@ private:
     F2SectionCorrection f2_section_correction;
     F2SectionToF1Section f2_section_to_f1_section;
     F1SectionToData24Section f1_section_to_data24_section;
+    Data24ToAudio data24_to_audio;
 };
 
 #endif // EFM_PROCESSOR_H

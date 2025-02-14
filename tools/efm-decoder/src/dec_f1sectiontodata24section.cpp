@@ -25,10 +25,8 @@
 #include "dec_f1sectiontodata24section.h"
 
 F1SectionToData24Section::F1SectionToData24Section() {
-    valid_f1_sections_count = 0;
+    valid_f1_frames_count = 0;
     invalid_f1_frames_count = 0;
-    start_time = SectionTime(59, 59, 74);
-    end_time = SectionTime(0, 0, 0);
     corrupt_bytes_count = 0;
 }
 
@@ -80,7 +78,7 @@ void F1SectionToData24Section::process_queue() {
             corrupt_bytes_count += error_count;
 
             if (error_count > 0) invalid_f1_frames_count++;
-            else valid_f1_sections_count++;
+            else valid_f1_frames_count++;
 
             // Put the resulting data into a Data24 frame and push it to the output buffer
             Data24 data24;
@@ -92,14 +90,6 @@ void F1SectionToData24Section::process_queue() {
 
         data24section.metadata = f1_section.metadata;
 
-        if (data24section.metadata.get_absolute_section_time() < start_time) {
-            start_time = data24section.metadata.get_absolute_section_time();
-        }
-
-        if (data24section.metadata.get_absolute_section_time() >= end_time) {
-            end_time = f1_section.metadata.get_absolute_section_time();
-        }
-
         // Add the section to the output buffer
         output_buffer.enqueue(data24section);
     }
@@ -109,24 +99,14 @@ void F1SectionToData24Section::show_statistics() {
     qInfo() << "F1 Section to Data24 Section statistics:";
 
     qInfo() << "  Frames:";
-    qInfo() << "    Total F1 frames:" << valid_f1_sections_count + invalid_f1_frames_count;
-    qInfo() << "    Valid F1 frames:" << valid_f1_sections_count;
+    qInfo() << "    Total F1 frames:" << valid_f1_frames_count + invalid_f1_frames_count;
+    qInfo() << "    Valid F1 frames:" << valid_f1_frames_count;
     qInfo() << "    Invalid F1 frames:" << invalid_f1_frames_count;
 
     qInfo() << "  Bytes:";
-    uint32_t valid_bytes = (valid_f1_sections_count + invalid_f1_frames_count) * 24;
+    uint32_t valid_bytes = (valid_f1_frames_count + invalid_f1_frames_count) * 24;
     qInfo().nospace() << "    Total bytes: " << valid_bytes + corrupt_bytes_count;
     qInfo().nospace() << "    Valid bytes: " << valid_bytes;
     qInfo().nospace() << "    Corrupt bytes: " << corrupt_bytes_count;
     qInfo().nospace().noquote() << "    Data loss: " << QString::number((corrupt_bytes_count * 100.0) / valid_bytes, 'f', 3) << "%";
-
-    qInfo() << "  Audio Samples (16L+16R):";
-    qInfo().nospace() << "    Total samples: " << (valid_bytes / 4) + (corrupt_bytes_count / 4);
-    qInfo().nospace() << "    Valid samples: " << valid_bytes / 4;
-    qInfo().nospace() << "    Corrupt samples: " << corrupt_bytes_count / 4;    
-
-    qInfo() << "  Q-Channel time information:";
-    qInfo().noquote() << "    Start time:" << start_time.to_string();
-    qInfo().noquote() << "    End time:" << end_time.to_string();
-    qInfo().noquote() << "    Total time:" << (end_time - start_time).to_string();
 }

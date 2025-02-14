@@ -27,6 +27,7 @@
 
 #include <QVector>
 #include <cstdint>
+#include <QDebug>
 
 // Frame class - base class for F1, F2, and F3 frames
 class Frame {

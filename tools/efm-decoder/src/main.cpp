@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
         QCommandLineOption("show-f2-correct-debug", QCoreApplication::translate("main", "Show F2 section correction debug")),
         QCommandLineOption("show-f2-debug", QCoreApplication::translate("main", "Show F2 to F1 decoding debug")),
         QCommandLineOption("show-f1-debug", QCoreApplication::translate("main", "Show F1 to Data24 decoding debug")),
+        QCommandLineOption("show-audio-debug", QCoreApplication::translate("main", "Show Data24 to audio decoding debug")),
         QCommandLineOption("show-all-debug", QCoreApplication::translate("main", "Show all decoding debug")),
     };
     parser.addOptions(advancedDebugOptions);
@@ -98,7 +99,8 @@ int main(int argc, char *argv[])
     bool showF1 = parser.isSet("show-f1");
     bool showF2 = parser.isSet("show-f2");
     bool showF3 = parser.isSet("show-f3");
-    bool showOutput = parser.isSet("show-output");
+    bool showData24 = parser.isSet("show-data24");
+    bool showAudio = parser.isSet("show-audio");
 
     // Check for advanced debug options
     bool showTValuesDebug = parser.isSet("show-tvalues-debug");
@@ -107,6 +109,7 @@ int main(int argc, char *argv[])
     bool showF2CorrectDebug = parser.isSet("show-f2-correct-debug");
     bool showF2Debug = parser.isSet("show-f2-debug");
     bool showF1Debug = parser.isSet("show-f1-debug");
+    bool showAudioDebug = parser.isSet("show-audio-debug");
     bool showAllDebug = parser.isSet("show-all-debug");
 
     if (showAllDebug) {
@@ -116,6 +119,7 @@ int main(int argc, char *argv[])
         showF2CorrectDebug = true;
         showF2Debug = true;
         showF1Debug = true;
+        showAudioDebug = true;
     }
 
     // Get the filename arguments from the parser
@@ -137,9 +141,9 @@ int main(int argc, char *argv[])
     qInfo() << "Beginning EFM decoding of" << input_filename;
     EfmProcessor efm_processor;
 
-    efm_processor.set_show_data(showOutput, showF1, showF2, showF3);
+    efm_processor.set_show_data(showAudio, showData24, showF1, showF2, showF3);
     efm_processor.set_output_type(wav_output);
-    efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug, showF2Debug, showF1Debug);
+    efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug, showF2Debug, showF1Debug, showAudioDebug);
 
     if (!efm_processor.process(input_filename, output_filename)) {
         return 1;
