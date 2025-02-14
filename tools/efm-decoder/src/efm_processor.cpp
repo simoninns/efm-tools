@@ -42,12 +42,29 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         return false;
     }
 
-    // Prepare the output file
+    // Prepare the output file(s)
     QFile output_file(output_filename);
+    QFile metadata_file(output_filename + ".metadata");
 
     if (!output_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         qDebug() << "EfmEncoder::process(): Failed to open output file: " << output_filename;
         return false;
+    }
+
+    // If we are outputting to a WAV file, open a metadata file
+    if (is_output_data_wav) {
+        qDebug() << "EfmProcessor::process(): Outputting to WAV file, adding metadata file";
+
+        if (!metadata_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            qDebug() << "EfmProcessor::process(): Failed to open metadata file: " << output_filename + ".metadata";
+            return false;
+        }
+
+        // Write the metadata header
+        metadata_file.write("EFM-Decode - WAV Metadata\n");
+        metadata_file.write("Format: Absolute time, track number, track time, error list (if present)\n");
+        metadata_file.write("Each time-stamp represents one section with 24*98 bytes (positions 0 to 2351)\n");
+        metadata_file.write("Each section is 1/75th of a second - so timestamps are MM:DD:section 0-74\n");
     }
 
     // If we are outputting to a WAV file, we need to leave space for the header
@@ -81,13 +98,13 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             t_values_to_channel.push_frame(t_values);
         }
 
-        process_pipeline(output_file);
+        process_pipeline(output_file, metadata_file);
     }
 
     // We are out of data flush the pipeline
     qInfo() << "Flushing decoding pipelines";
     f2_section_correction.flush();
-    process_pipeline(output_file);
+    process_pipeline(output_file, metadata_file);
 
     // Show summary
     qInfo() << "Decoding complete";
@@ -135,12 +152,13 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     // Close the input and output files
     input_file.close();
     output_file.close();
+    if (is_output_data_wav) metadata_file.close();
 
     qInfo() << "Encoding complete";
     return true;
 }
 
-void EfmProcessor::process_pipeline(QFile& output_file) {
+void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
     // Are there any T-values ready?
     while(t_values_to_channel.is_ready()) {
         QByteArray channel_data = t_values_to_channel.pop_frame();
@@ -186,12 +204,41 @@ void EfmProcessor::process_pipeline(QFile& output_file) {
     while(f1_section_to_data24_section.is_ready()) {
         Data24Section data24section = f1_section_to_data24_section.pop_section();
 
+        // Write a metadata entry for the section
+        QString metadata = data24section.metadata.get_absolute_section_time().to_string() + "," +
+                    QString::number(data24section.metadata.get_track_number()) + "," +
+                    data24section.metadata.get_section_time().to_string();
+
+        QString section_error_list;
+
         // Each Data24 section contains 98 frames that we need to write to the output file
         for (int index = 0; index < 98; index++) {
             Data24 data24 = data24section.get_frame(index);
             output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size());
             data24_frame_count += 1;
+
+            // If we are outputting to a WAV file, write the metadata to the metadata file
+            if (is_output_data_wav) {
+                QVector<uint8_t> errors = data24.get_error_data();
+
+                // Are there any errors in this section?
+                if (errors.contains(1)) {
+                    // If the frame contains errors we need to add it to the metadata
+                    // the position of the error is the frame byte number * current frame
+                    // i.e. 0 to 2351
+                    for (int i = 0; i < errors.size(); i++) {
+                        // Each frame is 24 bytes, each section is 98 frames
+                        int32_t error_location_in_section = i + (index * 24);
+                        if (errors[i] != 0) section_error_list += "," + QString::number(error_location_in_section);
+                    }
+                }
+            }
         }
+
+        // Write the metadata to the metadata file
+        metadata += section_error_list;
+        metadata += "\n";
+        metadata_file.write(metadata.toUtf8());
 
         if (showOutput) {
             data24section.show_data();
