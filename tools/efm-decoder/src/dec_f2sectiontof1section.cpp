@@ -105,14 +105,11 @@ void F2SectionToF1Section::process_queue() {
             error_data = delay_line1_err.push(error_data);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
+                // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1_frame;
-                QVector<uint8_t> empty_data(24, 0);
-                QVector<uint8_t> empty_error_data(24, 1);
-                f1_frame.set_data(empty_data);
-                f1_frame.set_error_data(empty_error_data);
+                f1_frame.set_data(QVector<uint8_t>(24, 0));
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
-                //if (show_debug) qDebug() << "F2SectionToF1Section - Delay line 1 lost frame";
                 continue;
             }
 
@@ -128,14 +125,11 @@ void F2SectionToF1Section::process_queue() {
             error_data = delay_lineM_err.push(error_data);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
+                // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1_frame;
-                QVector<uint8_t> empty_data(24, 0);
-                QVector<uint8_t> empty_error_data(24, 1);
-                f1_frame.set_data(empty_data);
-                f1_frame.set_error_data(empty_error_data);
+                f1_frame.set_data(QVector<uint8_t>(24, 0));
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
-                //if (show_debug) qDebug() << "F2SectionToF1Section - Delay line M lost frame";
                 continue;
             }
 
@@ -153,14 +147,11 @@ void F2SectionToF1Section::process_queue() {
             error_data = delay_line2_err.push(error_data);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
+                // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1_frame;
-                QVector<uint8_t> empty_data(24, 0);
-                QVector<uint8_t> empty_error_data(24, 1);
-                f1_frame.set_data(empty_data);
-                f1_frame.set_error_data(empty_error_data);
+                f1_frame.set_data(QVector<uint8_t>(24, 0));
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
-                //if (show_debug) qDebug() << "F2SectionToF1Section - Delay line 2 lost frame";
                 continue;
             }
 
