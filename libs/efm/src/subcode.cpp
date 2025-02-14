@@ -53,7 +53,8 @@ SectionMetadata Subcode::from_data(const QByteArray& data) {
 
     // Set the q-channel
     // If the q-channel CRC is not valid, attempt to repair the data
-    if (!is_crc_valid(q_channel)) repair_data(q_channel);
+    bool repaired = false;
+    if (!is_crc_valid(q_channel)) repaired = repair_data(q_channel);
 
     if (is_crc_valid(q_channel)) {
         // Set the q-channel data from the subcode data
@@ -77,7 +78,7 @@ SectionMetadata Subcode::from_data(const QByteArray& data) {
                 section_metadata.set_q_mode(SectionMetadata::QMODE_4);
                 break;
             default:
-                qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
+                if (show_debug) qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
                 qFatal("Subcode::from_data(): Invalid Q-mode nybble! Must be 1, 2, 3 or 4 not %d", mode_nybble);
         }
 
@@ -154,7 +155,7 @@ SectionMetadata Subcode::from_data(const QByteArray& data) {
                 section_metadata.set_2_channel(false);
                 break;
             default:
-                qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
+                if (show_debug) qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex();
                 qFatal("Subcode::from_data(): Invalid control nybble! Must be 0-3, 4-7 or 8-11 not %d", control_nybble);
         }
 
@@ -187,12 +188,30 @@ SectionMetadata Subcode::from_data(const QByteArray& data) {
     } else {
         // Set the q-channel data to invalid leaving the rest of 
         // the metadata as default values
-        qDebug() << "Subcode::from_data(): Invalid CRC in Q-channel data - expected:" << QString::number(get_q_channel_crc(q_channel), 16) <<
+        if (show_debug) qDebug() << "Subcode::from_data(): Invalid CRC in Q-channel data - expected:" << QString::number(get_q_channel_crc(q_channel), 16) <<
             "calculated:" << QString::number(calculate_q_channel_crc16(q_channel), 16);
 
         SectionTime bad_abs_time = SectionTime(bcd2_to_int(q_channel[7]), bcd2_to_int(q_channel[8]), bcd2_to_int(q_channel[9]));
-        qDebug() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex() << "potentially corrupt absolute time is:" << bad_abs_time.to_string();
+        if (show_debug) qDebug().noquote() << "Subcode::from_data(): Q channel data is:" << q_channel.toHex() << "potentially corrupt absolute time is:" << bad_abs_time.to_string();
         section_metadata.set_valid(false);
+    }
+
+    // Sanity check the track number and frame type
+    //
+    // If the track number is 0, then this is a lead-in frame
+    // If the track number is 0xAA, then this is a lead-out frame
+    // If the track number is 1-99, then this is a user data frame
+    if (section_metadata.get_track_number() == 0 && section_metadata.get_section_type() != SectionType::LEAD_IN) {
+        if (show_debug) qDebug("Subcode::from_data(): Track number 0 is only valid for lead-in frames");
+    } else if (section_metadata.get_track_number() == 0xAA && section_metadata.get_section_type() != SectionType::LEAD_OUT) {
+        if (show_debug) qDebug("Subcode::from_data(): Track number 0xAA is only valid for lead-out frames");
+    } else if (section_metadata.get_track_number() > 99) {
+        if (show_debug) qDebug("Subcode::from_data(): Track number %d is out of range", section_metadata.get_track_number());
+    }
+
+    if (repaired) {
+        if (show_debug) qDebug().noquote() << "Subcode::from_data(): Q-channel repaired for section with absolute time:" << section_metadata.get_absolute_section_time().to_string() <<
+            "track number:" << section_metadata.get_track_number() << "and section time:" << section_metadata.get_section_time().to_string();
     }
 
     // All done!
@@ -253,13 +272,26 @@ QByteArray Subcode::to_data(const SectionMetadata& section_metadata) {
 
     // The Q-channel data is constructed from the Q-mode (4 bits) and control bits (4 bits)
     // Q-mode is 0-3 and control is 4-7
-    q_channel_data[0] = control_nybble << 4 | mode_nybble;
+    q_channel_data[0] = control_nybble << 4 | mode_nybble;    
 
     // Get the frame metadata
     SectionType frame_type = section_metadata.get_section_type();
     SectionTime f_time = section_metadata.get_section_time();
     SectionTime ap_time = section_metadata.get_absolute_section_time();
     uint8_t track_number = section_metadata.get_track_number();
+
+    // Sanity check the track number and frame type
+    //
+    // If the track number is 0, then this is a lead-in frame
+    // If the track number is 0xAA, then this is a lead-out frame
+    // If the track number is 1-99, then this is a user data frame
+    if (track_number == 0 && frame_type != SectionType::LEAD_IN) {
+        qFatal("Subcode::to_data(): Track number 0 is only valid for lead-in frames");
+    } else if (track_number == 0xAA && frame_type != SectionType::LEAD_OUT) {
+        qFatal("Subcode::to_data(): Track number 0xAA is only valid for lead-out frames");
+    } else if (track_number > 99) {
+        qFatal("Subcode::to_data(): Track number %d is out of range", track_number);
+    }
 
     // Set the Q-channel data
     if (frame_type == SectionType::LEAD_IN) {
@@ -429,7 +461,6 @@ bool Subcode::repair_data(QByteArray &q_channel_data) {
 
         if (is_crc_valid(data_copy)) {
             q_channel_data = data_copy;
-            qDebug() << "Subcode::repair_data(): Repaired Q-channel data by flipping bit" << i;
             return true;
         }
     }

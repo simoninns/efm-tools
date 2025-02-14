@@ -72,6 +72,18 @@ int main(int argc, char *argv[])
     };
     parser.addOptions(displayFrameDataOptions);
 
+    // Group of options for advanced debugging
+    QList<QCommandLineOption> advancedDebugOptions = {
+        QCommandLineOption("show-tvalues-debug", QCoreApplication::translate("main", "Show T-values to channel decoding debug")),
+        QCommandLineOption("show-channel-debug", QCoreApplication::translate("main", "Show channel to F3 decoding debug")),
+        QCommandLineOption("show-f3-debug", QCoreApplication::translate("main", "Show F3 to F2 section decoding debug")),
+        QCommandLineOption("show-f2-correct-debug", QCoreApplication::translate("main", "Show F2 section correction debug")),
+        QCommandLineOption("show-f2-debug", QCoreApplication::translate("main", "Show F2 to F1 decoding debug")),
+        QCommandLineOption("show-f1-debug", QCoreApplication::translate("main", "Show F1 to Data24 decoding debug")),
+        QCommandLineOption("show-all-debug", QCoreApplication::translate("main", "Show all decoding debug")),
+    };
+    parser.addOptions(advancedDebugOptions);
+
     // -- Positional arguments --
     parser.addPositionalArgument("input", QCoreApplication::translate("main", "Specify input EFM file"));
     parser.addPositionalArgument("output", QCoreApplication::translate("main", "Specify output data file"));
@@ -87,6 +99,24 @@ int main(int argc, char *argv[])
     bool showF2 = parser.isSet("show-f2");
     bool showF3 = parser.isSet("show-f3");
     bool showOutput = parser.isSet("show-output");
+
+    // Check for advanced debug options
+    bool showTValuesDebug = parser.isSet("show-tvalues-debug");
+    bool showChannelDebug = parser.isSet("show-channel-debug");
+    bool showF3Debug = parser.isSet("show-f3-debug");
+    bool showF2CorrectDebug = parser.isSet("show-f2-correct-debug");
+    bool showF2Debug = parser.isSet("show-f2-debug");
+    bool showF1Debug = parser.isSet("show-f1-debug");
+    bool showAllDebug = parser.isSet("show-all-debug");
+
+    if (showAllDebug) {
+        showTValuesDebug = true;
+        showChannelDebug = true;
+        showF3Debug = true;
+        showF2CorrectDebug = true;
+        showF2Debug = true;
+        showF1Debug = true;
+    }
 
     // Get the filename arguments from the parser
     QString input_filename;
@@ -109,6 +139,7 @@ int main(int argc, char *argv[])
 
     efm_processor.set_show_data(showOutput, showF1, showF2, showF3);
     efm_processor.set_output_type(wav_output);
+    efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug, showF2Debug, showF1Debug);
 
     if (!efm_processor.process(input_filename, output_filename)) {
         return 1;

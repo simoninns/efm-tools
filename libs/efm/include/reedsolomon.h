@@ -52,10 +52,10 @@ public:
     ReedSolomon();
 
     void c1_encode(QVector<uint8_t>& input_data);
-    void c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data);
+    void c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data, bool show_debug);
 
     void c2_encode(QVector<uint8_t>& input_data);
-    void c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data);
+    void c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data, bool show_debug);
 
     int32_t get_valid_c1s();
     int32_t get_fixed_c1s();

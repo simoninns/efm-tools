@@ -75,7 +75,7 @@ void ReedSolomon::c1_encode(QVector<uint8_t>& input_data) {
 
 // Perform a C1 Reed-Solomon decoding operation on the input data
 // This is a (32,28) Reed-Solomon encode - 32 bytes in, 28 bytes out
-void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data) {
+void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data, bool show_debug) {
     // Ensure input data is 32 bytes long
     if (input_data.size() != 32) {
         qFatal("ReedSolomon::c1_decode - Input data must be 32 bytes long");
@@ -94,7 +94,7 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     if (erasures.size() > 2) {
         // If there are more than 2 erasures, then we can't correct the data - copy the input data to the output data and
         // flag it with errors
-        qDebug() << "ReedSolomon::c1_decode - Too many erasures to correct";
+        if (show_debug) qDebug() << "ReedSolomon::c1_decode - Too many erasures to correct";
         input_data = QVector<uint8_t>(tmp_data.begin(), tmp_data.end() - 4);
         error_data.resize(input_data.size());
         error_data.fill(1);
@@ -117,7 +117,7 @@ void ReedSolomon::c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     }
 
     // If result < 0, the Reed-Solomon decode completely failed and the data is corrupt
-    //qDebug() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
+    //if (show_debug) qDebug() << "ReedSolomon::c1_decode - C1 corrupt and could not be fixed";
 
     // Make every byte in the error data 1 - i.e. all errors
     error_data.fill(1);
@@ -157,7 +157,7 @@ void ReedSolomon::c2_encode(QVector<uint8_t>& input_data) {
 
 // Perform a C2 Reed-Solomon decoding operation on the input data
 // This is a (28,24) Reed-Solomon encode - 28 bytes in, 24 bytes out
-void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data) {
+void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data, bool show_debug) {
     // Ensure input data is 28 bytes long
     if (input_data.size() != 28) {
         qFatal("ReedSolomon::c2_decode - Input data must be 28 bytes long");
@@ -182,7 +182,7 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     if (erasures.size() > 4) {
         // If there are more than 4 erasures, then we can't correct the data - copy the input data to the output data and
         // flag it with errors
-        qDebug().noquote() << "ReedSolomon::c2_decode - Too many erasures to correct";
+        if (show_debug) qDebug().noquote() << "ReedSolomon::c2_decode - Too many erasures to correct";
         input_data = QVector<uint8_t>(tmp_data.begin(), tmp_data.begin() + 12) + QVector<uint8_t>(tmp_data.begin() + 16, tmp_data.end());
         error_data.resize(input_data.size());
         error_data.fill(1);
@@ -193,7 +193,7 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     // Decode the data
     int result = c2rs.decode(tmp_data, erasures, &position);
     if (result > 3) {
-        qDebug().noquote() << "ReedSolomon::c2_decode - Too many errors to correct" << result;
+        if (show_debug) qDebug().noquote() << "ReedSolomon::c2_decode - Too many errors to correct" << result;
         result = -1;
     }
 
@@ -210,7 +210,7 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     }
 
     // If result < 0, then the Reed-Solomon decode failed and the data should be flagged as corrupt
-    //qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed" << result;
+    if (show_debug) qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed" << result;
     error_data.fill(1);
     error_c2s++;
     return;

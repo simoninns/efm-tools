@@ -119,7 +119,7 @@ void F2SectionToF1Section::process_queue() {
 
             //if (show_debug) show_data(" C1 Input", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
 
-            circ.c1_decode(data, error_data);
+            circ.c1_decode(data, error_data, show_debug);
 
             data = delay_lineM.push(data);
             error_data = delay_lineM_err.push(error_data);
@@ -136,7 +136,7 @@ void F2SectionToF1Section::process_queue() {
             if (show_debug) show_data(" C2 Input", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
 
             // Only perform C2 decode if delay line 1 is full and delay line M is full
-            circ.c2_decode(data, error_data);
+            circ.c2_decode(data, error_data, show_debug);
 
             if (show_debug) show_data("C2 Output", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
 
@@ -193,12 +193,11 @@ void F2SectionToF1Section::show_data(QString description, int32_t index, QString
         }
     }
 
+    // Display the data if there are errors
     if (has_error) {
         qDebug().nospace().noquote() << "F2SectionToF1Section - " << description
                            << "[" << QString("%1").arg(index, 2, 10, QChar('0'))
-                           << "]: (" << time_string << ") " << data_string << "ERROR";
-    } else {
-        //qDebug().nospace().noquote() << "F2SectionToF1Section - " << description << ": " << data_string;
+                           << "]: (" << time_string << ") " << data_string << "XX=ERROR";
     }
 }
 

@@ -34,10 +34,11 @@
 
 class Subcode {
 public:
-    Subcode() {};
+    Subcode() : show_debug(false) {}
 
     SectionMetadata from_data(const QByteArray& data);
     QByteArray to_data(const SectionMetadata& section_metadata);
+    void set_show_debug(bool _show_debug) { show_debug = _show_debug; }
 
 private:
     void set_bit(QByteArray& data, uint8_t bit_position, bool value);
@@ -50,6 +51,8 @@ private:
 
     uint8_t int_to_bcd2(uint8_t value);
     uint8_t bcd2_to_int(uint8_t bcd);
+
+    bool show_debug;
 };
 
 #endif // SUBCODE_H

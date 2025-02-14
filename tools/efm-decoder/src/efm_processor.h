@@ -47,6 +47,7 @@ public:
     void process_pipeline(QFile& output_file);
     void set_show_data(bool _showOutput, bool _showF1, bool _showF2, bool _showF3);
     void set_output_type(bool _wavOutput);
+    void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24);
 
 private:
     bool showOutput;

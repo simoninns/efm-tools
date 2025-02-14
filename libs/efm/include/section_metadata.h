@@ -33,11 +33,11 @@
 class SectionTime {
 public:
     SectionTime();
-    SectionTime(uint32_t _frames);
+    SectionTime(int32_t _frames);
     SectionTime(uint8_t minutes, uint8_t seconds, uint8_t frames);
 
     uint32_t get_frames() const { return frames; }
-    void set_frames(uint32_t _frames);
+    void set_frames(int32_t _frames);
     void set_time(uint8_t _minutes, uint8_t _seconds, uint8_t _frames);
 
     QString to_string() const;
@@ -58,7 +58,7 @@ public:
     
 
 private:
-    uint32_t frames;
+    int32_t frames;
     uint8_t int_to_bcd(uint32_t value);
 };
 

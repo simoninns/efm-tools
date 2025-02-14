@@ -175,9 +175,22 @@ void F2SectionCorrection::waiting_for_section(F2Section& f2_section) {
         
         // We have to insert a dummy section into the internal buffer or this
         // will throw off the correction process due to the delay lines
+        //
+        // It's important that all the metadata is correct otherwise track numbers and so on
+        // will be incorrect
         F2Section missing_section;
+
+        // Copy the metadata from the next section as a good default
+        missing_section.metadata = f2_section.metadata;
+
         missing_section.metadata.set_absolute_section_time(expected_absolute_time);
         missing_section.metadata.set_valid(true);
+
+        // To-do: Perhaps this could be improved if spanning a track boundary?
+        // might not be required though...
+        missing_section.metadata.set_section_type(f2_section.metadata.get_section_type());
+        missing_section.metadata.set_track_number(f2_section.metadata.get_track_number());
+        missing_section.metadata.set_section_time(f2_section.metadata.get_section_time() - 1);
 
         // Push 98 error frames in to the missing section
         for (int i = 0; i < 98; ++i) {
@@ -267,14 +280,50 @@ void F2SectionCorrection::correct_internal_buffer() {
             if (gap_length == time_difference) {
                 // We can correct the error
                 for (int i = error_start + 1; i < error_end; ++i) {
+                    // Firstly copy the metadata from the last known good section to ensure good defaults
+                    internal_buffer[i].metadata = internal_buffer[error_start].metadata;
+
+                    // Now set the absolute time for the section
                     SectionTime expected_time = internal_buffer[error_start].metadata.get_absolute_section_time() + (i - error_start);
                     internal_buffer[i].metadata.set_absolute_section_time(expected_time);
+
+                    // Is the track number the same at the start and end of the gap?
+                    if (internal_buffer[error_start].metadata.get_track_number() != internal_buffer[error_end].metadata.get_track_number()) {
+                        if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Gap starts on track" << internal_buffer[error_start].metadata.get_track_number()<<
+                            "and ends on track" << internal_buffer[error_end].metadata.get_track_number();
+                        
+                        // Firstly, we have to figure out which track the error section in on.  We can do this by looking at the section time
+                        // of the error_end section and calculating the current section time from it.  If the time is positive the error section
+                        // is in the same track as error_end, otherwise it is in the same track as error_start
+                        SectionTime current_time = internal_buffer[error_end].metadata.get_section_time() - (error_end - i);
+
+                        // Now we can set the track number and correct the section time
+                        if (current_time.get_frames() >= 0) {
+                            internal_buffer[i].metadata.set_track_number(internal_buffer[error_end].metadata.get_track_number());
+                            internal_buffer[i].metadata.set_section_time(internal_buffer[error_end].metadata.get_section_time() - (error_end - i));
+                        } else {
+                            internal_buffer[i].metadata.set_track_number(internal_buffer[error_start].metadata.get_track_number());
+                            internal_buffer[i].metadata.set_section_time(internal_buffer[error_start].metadata.get_section_time() + (i - error_start));
+                        }
+
+                        // Adding a qFatal here as this functionality is untested
+                        // (I haven't found any examples of this in the test data)
+                        qFatal("F2SectionCorrection::correct_internal_buffer(): Exiting due to track change in internal buffer - untested functionality - please confirm!");
+                    } else {
+                        // The track number is the same, so we can correct the track number by just copying it
+                        internal_buffer[i].metadata.set_track_number(internal_buffer[error_start].metadata.get_track_number());
+
+                        // Same thing for the section time
+                        SectionTime expected_section_time = internal_buffer[error_start].metadata.get_section_time() + (i - error_start);
+                    }
+
+                    // Mark the corrected metadata as valid
                     internal_buffer[i].metadata.set_valid(true);
 
-                    // To do fix track time and track number correction here
-
                     corrected_sections++;
-                    if (show_debug) qDebug() << "F2SectionCorrection::correct_internal_buffer(): Corrected section" << i << "with absolute time" << internal_buffer[i].metadata.get_absolute_section_time().to_string();
+                    if (show_debug) qDebug().noquote().nospace() << "F2SectionCorrection::correct_internal_buffer(): Corrected section " << i << " with absolute time " <<
+                        internal_buffer[i].metadata.get_absolute_section_time().to_string() <<
+                        ", Track number " << internal_buffer[i].metadata.get_track_number() << " and track time " << internal_buffer[i].metadata.get_section_time().to_string();
                 }
             } else {
                 // We cannot correct the error
@@ -308,6 +357,24 @@ void F2SectionCorrection::output_sections() {
         track_numbers.append(track_number);
         track_start_times.append(section_time);
         track_end_times.append(section_time);
+
+        if (show_debug) qDebug() << "F2SectionCorrection::output_sections(): New track" << track_number << "detected with start time" << section_time.to_string();
+        if (track_number == 0) {
+            if (section.metadata.get_section_type() == SectionType::LEAD_IN) {
+                // This is a lead-in track
+                if (show_debug) qDebug() << "F2SectionCorrection::output_sections(): LEAD_IN track detected with start time" << section_time.to_string();
+            } else if (section.metadata.get_section_type() == SectionType::LEAD_OUT){
+                // This is a lead-out track
+                if (show_debug) qDebug() << "F2SectionCorrection::output_sections(): LEAD_OUT track detected with start time" << section_time.to_string();
+            } else if (section.metadata.get_section_type() == SectionType::USER_DATA) {
+                // This is a user data track
+                if (show_debug) qDebug() << "F2SectionCorrection::output_sections(): USER_DATA track detected with start time" << section_time.to_string();
+            } else {
+                // This is an unknown track
+                if (show_debug) qDebug() << "F2SectionCorrection::output_sections(): UNKNOWN track detected with start time" << section_time.to_string();
+            }
+            qFatal("F2SectionCorrection::output_sections(): Exiting due to track 0 detected in output sections.");
+        }
     } else {
         // Update the end time for the existing track
         int index = track_numbers.indexOf(track_number);
@@ -347,12 +414,4 @@ void F2SectionCorrection::show_statistics() {
         qInfo().noquote() << "    End time:" << track_end_times[i].to_string();
         qInfo().noquote() << "    Duration:" << (track_end_times[i] - track_start_times[i]).to_string();
     }
-
-    // Show the total duration of all tracks
-    SectionTime total_duration = SectionTime(0,0,0);
-    for (int i = 0; i < track_numbers.size(); i++) {
-        total_duration = total_duration + (track_end_times[i] - track_start_times[i]);
-    }
-    if (track_numbers.size() > 1) qInfo().noquote() << "  Total duration of" << track_numbers.size() << "tracks:" << total_duration.to_string();
-    else qInfo().noquote() << "  Total duration of" << track_numbers.size() << "track:" << total_duration.to_string();
 }

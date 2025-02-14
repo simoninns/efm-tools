@@ -33,7 +33,7 @@ SectionTime::SectionTime() : frames(0) {
     }
 } 
 
-SectionTime::SectionTime(uint32_t _frames) : frames(_frames) {
+SectionTime::SectionTime(int32_t _frames) : frames(_frames) {
     if (frames >= 270000) {
         qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
     }
@@ -43,8 +43,8 @@ SectionTime::SectionTime(uint8_t _minutes, uint8_t _seconds, uint8_t _frames) {
     set_time(_minutes, _seconds, _frames);
 }
 
-void SectionTime::set_frames(uint32_t _frames) {
-    if (frames >= 270000) {
+void SectionTime::set_frames(int32_t _frames) {
+    if (frames < 0 || frames >= 270000) {
         qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
     }
 
@@ -109,7 +109,7 @@ uint8_t SectionTime::int_to_bcd(uint32_t value) {
     return bcd & 0xFF;
 }
 
-// Frame metadata class -----------------------------------------------------------------------------------------------
+// Section metadata class -----------------------------------------------------------------------------------------------
 void SectionMetadata::set_section_type(SectionType _section_type) {
     section_type = _section_type;
 

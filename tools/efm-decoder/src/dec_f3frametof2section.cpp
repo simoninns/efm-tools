@@ -273,6 +273,8 @@ F3FrameToF2Section::State F3FrameToF2Section::process_section() {
 
     // Generate the subcode from the 98 bytes of data
     Subcode subcode;
+    if (show_debug) subcode.set_show_debug(true);
+    
     QByteArray subcode_data;
     for (int i = 0; i < 98; i++) {
         subcode_data[i] = section_buffer[i].get_subcode_byte();

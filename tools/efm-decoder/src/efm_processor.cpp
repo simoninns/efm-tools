@@ -57,14 +57,6 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         output_file.write(header);
     }    
 
-    // Set the debug flags
-    t_values_to_channel.set_show_debug(false);
-    channel_to_f3.set_show_debug(false);
-    f3_frame_to_f2_section.set_show_debug(false);
-    f2_section_correction.set_show_debug(true);
-    f2_section_to_f1_section.set_show_debug(true);
-    f1_section_to_data24_section.set_show_debug(false);
-
     // Get the total size of the input file for progress reporting
     qint64 total_size = input_file.size();
     qint64 processed_size = 0;
@@ -217,4 +209,14 @@ void EfmProcessor::set_show_data(bool _showOutput, bool _showF1, bool _showF2, b
 // Set the output data type (true for WAV, false for raw)
 void EfmProcessor::set_output_type(bool _wavOutput) {
     is_output_data_wav = _wavOutput;
+}
+
+void EfmProcessor::set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24) {
+    // Set the debug flags
+    t_values_to_channel.set_show_debug(tvalue);
+    channel_to_f3.set_show_debug(channel);
+    f3_frame_to_f2_section.set_show_debug(f3);
+    f2_section_correction.set_show_debug(f2);
+    f2_section_to_f1_section.set_show_debug(f1);
+    f1_section_to_data24_section.set_show_debug(data24);
 }
