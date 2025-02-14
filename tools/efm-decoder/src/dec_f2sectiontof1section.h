@@ -42,6 +42,7 @@ public:
 
 private:
     void process_queue();
+    void show_data(QString description, int32_t index, QString time_string, QVector<uint8_t>& data, QVector<uint8_t>& data_error);
 
     QQueue<F2Section> input_buffer;
     QQueue<F1Section> output_buffer;

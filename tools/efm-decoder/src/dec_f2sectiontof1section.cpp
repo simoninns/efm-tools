@@ -91,6 +91,8 @@ void F2SectionToF1Section::process_queue() {
             QVector<uint8_t> data = f2_section.get_frame(index).get_data();
             QVector<uint8_t> error_data = f2_section.get_frame(index).get_error_data();
 
+            //if (show_debug) show_data(" F2 Input", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
+
             // Check F2 frame for errors
             uint32_t in_frame_errors = f2_section.get_frame(index).count_errors();
             if (in_frame_errors == 0) valid_input_f2_frames_count++;
@@ -110,12 +112,15 @@ void F2SectionToF1Section::process_queue() {
                 f1_frame.set_error_data(empty_error_data);
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
+                //if (show_debug) qDebug() << "F2SectionToF1Section - Delay line 1 lost frame";
                 continue;
             }
 
             // Process the data
             // Note: We will only get valid data if the delay lines are all full
             data = inverter.invert_parity(data);
+
+            //if (show_debug) show_data(" C1 Input", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
 
             circ.c1_decode(data, error_data);
 
@@ -130,11 +135,16 @@ void F2SectionToF1Section::process_queue() {
                 f1_frame.set_error_data(empty_error_data);
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
+                //if (show_debug) qDebug() << "F2SectionToF1Section - Delay line M lost frame";
                 continue;
             }
 
+            if (show_debug) show_data(" C2 Input", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
+
             // Only perform C2 decode if delay line 1 is full and delay line M is full
             circ.c2_decode(data, error_data);
+
+            if (show_debug) show_data("C2 Output", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
 
             data = interleave.deinterleave(data);
             error_data = interleave_err.deinterleave(error_data);
@@ -150,8 +160,11 @@ void F2SectionToF1Section::process_queue() {
                 f1_frame.set_error_data(empty_error_data);
                 f1_section.push_frame(f1_frame);
                 dl_lost_frames_count++;
+                //if (show_debug) qDebug() << "F2SectionToF1Section - Delay line 2 lost frame";
                 continue;
             }
+
+            //if (show_debug) show_data("F2 Output", index, f2_section.metadata.get_absolute_section_time().to_string(), data, error_data);
 
             // Put the resulting data (and error data) into an F1 frame and push it to the output buffer
             F1Frame f1_frame;
@@ -174,6 +187,27 @@ void F2SectionToF1Section::process_queue() {
 
         // Add the section to the output buffer
         output_buffer.enqueue(f1_section);
+    }
+}
+
+void F2SectionToF1Section::show_data(QString description, int32_t index, QString time_string, QVector<uint8_t>& data, QVector<uint8_t>& data_error) {
+    QString data_string;
+    bool has_error = false;
+    for (int i = 0; i < data.size(); ++i) {
+        if (data_error[i] == 0) {
+            data_string.append(QString("%1 ").arg(data[i], 2, 16, QChar('0')));
+        } else {
+            data_string.append(QString("XX "));
+            has_error = true;
+        }
+    }
+
+    if (has_error) {
+        qDebug().nospace().noquote() << "F2SectionToF1Section - " << description
+                           << "[" << QString("%1").arg(index, 2, 10, QChar('0'))
+                           << "]: (" << time_string << ") " << data_string << "ERROR";
+    } else {
+        //qDebug().nospace().noquote() << "F2SectionToF1Section - " << description << ": " << data_string;
     }
 }
 

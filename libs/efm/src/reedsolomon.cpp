@@ -192,7 +192,10 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
 
     // Decode the data
     int result = c2rs.decode(tmp_data, erasures, &position);
-    if (result > 3) result = -1;
+    if (result > 3) {
+        qDebug().noquote() << "ReedSolomon::c2_decode - Too many errors to correct" << result;
+        result = -1;
+    }
 
     // Convert the std::vector back to a QVector and remove the parity bytes
     // by copying bytes 0-11 and 16-27 to the output data
@@ -207,7 +210,7 @@ void ReedSolomon::c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& erro
     }
 
     // If result < 0, then the Reed-Solomon decode failed and the data should be flagged as corrupt
-    //qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed";
+    //qDebug().noquote() << "ReedSolomon::c2_decode - C2 corrupt and could not be fixed" << result;
     error_data.fill(1);
     error_c2s++;
     return;
