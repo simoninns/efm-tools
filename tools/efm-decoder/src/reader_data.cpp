@@ -39,7 +39,7 @@ bool ReaderData::open(const QString &filename) {
         qCritical() << "ReaderData::open() - Could not open file" << filename << "for reading";
         return false;
     }
-    qDebug() << "ReaderData::open() - Opened file" << filename << "for data reading";
+    qDebug() << "ReaderData::open() - Opened file" << filename << "for data reading with size" << file.size() << "bytes";
     return true;
 }
 
@@ -61,6 +61,6 @@ void ReaderData::close() {
     qDebug() << "ReaderData::close(): Closed the data file" << file.fileName(); 
 }
 
-int32_t ReaderData::size() {
+int64_t ReaderData::size() {
     return file.size();
 }

@@ -105,7 +105,7 @@ void WriterWav::close() {
     qDebug() << "WriterWav::close(): Closed the WAV file" << file.fileName(); 
 }
 
-int32_t WriterWav::size() {
+int64_t WriterWav::size() {
     if (file.isOpen()) {
         return file.size();
     }

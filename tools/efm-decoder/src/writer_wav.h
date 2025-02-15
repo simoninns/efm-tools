@@ -40,7 +40,7 @@ public:
     bool open(const QString &filename);
     void write(const AudioSection &audio_section);
     void close();
-    int32_t size();
+    int64_t size();
 
 private:
     QFile file;

@@ -68,7 +68,7 @@ void WriterData::close() {
     qDebug() << "WriterData::close(): Closed the data file" << file.fileName(); 
 }
 
-int32_t WriterData::size() {
+int64_t WriterData::size() {
     if (file.isOpen()) {
         return file.size();
     }

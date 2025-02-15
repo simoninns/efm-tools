@@ -40,7 +40,7 @@ public:
     bool open(const QString &filename);
     void write(const Data24Section &data24_section);
     void close();
-    int32_t size();
+    int64_t size();
 
 private:
     QFile file;

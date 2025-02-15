@@ -38,7 +38,7 @@ public:
     bool open(const QString &filename);
     QByteArray read(uint32_t chunk_size);
     void close();
-    int32_t size();
+    int64_t size();
 
 private:
     QFile file;

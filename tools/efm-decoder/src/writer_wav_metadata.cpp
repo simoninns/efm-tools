@@ -98,7 +98,7 @@ void WriterWavMetadata::close() {
     qDebug() << "WriterWavMetadata::close(): Closed the WAV metadata file" << file.fileName(); 
 }
 
-int32_t WriterWavMetadata::size() {
+int64_t WriterWavMetadata::size() {
     if (file.isOpen()) {
         return file.size();
     }

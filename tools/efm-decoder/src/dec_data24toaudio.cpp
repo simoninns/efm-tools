@@ -121,9 +121,9 @@ void Data24ToAudio::show_statistics() {
     qInfo().nospace() << "    Invalid Frames: " << invalid_data24_frames_count;
     
     qInfo() << "  Audio Samples:";
-    qInfo().nospace() << "    Total samples: " << valid_samples_count + invalid_samples_count;
-    qInfo().nospace() << "    Valid samples: " << valid_samples_count;
-    qInfo().nospace() << "    Corrupt samples: " << invalid_samples_count;  
+    qInfo().nospace() << "    Total stereo samples: " << (valid_samples_count + invalid_samples_count) / 2;
+    qInfo().nospace() << "    Valid stereo samples: " << valid_samples_count / 2;
+    qInfo().nospace() << "    Corrupt stereo samples: " << invalid_samples_count / 2;  
     
     qInfo() << "  Section time information:";
     qInfo().noquote() << "    Start time:" << start_time.to_string();

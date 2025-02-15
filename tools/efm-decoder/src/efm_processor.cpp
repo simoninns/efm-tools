@@ -28,11 +28,11 @@ EfmProcessor::EfmProcessor() {
 }
 
 bool EfmProcessor::process(QString input_filename, QString output_filename) {
-    qDebug() << "EfmProcessor::process(): Decoding EFM from file: " << input_filename << " to file: " << output_filename;
+    qDebug() << "EfmProcessor::process(): Decoding EFM from file:" << input_filename << "to file:" << output_filename;
 
     // Prepare the input file reader
     if (!reader_data.open(input_filename)) {
-        qDebug() << "EfmProcessor::process(): Failed to open input file: " << input_filename;
+        qDebug() << "EfmProcessor::process(): Failed to open input file:" << input_filename;
         return false;
     }
 

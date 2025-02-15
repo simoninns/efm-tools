@@ -158,8 +158,8 @@ void AudioCorrection::process_queue() {
 
 void AudioCorrection::show_statistics() {
     qInfo() << "Audio correction statistics:";   
-    qInfo().nospace() << "  Total samples: " << valid_samples_count + concealed_samples_count + silenced_samples_count;
-    qInfo().nospace() << "  Valid samples: " << valid_samples_count;
-    qInfo().nospace() << "  Concealed samples: " << concealed_samples_count;
-    qInfo().nospace() << "  Silenced samples: " << silenced_samples_count;
+    qInfo().nospace() << "  Total mono samples: " << valid_samples_count + concealed_samples_count + silenced_samples_count;
+    qInfo().nospace() << "  Valid mono samples: " << valid_samples_count;
+    qInfo().nospace() << "  Concealed mono samples: " << concealed_samples_count;
+    qInfo().nospace() << "  Silenced mono samples: " << silenced_samples_count;
 }

@@ -112,7 +112,7 @@ void F2SectionCorrection::wait_for_input_to_settle(F2Section& f2_section) {
                     leadin_complete = true;
 
                     // Feed the leadin buffer into the section correction process
-                    qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Leadin buffer complete, pushing collected sections for processing.";
+                    if (show_debug) qDebug() << "F2SectionCorrection::wait_for_input_to_settle(): Leadin buffer complete, pushing collected sections for processing.";
                     while (!leadin_buffer.isEmpty()) {
                         F2Section leadin_section = leadin_buffer.dequeue();
                         waiting_for_section(leadin_section);
