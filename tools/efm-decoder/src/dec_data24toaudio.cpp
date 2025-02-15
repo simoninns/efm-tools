@@ -74,7 +74,6 @@ void Data24ToAudio::process_queue() {
             }
 
             // Convert the 24 bytes of data into 12 16-bit audio samples
-            // Data is LLRRLLRRLLRRLLRRLLRRLLRR MSByte first
             QVector<int16_t> audio_data;
             QVector<int16_t> audio_error_data;
             for (int i = 0; i < 24; i += 2) {

@@ -116,7 +116,12 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     f2_section_correction.show_statistics(); qInfo() << "";
     f2_section_to_f1_section.show_statistics(); qInfo() << "";
     f1_section_to_data24_section.show_statistics(); qInfo() << "";
-    if (is_output_data_wav) data24_to_audio.show_statistics(); qInfo() << "";
+    if (is_output_data_wav) {
+        data24_to_audio.show_statistics(); qInfo() << "";
+    }
+    if (is_output_data_wav && !no_wav_correction) {
+        audio_correction.show_statistics(); qInfo() << "";
+    }
     
     qInfo() << "Processed" << data24_frame_count << "Data24 Frames," << f1_section_count << "F1 Sections," << f2_section_count << "F2 Sections," << f3_frame_count << "F3 Frames";
 
@@ -234,16 +239,40 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
             }
         }
 
-        // Are there any audio frames ready?
-        while(data24_to_audio.is_ready()) {
-            AudioSection audio_section = data24_to_audio.pop_section();
+        if (no_wav_correction) {
+            // Are there any audio frames ready?
+            // If so we write them to the output file
+            while(data24_to_audio.is_ready()) {
+                AudioSection audio_section = data24_to_audio.pop_section();
 
-            // Each Audio section contains 98 frames that we need to write to the output file
-            // Each frame contains 12 16-bit samples
-            for (int index = 0; index < 98; index++) {
-                Audio audio = audio_section.get_frame(index);
-                output_file.write(reinterpret_cast<const char*>(audio.get_data().data()), audio.get_frame_size() * sizeof(int16_t));
-                audio_frame_count += 1;
+                // Each Audio section contains 98 frames that we need to write to the output file
+                // Each frame contains 12 16-bit samples
+                for (int index = 0; index < 98; index++) {
+                    Audio audio = audio_section.get_frame(index);
+                    output_file.write(reinterpret_cast<const char*>(audio.get_data().data()), audio.get_frame_size() * sizeof(int16_t));
+                    audio_frame_count += 1;
+                }
+            }
+        } else {
+            // Are there any audio frames ready?
+            // If so, attempt to correct them
+            while(data24_to_audio.is_ready()) {
+                AudioSection audio_section = data24_to_audio.pop_section();
+                audio_correction.push_section(audio_section);
+            }
+
+            // Are there any corrected audio frames ready?
+            // If so we write them to the output file
+            while(audio_correction.is_ready()) {
+                AudioSection audio_section = audio_correction.pop_section();
+
+                // Each Audio section contains 98 frames that we need to write to the output file
+                // Each frame contains 12 16-bit samples
+                for (int index = 0; index < 98; index++) {
+                    Audio audio = audio_section.get_frame(index);
+                    output_file.write(reinterpret_cast<const char*>(audio.get_data().data()), audio.get_frame_size() * sizeof(int16_t));
+                    audio_frame_count += 1;
+                }
             }
         }
     }
@@ -258,11 +287,12 @@ void EfmProcessor::set_show_data(bool _showAudio, bool _showData24, bool _showF1
 }
 
 // Set the output data type (true for WAV, false for raw)
-void EfmProcessor::set_output_type(bool _wavOutput) {
+void EfmProcessor::set_output_type(bool _wavOutput, bool _noWavCorrection) {
     is_output_data_wav = _wavOutput;
+    no_wav_correction = _noWavCorrection;
 }
 
-void EfmProcessor::set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio) {
+void EfmProcessor::set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio, bool audioCorrection) {
     // Set the debug flags
     t_values_to_channel.set_show_debug(tvalue);
     channel_to_f3.set_show_debug(channel);
@@ -271,4 +301,5 @@ void EfmProcessor::set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f
     f2_section_to_f1_section.set_show_debug(f1);
     f1_section_to_data24_section.set_show_debug(data24);
     data24_to_audio.set_show_debug(audio);
+    audio_correction.set_show_debug(audioCorrection);
 }

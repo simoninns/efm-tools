@@ -59,16 +59,20 @@ int main(int argc, char *argv[])
     // Add the standard debug options --debug and --quiet
     addStandardDebugOptions(parser);
 
-    // Option to specify output data file type
-    QCommandLineOption outputTypeOption("wav-output", QCoreApplication::translate("main", "Add wav header to output data"));
-    parser.addOption(outputTypeOption);
+    // Group of options for specifying output data file type
+    QList<QCommandLineOption> outputTypeOptions = {
+        QCommandLineOption("wav-output", QCoreApplication::translate("main", "Output data as a WAV file")),
+        QCommandLineOption("no-wav-correction", QCoreApplication::translate("main", "Do not correct the output WAV data")),
+    };
+    parser.addOptions(outputTypeOptions);
 
     // Group of options for showing frame data
     QList<QCommandLineOption> displayFrameDataOptions = {
-        QCommandLineOption("show-f1", QCoreApplication::translate("main", "Show F1 frame data")),
-        QCommandLineOption("show-f2", QCoreApplication::translate("main", "Show F2 frame data")),
         QCommandLineOption("show-f3", QCoreApplication::translate("main", "Show F3 frame data")),
-        QCommandLineOption("show-output", QCoreApplication::translate("main", "Show output data")),
+        QCommandLineOption("show-f2", QCoreApplication::translate("main", "Show F2 frame data")),
+        QCommandLineOption("show-f1", QCoreApplication::translate("main", "Show F1 frame data")),
+        QCommandLineOption("show-data24", QCoreApplication::translate("main", "Show Data24 frame data")),
+        QCommandLineOption("show-audio", QCoreApplication::translate("main", "Show Audio frame data")),
     };
     parser.addOptions(displayFrameDataOptions);
 
@@ -81,6 +85,7 @@ int main(int argc, char *argv[])
         QCommandLineOption("show-f2-debug", QCoreApplication::translate("main", "Show F2 to F1 decoding debug")),
         QCommandLineOption("show-f1-debug", QCoreApplication::translate("main", "Show F1 to Data24 decoding debug")),
         QCommandLineOption("show-audio-debug", QCoreApplication::translate("main", "Show Data24 to audio decoding debug")),
+        QCommandLineOption("show-audio-correction-debug", QCoreApplication::translate("main", "Show Audio correction debug")),
         QCommandLineOption("show-all-debug", QCoreApplication::translate("main", "Show all decoding debug")),
     };
     parser.addOptions(advancedDebugOptions);
@@ -94,6 +99,10 @@ int main(int argc, char *argv[])
 
     // Standard logging options
     processStandardDebugOptions(parser);
+
+    // Check for output data type options
+    bool wav_output = parser.isSet("wav-output");
+    bool no_wav_correction = parser.isSet("no-wav-correction");
 
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
@@ -110,6 +119,7 @@ int main(int argc, char *argv[])
     bool showF2Debug = parser.isSet("show-f2-debug");
     bool showF1Debug = parser.isSet("show-f1-debug");
     bool showAudioDebug = parser.isSet("show-audio-debug");
+    bool showAudioCorrectionDebug = parser.isSet("show-audio-correction-debug");
     bool showAllDebug = parser.isSet("show-all-debug");
 
     if (showAllDebug) {
@@ -120,6 +130,7 @@ int main(int argc, char *argv[])
         showF2Debug = true;
         showF1Debug = true;
         showAudioDebug = true;
+        showAudioCorrectionDebug = true;
     }
 
     // Get the filename arguments from the parser
@@ -134,16 +145,14 @@ int main(int argc, char *argv[])
     input_filename = positional_arguments.at(0);
     output_filename = positional_arguments.at(1);
 
-    // Check for output data type options
-    bool wav_output = parser.isSet(outputTypeOption);
-
     // Perform the processing
     qInfo() << "Beginning EFM decoding of" << input_filename;
     EfmProcessor efm_processor;
 
     efm_processor.set_show_data(showAudio, showData24, showF1, showF2, showF3);
-    efm_processor.set_output_type(wav_output);
-    efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug, showF2Debug, showF1Debug, showAudioDebug);
+    efm_processor.set_output_type(wav_output, no_wav_correction);
+    efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
+        showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
 
     if (!efm_processor.process(input_filename, output_filename)) {
         return 1;
