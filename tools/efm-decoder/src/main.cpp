@@ -61,7 +61,8 @@ int main(int argc, char *argv[])
 
     // Group of options for specifying output data file type
     QList<QCommandLineOption> outputTypeOptions = {
-        QCommandLineOption("wav-output", QCoreApplication::translate("main", "Output data as a WAV file")),
+        QCommandLineOption("output-wav", QCoreApplication::translate("main", "Output data as a WAV file")),
+        QCommandLineOption("output-wav-metadata", QCoreApplication::translate("main", "Output data as a WAV file with metadata")),
         QCommandLineOption("no-wav-correction", QCoreApplication::translate("main", "Do not correct the output WAV data")),
     };
     parser.addOptions(outputTypeOptions);
@@ -101,7 +102,8 @@ int main(int argc, char *argv[])
     processStandardDebugOptions(parser);
 
     // Check for output data type options
-    bool wav_output = parser.isSet("wav-output");
+    bool output_wav = parser.isSet("output-wav");
+    bool output_wav_metadata = parser.isSet("output-wav-metadata");
     bool no_wav_correction = parser.isSet("no-wav-correction");
 
     // Check for frame data options
@@ -150,7 +152,7 @@ int main(int argc, char *argv[])
     EfmProcessor efm_processor;
 
     efm_processor.set_show_data(showAudio, showData24, showF1, showF2, showF3);
-    efm_processor.set_output_type(wav_output, no_wav_correction);
+    efm_processor.set_output_type(output_wav, output_wav_metadata, no_wav_correction);
     efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
         showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
 

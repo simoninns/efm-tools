@@ -30,7 +30,6 @@
 #include <QFile>
 
 #include "decoders.h"
-
 #include "dec_tvaluestochannel.h"
 #include "dec_channeltof3frame.h"
 #include "dec_f3frametof2section.h"
@@ -40,15 +39,19 @@
 #include "dec_data24toaudio.h"
 #include "dec_audiocorrection.h"
 
+#include "writer_data.h"
+#include "writer_wav.h"
+#include "writer_wav_metadata.h"
+
 class EfmProcessor
 {
 public:
     EfmProcessor();
 
     bool process(QString input_filename, QString output_filename);
-    void process_pipeline(QFile& output_file, QFile& metadata_file);
+    void process_pipeline();
     void set_show_data(bool _showAudio, bool _showData24, bool _showF1, bool _showF2, bool _showF3);
-    void set_output_type(bool _wavOutput, bool _noWavCorrection);
+    void set_output_type(bool _wavOutput, bool _outputWavMetadata, bool _noWavCorrection);
     void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio, bool audioCorrection);
 
 private:
@@ -59,13 +62,7 @@ private:
     bool showF3;
     bool is_output_data_wav;
     bool no_wav_correction;
-
-    // Statistics
-    uint32_t data24_frame_count;
-    uint32_t f1_section_count;
-    uint32_t f3_frame_count;
-    uint32_t f2_section_count;
-    uint32_t audio_frame_count;
+    bool output_wav_metadata;
 
     // Decoders
     TvaluesToChannel t_values_to_channel;
@@ -76,6 +73,11 @@ private:
     F1SectionToData24Section f1_section_to_data24_section;
     Data24ToAudio data24_to_audio;
     AudioCorrection audio_correction;
+
+    // Output file writers
+    WriterData writer_data;
+    WriterWav writer_wav;
+    WriterWavMetadata writer_wav_metadata;
 };
 
 #endif // EFM_PROCESSOR_H

@@ -56,6 +56,7 @@ void AudioCorrection::process_queue() {
     while (!input_buffer.isEmpty()) {
         AudioSection audio_section_in = input_buffer.dequeue();
         AudioSection audio_section_out;
+        audio_section_out.metadata = audio_section_in.metadata;
 
         // Sanity check the Audio section
         if (audio_section_in.is_complete() == false) {

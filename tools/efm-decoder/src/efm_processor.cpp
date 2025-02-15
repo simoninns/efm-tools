@@ -25,11 +25,6 @@
 #include "efm_processor.h"
 
 EfmProcessor::EfmProcessor() {
-    data24_frame_count = 0;
-    f1_section_count = 0;
-    f3_frame_count = 0;
-    f2_section_count = 0;
-    audio_frame_count = 0;
 }
 
 bool EfmProcessor::process(QString input_filename, QString output_filename) {
@@ -43,37 +38,23 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         return false;
     }
 
-    // Prepare the output file(s)
-    QFile output_file(output_filename);
-    QFile metadata_file(output_filename + ".metadata");
+    // Prepare the output files...
+    if (!is_output_data_wav) writer_data.open(output_filename);
+    else writer_wav.open(output_filename);
 
-    if (!output_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        qDebug() << "EfmEncoder::process(): Failed to open output file: " << output_filename;
-        return false;
-    }
-
-    // If we are outputting to a WAV file, open a metadata file
-    if (is_output_data_wav) {
-        qDebug() << "EfmProcessor::process(): Outputting to WAV file, adding metadata file";
-
-        if (!metadata_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            qDebug() << "EfmProcessor::process(): Failed to open metadata file: " << output_filename + ".metadata";
-            return false;
+    if (output_wav_metadata && is_output_data_wav) {
+        // Prepare the metadata output file
+        // If the output filename ends in .wav, replace it with .metadata
+        // otherwise append .metadata to the output filename
+        QString metadata_filename = output_filename;
+        if (metadata_filename.endsWith(".wav")) {
+            metadata_filename.replace(".wav", ".metadata");
+        } else {
+            metadata_filename.append(".metadata");
         }
 
-        // Write the metadata header
-        metadata_file.write("EFM-Decode - WAV Metadata\n");
-        metadata_file.write("Format: Absolute time, track number, track time, error list (if present)\n");
-        metadata_file.write("Each time-stamp represents one section with 24*98 bytes (positions 0 to 2351)\n");
-        metadata_file.write("Each section is 1/75th of a second - so timestamps are MM:DD:section 0-74\n");
+        writer_wav_metadata.open(metadata_filename);
     }
-
-    // If we are outputting to a WAV file, we need to leave space for the header
-    if (is_output_data_wav) {
-        qDebug() << "EfmProcessor::process(): Outputting to WAV file, adding header";
-        QByteArray header(44, 0);
-        output_file.write(header);
-    }    
 
     // Get the total size of the input file for progress reporting
     qint64 total_size = input_file.size();
@@ -99,13 +80,13 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
             t_values_to_channel.push_frame(t_values);
         }
 
-        process_pipeline(output_file, metadata_file);
+        process_pipeline();
     }
 
     // We are out of data flush the pipeline
     qInfo() << "Flushing decoding pipelines";
     f2_section_correction.flush();
-    process_pipeline(output_file, metadata_file);
+    process_pipeline();
 
     // Show summary
     qInfo() << "Decoding complete";
@@ -123,49 +104,19 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         audio_correction.show_statistics(); qInfo() << "";
     }
     
-    qInfo() << "Processed" << data24_frame_count << "Data24 Frames," << f1_section_count << "F1 Sections," << f2_section_count << "F2 Sections," << f3_frame_count << "F3 Frames";
-
-    // Should we add a wav header to the output data?
-    if (is_output_data_wav) {
-        qDebug() << "EfmProcessor::process(): Adding WAV header to output data";
-        // WAV file header
-        struct WAVHeader {
-            char riff[4] = {'R', 'I', 'F', 'F'};
-            uint32_t chunkSize;
-            char wave[4] = {'W', 'A', 'V', 'E'};
-            char fmt[4] = {'f', 'm', 't', ' '};
-            uint32_t subchunk1Size = 16; // PCM
-            uint16_t audioFormat = 1; // PCM
-            uint16_t numChannels = 2; // Stereo
-            uint32_t sampleRate = 44100; // 44.1kHz
-            uint32_t byteRate;
-            uint16_t blockAlign;
-            uint16_t bitsPerSample = 16; // 16 bits
-            char data[4] = {'d', 'a', 't', 'a'};
-            uint32_t subchunk2Size;
-        };
-
-        WAVHeader header;
-        header.chunkSize = 36 + output_file.size();
-        header.byteRate = header.sampleRate * header.numChannels * header.bitsPerSample / 8;
-        header.blockAlign = header.numChannels * header.bitsPerSample / 8;
-        header.subchunk2Size = output_file.size();
-
-        // Move to the beginning of the file to write the header
-        output_file.seek(0);
-        output_file.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
-    }
-
-    // Close the input and output files
+    // Close the input file
     input_file.close();
-    output_file.close();
-    if (is_output_data_wav) metadata_file.close();
+
+    // Close the output files
+    if (!is_output_data_wav) writer_data.close();
+    else writer_wav.close();
+    if (output_wav_metadata && is_output_data_wav) writer_wav_metadata.close();
 
     qInfo() << "Encoding complete";
     return true;
 }
 
-void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
+void EfmProcessor::process_pipeline() {
     // Are there any T-values ready?
     while(t_values_to_channel.is_ready()) {
         QByteArray channel_data = t_values_to_channel.pop_frame();
@@ -177,7 +128,6 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
         F3Frame f3_frame = channel_to_f3.pop_frame();
         if (showF3) f3_frame.show_data();
         f3_frame_to_f2_section.push_frame(f3_frame);
-        f3_frame_count++;
     }
 
     // Note: Once we have F2 frames, we have to group them into 98 frame
@@ -188,7 +138,6 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
     while(f3_frame_to_f2_section.is_ready()) {
         F2Section section = f3_frame_to_f2_section.pop_section();
         f2_section_correction.push_section(section);
-        f2_section_count++;
     }
 
     // Are there any corrected F2 sections ready?
@@ -204,7 +153,6 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
         F1Section f1_section = f2_section_to_f1_section.pop_section();
         if (showF1) f1_section.show_data();
         f1_section_to_data24_section.push_section(f1_section);
-        f1_section_count++;
     }
 
     if (!is_output_data_wav) {
@@ -214,12 +162,8 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
         while(f1_section_to_data24_section.is_ready()) {
             Data24Section data24section = f1_section_to_data24_section.pop_section();
 
-            // Each Data24 section contains 98 frames that we need to write to the output file
-            for (int index = 0; index < 98; index++) {
-                Data24 data24 = data24section.get_frame(index);
-                output_file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size() * sizeof(uint8_t));
-                data24_frame_count += 1;
-            }
+            // Write the Data24 frames to the output file as raw data
+            writer_data.write(data24section);
 
             if (showData24) {
                 data24section.show_data();
@@ -232,7 +176,6 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
         while(f1_section_to_data24_section.is_ready()) {
             Data24Section data24section = f1_section_to_data24_section.pop_section();
             data24_to_audio.push_section(data24section);
-            data24_frame_count += 1;
 
             if (showData24) {
                 data24section.show_data();
@@ -245,13 +188,9 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
             while(data24_to_audio.is_ready()) {
                 AudioSection audio_section = data24_to_audio.pop_section();
 
-                // Each Audio section contains 98 frames that we need to write to the output file
-                // Each frame contains 12 16-bit samples
-                for (int index = 0; index < 98; index++) {
-                    Audio audio = audio_section.get_frame(index);
-                    output_file.write(reinterpret_cast<const char*>(audio.get_data().data()), audio.get_frame_size() * sizeof(int16_t));
-                    audio_frame_count += 1;
-                }
+                // Write the Audio frames to the output file as wav data
+                writer_wav.write(audio_section);
+                if (output_wav_metadata) writer_wav_metadata.write(audio_section);
             }
         } else {
             // Are there any audio frames ready?
@@ -266,13 +205,9 @@ void EfmProcessor::process_pipeline(QFile& output_file, QFile& metadata_file) {
             while(audio_correction.is_ready()) {
                 AudioSection audio_section = audio_correction.pop_section();
 
-                // Each Audio section contains 98 frames that we need to write to the output file
-                // Each frame contains 12 16-bit samples
-                for (int index = 0; index < 98; index++) {
-                    Audio audio = audio_section.get_frame(index);
-                    output_file.write(reinterpret_cast<const char*>(audio.get_data().data()), audio.get_frame_size() * sizeof(int16_t));
-                    audio_frame_count += 1;
-                }
+                // Write the Audio frames to the output file as wav data
+                writer_wav.write(audio_section);
+                if (output_wav_metadata) writer_wav_metadata.write(audio_section);
             }
         }
     }
@@ -287,9 +222,10 @@ void EfmProcessor::set_show_data(bool _showAudio, bool _showData24, bool _showF1
 }
 
 // Set the output data type (true for WAV, false for raw)
-void EfmProcessor::set_output_type(bool _wavOutput, bool _noWavCorrection) {
+void EfmProcessor::set_output_type(bool _wavOutput, bool _outputWavMetadata, bool _noWavCorrection) {
     is_output_data_wav = _wavOutput;
     no_wav_correction = _noWavCorrection;
+    output_wav_metadata = _outputWavMetadata;
 }
 
 void EfmProcessor::set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio, bool audioCorrection) {

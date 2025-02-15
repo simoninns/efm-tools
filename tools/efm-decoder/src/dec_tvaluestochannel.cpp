@@ -224,9 +224,13 @@ TvaluesToChannel::State TvaluesToChannel::handle_undershoot() {
             internal_buffer = internal_buffer.right(internal_buffer.size() - third_sync_index);
             next_state = EXPECTING_SYNC;
         } else {
-            if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot -2";
-            // Corrupt frame data - can't recover
-            qFatal("TvaluesToChannel::handle_undershoot() - Undershoot frame detected but no valid frame found between first and third sync headers - what to do?");
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot, first to third sync bit count =" << ftt_bit_count << "second to third sync bit =" << stt_bit_count;
+            if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - Undershoot frame detected but no valid frame found between first and third sync headers - nothing smart to do... dropping frame.";
+            
+            // Remove the frame data from the internal buffer
+            discarded_t_values += internal_buffer.size() - 1;
+            internal_buffer = internal_buffer.right(1);
+            next_state = EXPECTING_INITIAL_SYNC;
         }
     } else {
         if (show_debug) qDebug() << "TvaluesToChannel::handle_undershoot() - No third sync header found.  Staying in undershoot state waiting for more data";
