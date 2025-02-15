@@ -30,10 +30,8 @@ EfmProcessor::EfmProcessor() {
 bool EfmProcessor::process(QString input_filename, QString output_filename) {
     qDebug() << "EfmProcessor::process(): Decoding EFM from file: " << input_filename << " to file: " << output_filename;
 
-    // Prepare the input file
-    QFile input_file(input_filename);
-
-    if (!input_file.open(QIODevice::ReadOnly)) {
+    // Prepare the input file reader
+    if (!reader_data.open(input_filename)) {
         qDebug() << "EfmProcessor::process(): Failed to open input file: " << input_filename;
         return false;
     }
@@ -57,7 +55,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     }
 
     // Get the total size of the input file for progress reporting
-    qint64 total_size = input_file.size();
+    qint64 total_size = reader_data.size();
     qint64 processed_size = 0;
     int last_progress = 0;
 
@@ -65,7 +63,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     bool end_of_data = false;
     while (!end_of_data) {
         // Read 1024 T-values from the input file
-        QByteArray t_values = input_file.read(1024);
+        QByteArray t_values = reader_data.read(1024);
         processed_size += t_values.size();
 
         int progress = static_cast<int>((processed_size * 100) / total_size);
@@ -83,7 +81,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
         process_pipeline();
     }
 
-    // We are out of data flush the pipeline
+    // We are out of data flush the pipeline and process it one last time
     qInfo() << "Flushing decoding pipelines";
     f2_section_correction.flush();
     process_pipeline();
@@ -105,7 +103,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename) {
     }
     
     // Close the input file
-    input_file.close();
+    reader_data.close();
 
     // Close the output files
     if (!is_output_data_wav) writer_data.close();

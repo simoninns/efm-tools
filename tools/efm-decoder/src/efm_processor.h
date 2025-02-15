@@ -43,6 +43,8 @@
 #include "writer_wav.h"
 #include "writer_wav_metadata.h"
 
+#include "reader_data.h"
+
 class EfmProcessor
 {
 public:
@@ -73,6 +75,9 @@ private:
     F1SectionToData24Section f1_section_to_data24_section;
     Data24ToAudio data24_to_audio;
     AudioCorrection audio_correction;
+
+    // Input file readers
+    ReaderData reader_data;
 
     // Output file writers
     WriterData writer_data;
