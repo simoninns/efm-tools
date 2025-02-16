@@ -46,37 +46,37 @@ private:
     void showData(const QString &description, qint32 index, const QString &timeString, QVector<quint8> &data,
                   QVector<quint8> &dataError);
 
-    QQueue<F2Section> inputBuffer;
-    QQueue<F1Section> outputBuffer;
+    QQueue<F2Section> m_inputBuffer;
+    QQueue<F1Section> m_outputBuffer;
 
-    ReedSolomon circ;
+    ReedSolomon m_circ;
 
-    DelayLines delayLine1;
-    DelayLines delayLine2;
-    DelayLines delayLineM;
+    DelayLines m_delayLine1;
+    DelayLines m_delayLine2;
+    DelayLines m_delayLineM;
 
-    DelayLines delayLine1Err;
-    DelayLines delayLine2Err;
-    DelayLines delayLineMErr;
+    DelayLines m_delayLine1Err;
+    DelayLines m_delayLine2Err;
+    DelayLines m_delayLineMErr;
 
-    Interleave interleave;
-    Inverter inverter;
+    Interleave m_interleave;
+    Inverter m_inverter;
 
-    Interleave interleaveErr;
+    Interleave m_interleaveErr;
 
     // Statistics
-    quint32 invalidInputF2FramesCount;
-    quint32 validInputF2FramesCount;
-    quint32 invalidOutputF1FramesCount;
-    quint32 validOutputF1FramesCount;
-    quint32 dlLostFramesCount;
-    quint32 continuityErrorCount;
+    quint32 m_invalidInputF2FramesCount;
+    quint32 m_validInputF2FramesCount;
+    quint32 m_invalidOutputF1FramesCount;
+    quint32 m_validOutputF1FramesCount;
+    quint32 m_dlLostFramesCount;
+    quint32 m_continuityErrorCount;
 
-    quint32 inputByteErrors;
-    quint32 outputByteErrors;
+    quint32 m_inputByteErrors;
+    quint32 m_outputByteErrors;
 
     // Continuity check
-    qint32 lastFrameNumber;
+    qint32 m_lastFrameNumber;
 };
 
 #endif // DEC_F2SECTIONTOF1SECTION_H

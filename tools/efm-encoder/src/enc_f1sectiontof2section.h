@@ -47,7 +47,7 @@ private:
     QQueue<F1Section> input_buffer;
     QQueue<F2Section> output_buffer;
 
-    ReedSolomon circ;
+    ReedSolomon m_circ;
 
     DelayLines delay_line1;
     DelayLines delay_line2;

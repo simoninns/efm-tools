@@ -27,21 +27,21 @@
 ChannelToF3Frame::ChannelToF3Frame()
 {
     // Statistics
-    goodFrames = 0;
-    undershootFrames = 0;
-    overshootFrames = 0;
+    m_goodFrames = 0;
+    m_undershootFrames = 0;
+    m_overshootFrames = 0;
 
-    validEfmSymbols = 0;
-    invalidEfmSymbols = 0;
+    m_validEfmSymbols = 0;
+    m_invalidEfmSymbols = 0;
 
-    validSubcodeSymbols = 0;
-    invalidSubcodeSymbols = 0;
+    m_validSubcodeSymbols = 0;
+    m_invalidSubcodeSymbols = 0;
 }
 
 void ChannelToF3Frame::pushFrame(const QByteArray &data)
 {
     // Add the data to the input buffer
-    inputBuffer.enqueue(data);
+    m_inputBuffer.enqueue(data);
 
     // Process queue
     processQueue();
@@ -50,20 +50,20 @@ void ChannelToF3Frame::pushFrame(const QByteArray &data)
 F3Frame ChannelToF3Frame::popFrame()
 {
     // Return the first item in the output buffer
-    return outputBuffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
 bool ChannelToF3Frame::isReady() const
 {
     // Return true if the output buffer is not empty
-    return !outputBuffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }
 
 void ChannelToF3Frame::processQueue()
 {
-    while (!inputBuffer.isEmpty()) {
+    while (!m_inputBuffer.isEmpty()) {
         // Extract the first item in the input buffer
-        QByteArray frameData = inputBuffer.dequeue();
+        QByteArray frameData = m_inputBuffer.dequeue();
 
         // Count the number of bits in the frame
         int bitCount = 0;
@@ -76,17 +76,17 @@ void ChannelToF3Frame::processQueue()
             qDebug() << "ChannelToF3Frame::processQueue() - Frame data is" << bitCount
                      << "bits (should be 588)";
         if (bitCount == 588)
-            goodFrames++;
+            m_goodFrames++;
         if (bitCount < 588)
-            undershootFrames++;
+            m_undershootFrames++;
         if (bitCount > 588)
-            overshootFrames++;
+            m_overshootFrames++;
 
         // Create an F3 frame
         F3Frame f3Frame = createF3Frame(frameData);
 
         // Place the frame into the output buffer
-        outputBuffer.enqueue(f3Frame);
+        m_outputBuffer.enqueue(f3Frame);
     }
 }
 
@@ -109,28 +109,28 @@ F3Frame ChannelToF3Frame::createF3Frame(const QByteArray &tValues)
     QByteArray frameData = tvaluesToData(tValues);
 
     // Extract the subcode in bits 27-40
-    quint16 subcode = efm.fourteenToEight(getBits(frameData, 27, 40));
+    quint16 subcode = m_efm.fourteenToEight(getBits(frameData, 27, 40));
     if (subcode == 300) {
         subcode = 0;
-        invalidSubcodeSymbols++;
+        m_invalidSubcodeSymbols++;
     } else {
-        validSubcodeSymbols++;
+        m_validSubcodeSymbols++;
     }
 
     // Extract the data values in bits 44-587 ignoring the merging bits
     QVector<quint8> dataValues;
     QVector<quint8> errorValues;
     for (int i = 44; i < (frameData.size() * 8) - 13; i += 17) {
-        quint16 dataValue = efm.fourteenToEight(getBits(frameData, i, i + 13));
+        quint16 dataValue = m_efm.fourteenToEight(getBits(frameData, i, i + 13));
 
         if (dataValue < 256) {
             dataValues.append(dataValue);
             errorValues.append(0);
-            validEfmSymbols++;
+            m_validEfmSymbols++;
         } else {
             dataValues.append(0);
             errorValues.append(1);
-            invalidEfmSymbols++;
+            m_invalidEfmSymbols++;
         }
     }
 
@@ -237,14 +237,14 @@ void ChannelToF3Frame::showStatistics()
 {
     qInfo() << "Channel to F3 Frame statistics:";
     qInfo() << "  Channel Frames:";
-    qInfo() << "    Total:" << goodFrames + undershootFrames + overshootFrames;
-    qInfo() << "    Good:" << goodFrames;
-    qInfo() << "    Undershoot:" << undershootFrames;
-    qInfo() << "    Overshoot:" << overshootFrames;
+    qInfo() << "    Total:" << m_goodFrames + m_undershootFrames + m_overshootFrames;
+    qInfo() << "    Good:" << m_goodFrames;
+    qInfo() << "    Undershoot:" << m_undershootFrames;
+    qInfo() << "    Overshoot:" << m_overshootFrames;
     qInfo() << "  EFM symbols:";
-    qInfo() << "    Valid:" << validEfmSymbols;
-    qInfo() << "    Invalid:" << invalidEfmSymbols;
+    qInfo() << "    Valid:" << m_validEfmSymbols;
+    qInfo() << "    Invalid:" << m_invalidEfmSymbols;
     qInfo() << "  Subcode symbols:";
-    qInfo() << "    Valid:" << validSubcodeSymbols;
-    qInfo() << "    Invalid:" << invalidSubcodeSymbols;
+    qInfo() << "    Valid:" << m_validSubcodeSymbols;
+    qInfo() << "    Invalid:" << m_invalidSubcodeSymbols;
 }

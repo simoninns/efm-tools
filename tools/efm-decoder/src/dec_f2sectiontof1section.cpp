@@ -25,32 +25,32 @@
 #include "dec_f2sectiontof1section.h"
 
 F2SectionToF1Section::F2SectionToF1Section()
-    : delayLine1({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+    : m_delayLine1({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
                    0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
-      delayLine2({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
-      delayLineM({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
+      m_delayLine2({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
+      m_delayLineM({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
                    52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
-      delayLine1Err({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+      m_delayLine1Err({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
                       0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
-      delayLine2Err({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
-      delayLineMErr({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
+      m_delayLine2Err({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
+      m_delayLineMErr({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
                       52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
-      validInputF2FramesCount(0),
-      invalidInputF2FramesCount(0),
-      invalidOutputF1FramesCount(0),
-      validOutputF1FramesCount(0),
-      inputByteErrors(0),
-      outputByteErrors(0),
-      dlLostFramesCount(0),
-      lastFrameNumber(-1),
-      continuityErrorCount(0)
+      m_validInputF2FramesCount(0),
+      m_invalidInputF2FramesCount(0),
+      m_invalidOutputF1FramesCount(0),
+      m_validOutputF1FramesCount(0),
+      m_inputByteErrors(0),
+      m_outputByteErrors(0),
+      m_dlLostFramesCount(0),
+      m_lastFrameNumber(-1),
+      m_continuityErrorCount(0)
 {
 }
 
 void F2SectionToF1Section::pushSection(const F2Section &f2Section)
 {
     // Add the data to the input buffer
-    inputBuffer.enqueue(f2Section);
+    m_inputBuffer.enqueue(f2Section);
 
     // Process the queue
     processQueue();
@@ -59,13 +59,13 @@ void F2SectionToF1Section::pushSection(const F2Section &f2Section)
 F1Section F2SectionToF1Section::popSection()
 {
     // Return the first item in the output buffer
-    return outputBuffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
 bool F2SectionToF1Section::isReady() const
 {
     // Return true if the output buffer is not empty
-    return !outputBuffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }
 
 // Note: The F2 frames will not be correct until the delay lines are full
@@ -74,8 +74,8 @@ bool F2SectionToF1Section::isReady() const
 void F2SectionToF1Section::processQueue()
 {
     // Process the input buffer
-    while (!inputBuffer.isEmpty()) {
-        F2Section f2Section = inputBuffer.dequeue();
+    while (!m_inputBuffer.isEmpty()) {
+        F2Section f2Section = m_inputBuffer.dequeue();
         F1Section f1Section;
 
         // Sanity check the F2 section
@@ -84,20 +84,20 @@ void F2SectionToF1Section::processQueue()
         }
 
         // Check section continuity
-        if (lastFrameNumber != -1) {
+        if (m_lastFrameNumber != -1) {
             if (f2Section.metadata.absoluteSectionTime().frames()
-                != lastFrameNumber + 1) {
-                qWarning() << "F2 Section continuity error last frame:" << lastFrameNumber
+                != m_lastFrameNumber + 1) {
+                qWarning() << "F2 Section continuity error last frame:" << m_lastFrameNumber
                            << "current frame:"
                            << f2Section.metadata.absoluteSectionTime().frames();
                 qWarning() << "Last section time:"
                            << f2Section.metadata.absoluteSectionTime().toString();
                 qWarning() << "This is a bug in the F2 Metadata correction and should be reported";
-                continuityErrorCount++;
+                m_continuityErrorCount++;
             }
-            lastFrameNumber = f2Section.metadata.absoluteSectionTime().frames();
+            m_lastFrameNumber = f2Section.metadata.absoluteSectionTime().frames();
         } else {
-            lastFrameNumber = f2Section.metadata.absoluteSectionTime().frames();
+            m_lastFrameNumber = f2Section.metadata.absoluteSectionTime().frames();
         }
 
         for (int index = 0; index < 98; index++) {
@@ -110,42 +110,42 @@ void F2SectionToF1Section::processQueue()
             // Check F2 frame for errors
             quint32 inFrameErrors = f2Section.frame(index).countErrors();
             if (inFrameErrors == 0)
-                validInputF2FramesCount++;
+                m_validInputF2FramesCount++;
             else {
-                invalidInputF2FramesCount++;
-                inputByteErrors += inFrameErrors;
+                m_invalidInputF2FramesCount++;
+                m_inputByteErrors += inFrameErrors;
             }
 
-            data = delayLine1.push(data);
-            errorData = delayLine1Err.push(errorData);
+            data = m_delayLine1.push(data);
+            errorData = m_delayLine1Err.push(errorData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1Frame;
                 f1Frame.setData(QVector<quint8>(24, 0));
                 f1Section.pushFrame(f1Frame);
-                dlLostFramesCount++;
+                m_dlLostFramesCount++;
                 continue;
             }
 
             // Process the data
             // Note: We will only get valid data if the delay lines are all full
-            inverter.invertParity(data);
+            m_inverter.invertParity(data);
 
             // if (m_showDebug) showData(" C1 Input", index,
             // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);
 
-            circ.c1Decode(data, errorData, m_showDebug);
+            m_circ.c1Decode(data, errorData, m_showDebug);
 
-            data = delayLineM.push(data);
-            errorData = delayLineMErr.push(errorData);
+            data = m_delayLineM.push(data);
+            errorData = m_delayLineMErr.push(errorData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1Frame;
                 f1Frame.setData(QVector<quint8>(24, 0));
                 f1Section.pushFrame(f1Frame);
-                dlLostFramesCount++;
+                m_dlLostFramesCount++;
                 continue;
             }
 
@@ -155,25 +155,25 @@ void F2SectionToF1Section::processQueue()
                          errorData);
 
             // Only perform C2 decode if delay line 1 is full and delay line M is full
-            circ.c2Decode(data, errorData, m_showDebug);
+            m_circ.c2Decode(data, errorData, m_showDebug);
 
             if (m_showDebug)
                 showData("C2 Output", index,
                          f2Section.metadata.absoluteSectionTime().toString(), data,
                          errorData);
 
-            data = interleave.deinterleave(data);
-            errorData = interleaveErr.deinterleave(errorData);
+            data = m_interleave.deinterleave(data);
+            errorData = m_interleaveErr.deinterleave(errorData);
 
-            data = delayLine2.push(data);
-            errorData = delayLine2Err.push(errorData);
+            data = m_delayLine2.push(data);
+            errorData = m_delayLine2Err.push(errorData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1Frame;
                 f1Frame.setData(QVector<quint8>(24, 0));
                 f1Section.pushFrame(f1Frame);
-                dlLostFramesCount++;
+                m_dlLostFramesCount++;
                 continue;
             }
 
@@ -189,10 +189,10 @@ void F2SectionToF1Section::processQueue()
             // Check F1 frame for errors
             quint32 outFrameErrors = f1Frame.countErrors();
             if (outFrameErrors == 0)
-                validOutputF1FramesCount++;
+                m_validOutputF1FramesCount++;
             else {
-                invalidOutputF1FramesCount++;
-                outputByteErrors += outFrameErrors;
+                m_invalidOutputF1FramesCount++;
+                m_outputByteErrors += outFrameErrors;
             }
 
             f1Section.pushFrame(f1Frame);
@@ -202,7 +202,7 @@ void F2SectionToF1Section::processQueue()
         f1Section.metadata = f2Section.metadata;
 
         // Add the section to the output buffer
-        outputBuffer.enqueue(f1Section);
+        m_outputBuffer.enqueue(f1Section);
     }
 }
 
@@ -232,24 +232,24 @@ void F2SectionToF1Section::showStatistics()
 {
     qInfo() << "F2 Section to F1 Section statistics:";
     qInfo() << "  Input F2 Frames:";
-    qInfo() << "    Valid frames:" << validInputF2FramesCount;
-    qInfo() << "    Corrupt frames:" << invalidInputF2FramesCount << "frames containing"
-            << inputByteErrors << "byte errors";
-    qInfo() << "    Delay line lost frames:" << dlLostFramesCount;
-    qInfo() << "    Continuity errors:" << continuityErrorCount;
+    qInfo() << "    Valid frames:" << m_validInputF2FramesCount;
+    qInfo() << "    Corrupt frames:" << m_invalidInputF2FramesCount << "frames containing"
+            << m_inputByteErrors << "byte errors";
+    qInfo() << "    Delay line lost frames:" << m_dlLostFramesCount;
+    qInfo() << "    Continuity errors:" << m_continuityErrorCount;
 
     qInfo() << "  Output F1 Frames (after CIRC):";
-    qInfo() << "    Valid frames:" << validOutputF1FramesCount;
-    qInfo() << "    Corrupt frames:" << invalidOutputF1FramesCount;
-    qInfo() << "    Output byte errors:" << outputByteErrors;
+    qInfo() << "    Valid frames:" << m_validOutputF1FramesCount;
+    qInfo() << "    Corrupt frames:" << m_invalidOutputF1FramesCount;
+    qInfo() << "    Output byte errors:" << m_outputByteErrors;
 
     qInfo() << "  C1 decoder:";
-    qInfo() << "    Valid C1s:" << circ.validC1s();
-    qInfo() << "    Fixed C1s:" << circ.fixedC1s();
-    qInfo() << "    Error C1s:" << circ.errorC1s();
+    qInfo() << "    Valid C1s:" << m_circ.validC1s();
+    qInfo() << "    Fixed C1s:" << m_circ.fixedC1s();
+    qInfo() << "    Error C1s:" << m_circ.errorC1s();
 
     qInfo() << "  C2 decoder:";
-    qInfo() << "    Valid C2s:" << circ.validC2s();
-    qInfo() << "    Fixed C2s:" << circ.fixedC2s();
-    qInfo() << "    Error C2s:" << circ.errorC2s();
+    qInfo() << "    Valid C2s:" << m_circ.validC2s();
+    qInfo() << "    Fixed C2s:" << m_circ.fixedC2s();
+    qInfo() << "    Error C2s:" << m_circ.errorC2s();
 }

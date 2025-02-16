@@ -45,19 +45,19 @@ private:
     QByteArray tvaluesToData(const QByteArray &tvalues);
     quint16 getBits(const QByteArray &data, int startBit, int endBit);
 
-    Efm efm;
+    Efm m_efm;
 
-    QQueue<QByteArray> inputBuffer;
-    QQueue<F3Frame> outputBuffer;
+    QQueue<QByteArray> m_inputBuffer;
+    QQueue<F3Frame> m_outputBuffer;
 
     // Statistics
-    quint32 goodFrames;
-    quint32 undershootFrames;
-    quint32 overshootFrames;
-    quint32 validEfmSymbols;
-    quint32 invalidEfmSymbols;
-    quint32 validSubcodeSymbols;
-    quint32 invalidSubcodeSymbols;
+    quint32 m_goodFrames;
+    quint32 m_undershootFrames;
+    quint32 m_overshootFrames;
+    quint32 m_validEfmSymbols;
+    quint32 m_invalidEfmSymbols;
+    quint32 m_validSubcodeSymbols;
+    quint32 m_invalidSubcodeSymbols;
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H
