@@ -77,15 +77,19 @@ void TvaluesToChannel::processStateMachine()
     while (m_internalBuffer.size() > 382) {
         switch (m_currentState) {
         case ExpectingInitialSync:
+            //qDebug() << "TvaluesToChannel::processStateMachine() - State: ExpectingInitialSync";
             m_currentState = expectingInitialSync();
             break;
         case ExpectingSync:
+            //qDebug() << "TvaluesToChannel::processStateMachine() - State: ExpectingSync";
             m_currentState = expectingSync();
             break;
         case HandleOvershoot:
+            //qDebug() << "TvaluesToChannel::processStateMachine() - State: HandleOvershoot";
             m_currentState = handleOvershoot();
             break;
         case HandleUndershoot:
+            //qDebug() << "TvaluesToChannel::processStateMachine() - State: HandleUndershoot";
             m_currentState = handleUndershoot();
             break;
         }
@@ -169,6 +173,15 @@ TvaluesToChannel::State TvaluesToChannel::expectingSync()
                 nextState = HandleUndershoot;
             }
         }
+    } else {
+        // The buffer does not contain a valid second sync header, so throw it away
+        
+        if (m_showDebug)
+            qDebug() << "TvaluesToChannel::expectingSync() - No second sync header found, sync lost - dropping" << m_internalBuffer.size() << "T-values";
+
+        m_discardedTValues += m_internalBuffer.size();
+        m_internalBuffer.clear();
+        nextState = ExpectingInitialSync;
     }
 
     return nextState;
@@ -254,9 +267,18 @@ TvaluesToChannel::State TvaluesToChannel::handleUndershoot()
             m_internalBuffer = m_internalBuffer.right(m_internalBuffer.size() - thirdSyncIndex);
         }
     } else {
-        if (m_showDebug)
-            qDebug() << "TvaluesToChannel::handleUndershoot() - No third sync header found.  Staying in undershoot state waiting for more data";
-        nextState = HandleUndershoot;
+        if (m_internalBuffer.size() <= 382) {
+            if (m_showDebug)
+                qDebug() << "TvaluesToChannel::handleUndershoot() - No third sync header found.  Staying in undershoot state waiting for more data.";
+            nextState = HandleUndershoot;
+        } else {
+            if (m_showDebug)
+                qDebug() << "TvaluesToChannel::handleUndershoot() - No third sync header found - Sync lost.  Dropping" << m_internalBuffer.size() - 1 << "T-values";
+            
+            m_discardedTValues += m_internalBuffer.size() - 1;
+            m_internalBuffer = m_internalBuffer.right(1);
+            nextState = ExpectingInitialSync;
+        }
     }
 
     return nextState;
