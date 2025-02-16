@@ -388,12 +388,12 @@ QByteArray Subcode::toData(const SectionMetadata &sectionMetadata)
     data[1] = 0x00; // Sync1
 
     for (int index = 2; index < 98; ++index) {
-        quint8 subcodeByte = 0x00;
+        quint8 m_subcodeByte = 0x00;
         if (getBit(pChannelData, index - 2))
-            subcodeByte |= 0x80;
+            m_subcodeByte |= 0x80;
         if (getBit(qChannelData, index - 2))
-            subcodeByte |= 0x40;
-        data[index] = subcodeByte;
+            m_subcodeByte |= 0x40;
+        data[index] = m_subcodeByte;
     }
 
     return data;

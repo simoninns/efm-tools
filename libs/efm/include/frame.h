@@ -47,8 +47,8 @@ public:
     bool isEmpty() const;
 
 protected:
-    QVector<quint8> frameData;
-    QVector<quint8> frameErrorData;
+    QVector<quint8> m_frameData;
+    QVector<quint8> m_frameErrorData;
 };
 
 class Data24 : public Frame
@@ -96,8 +96,8 @@ public:
     void showData();
 
 private:
-    F3FrameType f3FrameType;
-    quint8 subcodeByte;
+    F3FrameType m_f3FrameType;
+    quint8 m_subcodeByte;
 };
 
 #endif // FRAME_H

@@ -33,19 +33,19 @@
 DelayLines::DelayLines(QVector<quint32> delayLengths)
 {
     for (qint32 i = 0; i < delayLengths.size(); ++i) {
-        delayLines.append(DelayLine(delayLengths[i]));
+        m_delayLines.append(DelayLine(delayLengths[i]));
     }
 }
 
 QVector<quint8> DelayLines::push(QVector<quint8> inputData)
 {
-    if (inputData.size() != delayLines.size()) {
+    if (inputData.size() != m_delayLines.size()) {
         qFatal("Input data size does not match the number of delay lines.");
     }
 
     QVector<quint8> outputData;
-    for (qint32 i = 0; i < delayLines.size(); ++i) {
-        outputData.append(delayLines[i].push(inputData[i]));
+    for (qint32 i = 0; i < m_delayLines.size(); ++i) {
+        outputData.append(m_delayLines[i].push(inputData[i]));
     }
 
     // Check if the delay lines are ready and, if not, return an empty vector
@@ -58,8 +58,8 @@ QVector<quint8> DelayLines::push(QVector<quint8> inputData)
 
 bool DelayLines::isReady()
 {
-    for (qint32 i = 0; i < delayLines.size(); ++i) {
-        if (!delayLines[i].isReady()) {
+    for (qint32 i = 0; i < m_delayLines.size(); ++i) {
+        if (!m_delayLines[i].isReady()) {
             return false;
         }
     }
@@ -68,8 +68,8 @@ bool DelayLines::isReady()
 
 void DelayLines::flush()
 {
-    for (qint32 i = 0; i < delayLines.size(); ++i) {
-        delayLines[i].flush();
+    for (qint32 i = 0; i < m_delayLines.size(); ++i) {
+        m_delayLines[i].flush();
     }
 }
 

@@ -51,7 +51,7 @@ public:
     void flush();
 
 private:
-    QVector<DelayLine> delayLines;
+    QVector<DelayLine> m_delayLines;
 };
 
 #endif // DELAY_LINES_H

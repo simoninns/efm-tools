@@ -36,9 +36,9 @@ public:
 
     QString tvaluesToBitString(const QByteArray &tvalues);
 
-    quint32 getInvalidHighTValuesCount() const { return m_invalidHighTValuesCount; }
-    quint32 getInvalidLowTValuesCount() const { return m_invalidLowTValuesCount; }
-    quint32 getValidTValuesCount() const { return m_validTValuesCount; }
+    quint32 invalidHighTValuesCount() const { return m_invalidHighTValuesCount; }
+    quint32 invalidLowTValuesCount() const { return m_invalidLowTValuesCount; }
+    quint32 validTValuesCount() const { return m_validTValuesCount; }
 
 private:
     quint32 m_invalidHighTValuesCount;

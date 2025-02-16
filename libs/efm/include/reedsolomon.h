@@ -58,22 +58,22 @@ public:
     void c2Encode(QVector<quint8> &inputData);
     void c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorData, bool m_showDebug);
 
-    qint32 getValidC1s();
-    qint32 getFixedC1s();
-    qint32 getErrorC1s();
+    qint32 validC1s();
+    qint32 fixedC1s();
+    qint32 errorC1s();
 
-    qint32 getValidC2s();
-    qint32 getFixedC2s();
-    qint32 getErrorC2s();
+    qint32 validC2s();
+    qint32 fixedC2s();
+    qint32 errorC2s();
 
 private:
-    qint32 validC1s;
-    qint32 fixedC1s;
-    qint32 errorC1s;
+    qint32 m_validC1s;
+    qint32 m_fixedC1s;
+    qint32 m_errorC1s;
 
-    qint32 validC2s;
-    qint32 fixedC2s;
-    qint32 errorC2s;
+    qint32 m_validC2s;
+    qint32 m_fixedC2s;
+    qint32 m_errorC2s;
 };
 
 #endif // REEDSOLOMON_H

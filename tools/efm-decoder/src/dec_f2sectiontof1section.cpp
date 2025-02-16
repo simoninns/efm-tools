@@ -244,12 +244,12 @@ void F2SectionToF1Section::showStatistics()
     qInfo() << "    Output byte errors:" << outputByteErrors;
 
     qInfo() << "  C1 decoder:";
-    qInfo() << "    Valid C1s:" << circ.getValidC1s();
-    qInfo() << "    Fixed C1s:" << circ.getFixedC1s();
-    qInfo() << "    Error C1s:" << circ.getErrorC1s();
+    qInfo() << "    Valid C1s:" << circ.validC1s();
+    qInfo() << "    Fixed C1s:" << circ.fixedC1s();
+    qInfo() << "    Error C1s:" << circ.errorC1s();
 
     qInfo() << "  C2 decoder:";
-    qInfo() << "    Valid C2s:" << circ.getValidC2s();
-    qInfo() << "    Fixed C2s:" << circ.getFixedC2s();
-    qInfo() << "    Error C2s:" << circ.getErrorC2s();
+    qInfo() << "    Valid C2s:" << circ.validC2s();
+    qInfo() << "    Fixed C2s:" << circ.fixedC2s();
+    qInfo() << "    Error C2s:" << circ.errorC2s();
 }

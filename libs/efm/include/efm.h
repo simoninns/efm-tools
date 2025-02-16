@@ -50,7 +50,7 @@ public:
 private:
     static constexpr size_t EFM_LUT_SIZE = 258; // 256 + 2 sync symbols
     static constexpr quint16 INVALID_EFM = 300;
-    QHash<quint16, quint16> efmHash;
+    QHash<quint16, quint16> m_efmHash;
 
     // The following table provides the 10-bit EFM code (padded with leading
     // zeros to 16-bit) corresponding to 0 to 255.  The represented number is

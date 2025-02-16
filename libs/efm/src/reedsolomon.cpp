@@ -46,13 +46,13 @@ C2RS<255, 255 - 4> c2rs;
 ReedSolomon::ReedSolomon()
 {
     // Initialise statistics
-    validC1s = 0;
-    fixedC1s = 0;
-    errorC1s = 0;
+    m_validC1s = 0;
+    m_fixedC1s = 0;
+    m_errorC1s = 0;
 
-    validC2s = 0;
-    fixedC2s = 0;
-    errorC2s = 0;
+    m_validC2s = 0;
+    m_fixedC2s = 0;
+    m_errorC2s = 0;
 }
 
 // Perform a C1 Reed-Solomon encoding operation on the input data
@@ -109,7 +109,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
         inputData = QVector<quint8>(tmpData.begin(), tmpData.end() - 4);
         errorData.resize(inputData.size());
         errorData.fill(1);
-        ++errorC1s;
+        ++m_errorC1s;
         return;
     }
 
@@ -124,9 +124,9 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     if (result >= 0) {
         errorData.fill(0);
         if (result == 0)
-            ++validC1s;
+            ++m_validC1s;
         else
-            ++fixedC1s;
+            ++m_fixedC1s;
         return;
     }
 
@@ -135,7 +135,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // Make every byte in the error data 1 - i.e. all errors
     errorData.fill(1);
-    ++errorC1s;
+    ++m_errorC1s;
     return;
 }
 
@@ -206,7 +206,7 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
                 + QVector<quint8>(tmpData.begin() + 16, tmpData.end());
         errorData.resize(inputData.size());
         errorData.fill(1);
-        ++errorC2s;
+        ++m_errorC2s;
         return;
     }
 
@@ -228,9 +228,9 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     if (result >= 0) {
         errorData.fill(0);
         if (result == 0)
-            ++validC2s;
+            ++m_validC2s;
         else
-            ++fixedC2s;
+            ++m_fixedC2s;
         return;
     }
 
@@ -239,37 +239,37 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
         qDebug().noquote() << "ReedSolomon::c2Decode - C2 corrupt and could not be fixed"
                            << result;
     errorData.fill(1);
-    ++errorC2s;
+    ++m_errorC2s;
     return;
 }
 
 // Getter functions for the statistics
-qint32 ReedSolomon::getValidC1s()
+qint32 ReedSolomon::validC1s()
 {
-    return validC1s;
+    return m_validC1s;
 }
 
-qint32 ReedSolomon::getFixedC1s()
+qint32 ReedSolomon::fixedC1s()
 {
-    return fixedC1s;
+    return m_fixedC1s;
 }
 
-qint32 ReedSolomon::getErrorC1s()
+qint32 ReedSolomon::errorC1s()
 {
-    return errorC1s;
+    return m_errorC1s;
 }
 
-qint32 ReedSolomon::getValidC2s()
+qint32 ReedSolomon::validC2s()
 {
-    return validC2s;
+    return m_validC2s;
 }
 
-qint32 ReedSolomon::getFixedC2s()
+qint32 ReedSolomon::fixedC2s()
 {
-    return fixedC2s;
+    return m_fixedC2s;
 }
 
-qint32 ReedSolomon::getErrorC2s()
+qint32 ReedSolomon::errorC2s()
 {
-    return errorC2s;
+    return m_errorC2s;
 }

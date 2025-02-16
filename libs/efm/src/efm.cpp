@@ -27,11 +27,11 @@
 Efm::Efm() noexcept
 {
     // Pre-allocate hash table to avoid rehashing
-    efmHash.reserve(EFM_LUT_SIZE);
+    m_efmHash.reserve(EFM_LUT_SIZE);
     
     // Initialise the hash table
     for (quint16 i = 0; i < EFM_LUT_SIZE; ++i) {
-        efmHash.insert(efmLut[i], i);
+        m_efmHash.insert(efmLut[i], i);
     }
 }
 
@@ -40,8 +40,8 @@ Efm::Efm() noexcept
 quint16 Efm::fourteenToEight(quint16 efm) const noexcept
 {
     // Use hash table for O(1) lookup instead of linear search
-    auto it = efmHash.find(efm);
-    return it != efmHash.end() ? it.value() : INVALID_EFM;
+    auto it = m_efmHash.find(efm);
+    return it != m_efmHash.end() ? it.value() : INVALID_EFM;
 }
 
 QString Efm::eightToFourteen(quint16 value) const
