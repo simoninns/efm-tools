@@ -65,8 +65,8 @@ void F1SectionToData24Section::processQueue()
         }
 
         for (int index = 0; index < 98; ++index) {
-            QVector<quint8> data = f1Section.frame(index).getData();
-            QVector<quint8> errorData = f1Section.frame(index).getErrorData();
+            QVector<quint8> data = f1Section.frame(index).data();
+            QVector<quint8> errorData = f1Section.frame(index).errorData();
 
             // ECMA-130 issue 2 page 16 - Clause 16
             // All byte pairs are swapped by the F1 Frame encoder

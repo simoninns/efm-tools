@@ -101,8 +101,8 @@ void F2SectionToF1Section::processQueue()
         }
 
         for (int index = 0; index < 98; index++) {
-            QVector<quint8> data = f2Section.frame(index).getData();
-            QVector<quint8> errorData = f2Section.frame(index).getErrorData();
+            QVector<quint8> data = f2Section.frame(index).data();
+            QVector<quint8> errorData = f2Section.frame(index).errorData();
 
             // if (m_showDebug) showData(" F2 Input", index,
             // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);

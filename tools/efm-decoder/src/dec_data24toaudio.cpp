@@ -67,8 +67,8 @@ void Data24ToAudio::processQueue()
         }
 
         for (int index = 0; index < 98; ++index) {
-            QVector<quint8> data24Data = data24Section.frame(index).getData();
-            QVector<quint8> data24ErrorData = data24Section.frame(index).getErrorData();
+            QVector<quint8> data24Data = data24Section.frame(index).data();
+            QVector<quint8> data24ErrorData = data24Section.frame(index).errorData();
 
             if (data24Section.frame(index).countErrors() != 0) {
                 ++m_invalidData24FramesCount;

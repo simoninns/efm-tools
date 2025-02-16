@@ -77,7 +77,7 @@ F3FrameToF2Section::State F3FrameToF2Section::expectingSync0()
     F3Frame f3Frame = m_inputBuffer.dequeue();
     State nextState = ExpectingSync0;
 
-    switch (f3Frame.getF3FrameType()) {
+    switch (f3Frame.f3FrameType()) {
     case F3Frame::Sync0:
         m_sectionBuffer.clear();
         m_sectionBuffer.append(f3Frame);
@@ -122,7 +122,7 @@ F3FrameToF2Section::State F3FrameToF2Section::expectingSync1()
     F3Frame f3Frame = m_inputBuffer.dequeue();
     State nextState = ExpectingSync1;
 
-    switch (f3Frame.getF3FrameType()) {
+    switch (f3Frame.f3FrameType()) {
     case F3Frame::Sync1:
         m_sectionBuffer.append(f3Frame);
         nextState = ExpectingSubcode;
@@ -153,7 +153,7 @@ F3FrameToF2Section::State F3FrameToF2Section::expectingSubcode()
     F3Frame f3Frame = m_inputBuffer.dequeue();
     State nextState = ExpectingSubcode;
 
-    switch (f3Frame.getF3FrameType()) {
+    switch (f3Frame.f3FrameType()) {
     case F3Frame::Subcode:
         m_sectionBuffer.append(f3Frame);
         if (m_sectionBuffer.size() == 98) {
@@ -192,16 +192,16 @@ F3FrameToF2Section::State F3FrameToF2Section::processSection()
         qFatal("F3FrameToF2Section::processSection - Section buffer is not full");
     }
 
-    if (m_sectionBuffer.first().getF3FrameType() != F3Frame::Sync0) {
+    if (m_sectionBuffer.first().f3FrameType() != F3Frame::Sync0) {
         qFatal("F3FrameToF2Section::processSection - First frame in section buffer is not a Sync0");
     }
 
-    if (m_sectionBuffer.at(1).getF3FrameType() != F3Frame::Sync1) {
+    if (m_sectionBuffer.at(1).f3FrameType() != F3Frame::Sync1) {
         qFatal("F3FrameToF2Section::processSection - Second frame in section buffer is not a Sync1");
     }
 
     for (int i = 2; i < 98; ++i) {
-        if (m_sectionBuffer.at(i).getF3FrameType() != F3Frame::Subcode) {
+        if (m_sectionBuffer.at(i).f3FrameType() != F3Frame::Subcode) {
             qFatal("F3FrameToF2Section::processSection - Frame %d in section buffer is not a Subcode", i);
         }
     }
@@ -212,15 +212,15 @@ F3FrameToF2Section::State F3FrameToF2Section::processSection()
 
     QByteArray subcodeData;
     for (int i = 0; i < 98; ++i) {
-        subcodeData.append(m_sectionBuffer[i].getSubcodeByte());
+        subcodeData.append(m_sectionBuffer[i].subcodeByte());
     }
     SectionMetadata sectionMetadata = subcode.fromData(subcodeData);
 
     F2Section f2Section;
     for (quint32 index = 0; index < 98; ++index) {
         F2Frame f2Frame;
-        f2Frame.setData(m_sectionBuffer[index].getData());
-        f2Frame.setErrorData(m_sectionBuffer[index].getErrorData());
+        f2Frame.setData(m_sectionBuffer[index].data());
+        f2Frame.setErrorData(m_sectionBuffer[index].errorData());
         f2Section.pushFrame(f2Frame);
     }
 

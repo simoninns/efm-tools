@@ -67,7 +67,7 @@ void F2SectionToF3Frames::process_queue()
                 f3_frame.setFrameTypeAsSubcode(subcode_data[symbol_number]);
             }
 
-            f3_frame.setData(f2_frame.getData());
+            f3_frame.setData(f2_frame.data());
 
             valid_f3_frames_count++;
             f3_frames.append(f3_frame);

@@ -72,7 +72,7 @@ void F3FrameToChannel::process_queue()
     while (!input_buffer.isEmpty()) {
         // Pop the F3 frame data from the processing queue
         F3Frame f3_frame = input_buffer.dequeue();
-        QVector<uint8_t> f3_frame_data = f3_frame.getData();
+        QVector<uint8_t> f3_frame_data = f3_frame.data();
 
         // Ensure the F3 frame data is 32 bytes long
         if (f3_frame_data.size() != 32) {
@@ -102,9 +102,9 @@ void F3FrameToChannel::process_queue()
         QString subcode_value;
 
         // Subcode sync0 and sync1 headers (based on the F3 frame type)
-        if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Subcode) {
-            subcode_value = efm.eightToFourteen(f3_frame.getSubcodeByte());
-        } else if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Sync0) {
+        if (f3_frame.f3FrameType() == F3Frame::F3FrameType::Subcode) {
+            subcode_value = efm.eightToFourteen(f3_frame.subcodeByte());
+        } else if (f3_frame.f3FrameType() == F3Frame::F3FrameType::Sync0) {
             subcode_value += efm.eightToFourteen(256);
             total_sections++;
 
@@ -120,7 +120,7 @@ void F3FrameToChannel::process_queue()
         // Corrupt the subcode sync0 and sync1 patterns?
         if (corrupt_subcode_sync) {
             if (total_sections % corrupt_subcode_sync_frequency == 0) {
-                if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Sync0) {
+                if (f3_frame.f3FrameType() == F3Frame::F3FrameType::Sync0) {
                     if (subcode_corruption_type == 0
                         || (subcode_corruption_type >= 1 && subcode_corruption_type <= 4)) {
                         // Corrupt the sync0 pattern
@@ -131,7 +131,7 @@ void F3FrameToChannel::process_queue()
                     }
                 }
 
-                if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Sync1) {
+                if (f3_frame.f3FrameType() == F3Frame::F3FrameType::Sync1) {
                     if (subcode_corruption_type == 0
                         || (subcode_corruption_type >= 5 && subcode_corruption_type <= 8)) {
                         // Corrupt the sync1 pattern

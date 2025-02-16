@@ -39,7 +39,7 @@ public:
     void push_section(F1Section f1_section);
     F2Section pop_section();
     bool is_ready() const;
-    uint32_t get_valid_output_sections_count() const override { return valid_f2_sections_count; };
+    uint32_t validOutputSectionsCount() const override { return valid_f2_sections_count; };
 
 private:
     void process_queue();

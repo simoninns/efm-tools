@@ -30,19 +30,19 @@
 // Set the data for the frame, ensuring it matches the frame size
 void Frame::setData(const QVector<quint8> &data)
 {
-    if (data.size() != getFrameSize()) {
+    if (data.size() != frameSize()) {
         qFatal("Frame::setData(): Data size of %d does not match frame size of %d", data.size(),
-               getFrameSize());
+               frameSize());
     }
     m_frameData = data;
 }
 
 // Get the data for the frame, returning a zero-filled vector if empty
-QVector<quint8> Frame::getData() const
+QVector<quint8> Frame::data() const
 {
     if (m_frameData.isEmpty()) {
         qDebug() << "Frame::getData(): Frame is empty, returning zero-filled vector";
-        return QVector<quint8>(getFrameSize(), 0);
+        return QVector<quint8>(frameSize(), 0);
     }
     return m_frameData;
 }
@@ -51,20 +51,20 @@ QVector<quint8> Frame::getData() const
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
 void Frame::setErrorData(const QVector<quint8> &errorData)
 {
-    if (errorData.size() != getFrameSize()) {
+    if (errorData.size() != frameSize()) {
         qFatal("Frame::setErrorData(): Error data size of %d does not match frame size of %d",
-               errorData.size(), getFrameSize());
+               errorData.size(), frameSize());
     }
     m_frameErrorData = errorData;
 }
 
 // Get the error_data for the frame, returning a zero-filled vector if empty
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-QVector<quint8> Frame::getErrorData() const
+QVector<quint8> Frame::errorData() const
 {
     if (m_frameErrorData.isEmpty()) {
         qDebug() << "Frame::getErrorData(): Error frame is empty, returning zero-filled vector";
-        return QVector<quint8>(getFrameSize(), 0);
+        return QVector<quint8>(frameSize(), 0);
     }
     return m_frameErrorData;
 }
@@ -96,8 +96,8 @@ bool Frame::isEmpty() const
 // Constructor for Data24, initializes data to the frame size
 Data24::Data24()
 {
-    m_frameData.resize(getFrameSize());
-    m_frameErrorData.resize(getFrameSize());
+    m_frameData.resize(frameSize());
+    m_frameErrorData.resize(frameSize());
     m_frameErrorData.fill(0);
 }
 
@@ -130,7 +130,7 @@ void Data24::setErrorData(const QVector<quint8> &errorData)
 }
 
 // Get the frame size for Data24
-int Data24::getFrameSize() const
+int Data24::frameSize() const
 {
     return 24;
 }
@@ -157,13 +157,13 @@ void Data24::showData()
 // Constructor for F1Frame, initializes data to the frame size
 F1Frame::F1Frame()
 {
-    m_frameData.resize(getFrameSize());
-    m_frameErrorData.resize(getFrameSize());
+    m_frameData.resize(frameSize());
+    m_frameErrorData.resize(frameSize());
     m_frameErrorData.fill(0);
 }
 
 // Get the frame size for F1Frame
-int F1Frame::getFrameSize() const
+int F1Frame::frameSize() const
 {
     return 24;
 }
@@ -190,13 +190,13 @@ void F1Frame::showData()
 // Constructor for F2Frame, initializes data to the frame size
 F2Frame::F2Frame()
 {
-    m_frameData.resize(getFrameSize());
-    m_frameErrorData.resize(getFrameSize());
+    m_frameData.resize(frameSize());
+    m_frameErrorData.resize(frameSize());
     m_frameErrorData.fill(0);
 }
 
 // Get the frame size for F2Frame
-int F2Frame::getFrameSize() const
+int F2Frame::frameSize() const
 {
     return 32;
 }
@@ -223,13 +223,13 @@ void F2Frame::showData()
 // Constructor for F3Frame, initializes data to the frame size
 F3Frame::F3Frame()
 {
-    m_frameData.resize(getFrameSize());
+    m_frameData.resize(frameSize());
     m_subcodeByte = 0;
     m_f3FrameType = Subcode;
 }
 
 // Get the frame size for F3Frame
-int F3Frame::getFrameSize() const
+int F3Frame::frameSize() const
 {
     return 32;
 }
@@ -256,13 +256,13 @@ void F3Frame::setFrameTypeAsSync1()
 }
 
 // Get the F3 frame type
-F3Frame::F3FrameType F3Frame::getF3FrameType() const
+F3Frame::F3FrameType F3Frame::f3FrameType() const
 {
     return m_f3FrameType;
 }
 
 // Get the F3 frame type as a QString
-QString F3Frame::getF3FrameTypeAsString() const
+QString F3Frame::f3FrameTypeAsString() const
 {
     switch (m_f3FrameType) {
     case Subcode:
@@ -277,7 +277,7 @@ QString F3Frame::getF3FrameTypeAsString() const
 }
 
 // Get the subcode value
-quint8 F3Frame::getSubcodeByte() const
+quint8 F3Frame::subcodeByte() const
 {
     return m_subcodeByte;
 }

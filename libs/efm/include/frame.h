@@ -34,13 +34,13 @@ class Frame
 {
 public:
     virtual ~Frame() {} // Virtual destructor
-    virtual int getFrameSize() const = 0; // Pure virtual function to get frame size
+    virtual int frameSize() const = 0; // Pure virtual function to get frame size
 
     virtual void setData(const QVector<quint8> &data);
-    virtual QVector<quint8> getData() const;
+    virtual QVector<quint8> data() const;
 
     virtual void setErrorData(const QVector<quint8> &errorData);
-    virtual QVector<quint8> getErrorData() const;
+    virtual QVector<quint8> errorData() const;
     virtual quint32 countErrors() const;
 
     bool isFull() const;
@@ -55,7 +55,7 @@ class Data24 : public Frame
 {
 public:
     Data24();
-    int getFrameSize() const override;
+    int frameSize() const override;
     void showData();
     void setData(const QVector<quint8> &data) override;
     void setErrorData(const QVector<quint8> &errorData) override;
@@ -65,7 +65,7 @@ class F1Frame : public Frame
 {
 public:
     F1Frame();
-    int getFrameSize() const override;
+    int frameSize() const override;
     void showData();
 };
 
@@ -73,7 +73,7 @@ class F2Frame : public Frame
 {
 public:
     F2Frame();
-    int getFrameSize() const override;
+    int frameSize() const override;
     void showData();
 };
 
@@ -83,15 +83,15 @@ public:
     enum F3FrameType { Subcode, Sync0, Sync1 };
 
     F3Frame();
-    int getFrameSize() const override;
+    int frameSize() const override;
 
     void setFrameTypeAsSubcode(quint8 subcode);
     void setFrameTypeAsSync0();
     void setFrameTypeAsSync1();
 
-    F3FrameType getF3FrameType() const;
-    QString getF3FrameTypeAsString() const;
-    quint8 getSubcodeByte() const;
+    F3FrameType f3FrameType() const;
+    QString f3FrameTypeAsString() const;
+    quint8 subcodeByte() const;
 
     void showData();
 

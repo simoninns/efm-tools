@@ -36,7 +36,7 @@ public:
     void push_section(F2Section f2_section);
     QVector<F3Frame> pop_frames();
     bool is_ready() const;
-    uint32_t get_valid_output_sections_count() const override { return valid_f3_frames_count; };
+    uint32_t validOutputSectionsCount() const override { return valid_f3_frames_count; };
 
 private:
     void process_queue();

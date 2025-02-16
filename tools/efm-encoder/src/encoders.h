@@ -35,7 +35,7 @@
 class Encoder
 {
 public:
-    virtual uint32_t get_valid_output_sections_count() const = 0;
+    virtual uint32_t validOutputSectionsCount() const = 0;
 };
 
 #endif // ENCODERS_H

@@ -56,7 +56,7 @@ void Data24SectionToF1Section::process_queue()
 
             // ECMA-130 issue 2 page 16 - Clause 16
             // All byte pairs are swapped by the F1 Frame encoder
-            QVector<uint8_t> data = data24.getData();
+            QVector<uint8_t> data = data24.data();
             for (int i = 0; i < data.size(); i += 2) {
                 std::swap(data[i], data[i + 1]);
             }

@@ -276,10 +276,10 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
                       << size_value << size_unit;
     qInfo().noquote() << "Final time was" << section_time.toString();
 
-    qInfo() << data24_section_to_f1_section.get_valid_output_sections_count() << "F1 sections";
-    qInfo() << f1_section_to_f2_section.get_valid_output_sections_count() << "F2 sections";
-    qInfo() << f2_section_to_f3_frames.get_valid_output_sections_count() << "F3 frames";
-    qInfo() << f3_frame_to_channel.get_valid_output_sections_count() << "Channel frames";
+    qInfo() << data24_section_to_f1_section.validOutputSectionsCount() << "F1 sections";
+    qInfo() << f1_section_to_f2_section.validOutputSectionsCount() << "F2 sections";
+    qInfo() << f2_section_to_f3_frames.validOutputSectionsCount() << "F3 frames";
+    qInfo() << f3_frame_to_channel.validOutputSectionsCount() << "Channel frames";
     qInfo() << f3_frame_to_channel.get_total_t_values() << "T-values";
     qInfo() << channel_byte_count << "channel bytes";
 

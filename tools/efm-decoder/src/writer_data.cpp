@@ -57,8 +57,8 @@ void WriterData::write(const Data24Section &data24Section)
     // Each Data24 section contains 98 frames that we need to write to the output file
     for (int index = 0; index < 98; index++) {
         Data24 data24 = data24Section.frame(index);
-        m_file.write(reinterpret_cast<const char *>(data24.getData().data()),
-                     data24.getFrameSize() * sizeof(uint8_t));
+        m_file.write(reinterpret_cast<const char *>(data24.data().data()),
+                     data24.frameSize() * sizeof(uint8_t));
     }
 }
 

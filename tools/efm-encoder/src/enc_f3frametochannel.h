@@ -38,7 +38,7 @@ public:
     QVector<uint8_t> pop_frame();
     bool is_ready() const;
     int32_t get_total_t_values() const;
-    uint32_t get_valid_output_sections_count() const override
+    uint32_t validOutputSectionsCount() const override
     {
         return valid_channel_frames_count;
     };

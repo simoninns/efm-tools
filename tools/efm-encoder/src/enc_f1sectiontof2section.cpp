@@ -66,7 +66,7 @@ void F1SectionToF2Section::process_queue()
         for (int index = 0; index < 98; ++index) {
             // Pop the F1 frame and copy the data
             F1Frame f1_frame = f1_section.frame(index);
-            QVector<uint8_t> data = f1_frame.getData();
+            QVector<uint8_t> data = f1_frame.data();
 
             // Process the data
             data = delay_line2.push(data);
