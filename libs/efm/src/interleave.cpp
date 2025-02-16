@@ -26,10 +26,10 @@
 #include <QDebug>
 #include "interleave.h"
 
-Interleave::Interleave() {
-}
+Interleave::Interleave() { }
 
-QVector<uint8_t> Interleave::interleave(QVector<uint8_t> input_data) {
+QVector<uint8_t> Interleave::interleave(QVector<uint8_t> input_data)
+{
     // Ensure input data is 24 bytes long
     if (input_data.size() != 24) {
         qDebug() << "Interleave::interleave - Input data must be 24 bytes long";
@@ -40,24 +40,24 @@ QVector<uint8_t> Interleave::interleave(QVector<uint8_t> input_data) {
     QVector<uint8_t> output_data;
     output_data.resize(24);
 
-    output_data[ 0] = input_data[0]; 
-    output_data[ 1] = input_data[1];
-    output_data[ 6] = input_data[2];
-    output_data[ 7] = input_data[3];
+    output_data[0] = input_data[0];
+    output_data[1] = input_data[1];
+    output_data[6] = input_data[2];
+    output_data[7] = input_data[3];
     output_data[12] = input_data[4];
     output_data[13] = input_data[5];
     output_data[18] = input_data[6];
     output_data[19] = input_data[7];
-    output_data[ 2] = input_data[8];
-    output_data[ 3] = input_data[9];
-    output_data[ 8] = input_data[10];
-    output_data[ 9] = input_data[11];
-    output_data[14] = input_data[12]; 
+    output_data[2] = input_data[8];
+    output_data[3] = input_data[9];
+    output_data[8] = input_data[10];
+    output_data[9] = input_data[11];
+    output_data[14] = input_data[12];
     output_data[15] = input_data[13];
     output_data[20] = input_data[14];
     output_data[21] = input_data[15];
-    output_data[ 4] = input_data[16];
-    output_data[ 5] = input_data[17];
+    output_data[4] = input_data[16];
+    output_data[5] = input_data[17];
     output_data[10] = input_data[18];
     output_data[11] = input_data[19];
     output_data[16] = input_data[20];
@@ -68,7 +68,8 @@ QVector<uint8_t> Interleave::interleave(QVector<uint8_t> input_data) {
     return output_data;
 }
 
-QVector<uint8_t> Interleave::deinterleave(QVector<uint8_t> input_data) {
+QVector<uint8_t> Interleave::deinterleave(QVector<uint8_t> input_data)
+{
     // Ensure input data is 24 bytes long
     if (input_data.size() != 24) {
         qDebug() << "Interleave::deinterleave - Input data must be 24 bytes long";
@@ -79,26 +80,26 @@ QVector<uint8_t> Interleave::deinterleave(QVector<uint8_t> input_data) {
     QVector<uint8_t> output_data;
     output_data.resize(24);
 
-    output_data[ 0] = input_data[ 0];
-    output_data[ 1] = input_data[ 1];
-    output_data[ 8] = input_data[ 2];
-    output_data[ 9] = input_data[ 3];
-    output_data[16] = input_data[ 4];
-    output_data[17] = input_data[ 5];
-    output_data[ 2] = input_data[ 6];
-    output_data[ 3] = input_data[ 7];
-    output_data[10] = input_data[ 8];
-    output_data[11] = input_data[ 9];
+    output_data[0] = input_data[0];
+    output_data[1] = input_data[1];
+    output_data[8] = input_data[2];
+    output_data[9] = input_data[3];
+    output_data[16] = input_data[4];
+    output_data[17] = input_data[5];
+    output_data[2] = input_data[6];
+    output_data[3] = input_data[7];
+    output_data[10] = input_data[8];
+    output_data[11] = input_data[9];
     output_data[18] = input_data[10];
     output_data[19] = input_data[11];
-    output_data[ 4] = input_data[12];
-    output_data[ 5] = input_data[13];
+    output_data[4] = input_data[12];
+    output_data[5] = input_data[13];
     output_data[12] = input_data[14];
     output_data[13] = input_data[15];
     output_data[20] = input_data[16];
     output_data[21] = input_data[17];
-    output_data[ 6] = input_data[18];
-    output_data[ 7] = input_data[19];
+    output_data[6] = input_data[18];
+    output_data[7] = input_data[19];
     output_data[14] = input_data[20];
     output_data[15] = input_data[21];
     output_data[22] = input_data[22];

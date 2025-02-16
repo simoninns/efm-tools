@@ -27,10 +27,11 @@
 
 #include <QVector>
 
-class Inverter {
-    public:
-        Inverter();
-        QVector<uint8_t> invert_parity(QVector<uint8_t> input_data);
+class Inverter
+{
+public:
+    Inverter();
+    QVector<uint8_t> invert_parity(QVector<uint8_t> input_data);
 };
 
 #endif // INVERTER_H

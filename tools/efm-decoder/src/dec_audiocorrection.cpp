@@ -24,7 +24,8 @@
 
 #include "dec_audiocorrection.h"
 
-AudioCorrection::AudioCorrection() {
+AudioCorrection::AudioCorrection()
+{
     valid_samples_count = 0;
     concealed_samples_count = 0;
     silenced_samples_count = 0;
@@ -33,7 +34,8 @@ AudioCorrection::AudioCorrection() {
     last_section_right_sample = 0;
 }
 
-void AudioCorrection::push_section(AudioSection audio_section) {
+void AudioCorrection::push_section(AudioSection audio_section)
+{
     // Add the data to the input buffer
     input_buffer.enqueue(audio_section);
 
@@ -41,17 +43,20 @@ void AudioCorrection::push_section(AudioSection audio_section) {
     process_queue();
 }
 
-AudioSection AudioCorrection::pop_section() {
+AudioSection AudioCorrection::pop_section()
+{
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
 
-bool AudioCorrection::is_ready() const {
+bool AudioCorrection::is_ready() const
+{
     // Return true if the output buffer is not empty
     return !output_buffer.isEmpty();
 }
 
-void AudioCorrection::process_queue() {
+void AudioCorrection::process_queue()
+{
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
         AudioSection audio_section_in = input_buffer.dequeue();
@@ -65,13 +70,18 @@ void AudioCorrection::process_queue() {
 
         for (int index = 0; index < 98; index++) {
             QVector<int16_t> audio_in_data = audio_section_in.get_frame(index).get_data();
-            QVector<int16_t> audio_in_error_data = audio_section_in.get_frame(index).get_error_data();
+            QVector<int16_t> audio_in_error_data =
+                    audio_section_in.get_frame(index).get_error_data();
 
             // Does the frame contain any errors?
             if (audio_section_in.get_frame(index).count_errors() != 0) {
                 // There are errors in the frame
                 if (show_debug) {
-                    qDebug().nospace().noquote() << "AudioCorrection::process_queue(): Frame " << index << " in section with absolute time " << audio_section_in.metadata.get_absolute_section_time().to_string() << " contains errors";
+                    qDebug().nospace().noquote()
+                            << "AudioCorrection::process_queue(): Frame " << index
+                            << " in section with absolute time "
+                            << audio_section_in.metadata.get_absolute_section_time().to_string()
+                            << " contains errors";
                 }
 
                 for (int sidx = 0; sidx < 12; sidx++) {
@@ -101,8 +111,10 @@ void AudioCorrection::process_queue() {
                             following_error = audio_in_error_data[sidx + 2];
                         } else {
                             if (index < 96) {
-                                following_sample = audio_section_in.get_frame(index + 2).get_data()[0];
-                                following_error = audio_section_in.get_frame(index + 2).get_error_data()[0];
+                                following_sample =
+                                        audio_section_in.get_frame(index + 2).get_data()[0];
+                                following_error =
+                                        audio_section_in.get_frame(index + 2).get_error_data()[0];
                             } else {
                                 // We are at the end of the section, use the preceding sample
                                 following_sample = preceding_error;
@@ -115,15 +127,22 @@ void AudioCorrection::process_queue() {
                             // We have valid preceding and following samples
                             audio_in_data[sidx] = (preceding_sample + following_sample) / 2;
                             if (show_debug) {
-                                qDebug().nospace() << "AudioCorrection::process_queue(): Concealing sample " << sidx << " in frame " << index << " with preceding sample " << preceding_sample << " and following sample " << following_sample <<
-                                    " by replacing with average " << audio_in_data[sidx];
+                                qDebug().nospace()
+                                        << "AudioCorrection::process_queue(): Concealing sample "
+                                        << sidx << " in frame " << index
+                                        << " with preceding sample " << preceding_sample
+                                        << " and following sample " << following_sample
+                                        << " by replacing with average " << audio_in_data[sidx];
                             }
                             concealed_samples_count++;
                         } else {
                             // We don't have valid preceding and following samples
                             if (show_debug) {
-                                qDebug().nospace() << "AudioCorrection::process_queue(): Silencing sample " << sidx << " in frame " << index << " as preceding/following samples are invalid";
-                            } 
+                                qDebug().nospace()
+                                        << "AudioCorrection::process_queue(): Silencing sample "
+                                        << sidx << " in frame " << index
+                                        << " as preceding/following samples are invalid";
+                            }
                             audio_in_data[sidx] = 0;
                             silenced_samples_count++;
                         }
@@ -156,9 +175,11 @@ void AudioCorrection::process_queue() {
     }
 }
 
-void AudioCorrection::show_statistics() {
-    qInfo() << "Audio correction statistics:";   
-    qInfo().nospace() << "  Total mono samples: " << valid_samples_count + concealed_samples_count + silenced_samples_count;
+void AudioCorrection::show_statistics()
+{
+    qInfo() << "Audio correction statistics:";
+    qInfo().nospace() << "  Total mono samples: "
+                      << valid_samples_count + concealed_samples_count + silenced_samples_count;
     qInfo().nospace() << "  Valid mono samples: " << valid_samples_count;
     qInfo().nospace() << "  Concealed mono samples: " << concealed_samples_count;
     qInfo().nospace() << "  Silenced mono samples: " << silenced_samples_count;

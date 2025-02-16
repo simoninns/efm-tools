@@ -27,20 +27,23 @@
 
 #include <QVector>
 
-class DelayLine {
-    public:
-        DelayLine(int32_t _delay_length);
-        uint8_t push(uint8_t input_datum);
-        bool is_ready();
-        void flush();
-    private:
-        uint8_t* buffer;
-        bool ready;
-        int32_t push_count;
-        int32_t delay_length;
+class DelayLine
+{
+public:
+    DelayLine(int32_t _delay_length);
+    uint8_t push(uint8_t input_datum);
+    bool is_ready();
+    void flush();
+
+private:
+    uint8_t *buffer;
+    bool ready;
+    int32_t push_count;
+    int32_t delay_length;
 };
 
-class DelayLines {
+class DelayLines
+{
 public:
     DelayLines(QVector<uint32_t> _delay_lengths);
     QVector<uint8_t> push(QVector<uint8_t> input_data);

@@ -24,13 +24,15 @@
 
 #include "dec_f1sectiontodata24section.h"
 
-F1SectionToData24Section::F1SectionToData24Section() {
+F1SectionToData24Section::F1SectionToData24Section()
+{
     valid_f1_frames_count = 0;
     invalid_f1_frames_count = 0;
     corrupt_bytes_count = 0;
 }
 
-void F1SectionToData24Section::push_section(F1Section f1_section) {
+void F1SectionToData24Section::push_section(F1Section f1_section)
+{
     // Add the data to the input buffer
     input_buffer.enqueue(f1_section);
 
@@ -38,17 +40,20 @@ void F1SectionToData24Section::push_section(F1Section f1_section) {
     process_queue();
 }
 
-Data24Section F1SectionToData24Section::pop_section() {
+Data24Section F1SectionToData24Section::pop_section()
+{
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
 
-bool F1SectionToData24Section::is_ready() const {
+bool F1SectionToData24Section::is_ready() const
+{
     // Return true if the output buffer is not empty
     return !output_buffer.isEmpty();
 }
 
-void F1SectionToData24Section::process_queue() {
+void F1SectionToData24Section::process_queue()
+{
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
         F1Section f1_section = input_buffer.dequeue();
@@ -71,14 +76,16 @@ void F1SectionToData24Section::process_queue() {
                     std::swap(error_data[i], error_data[i + 1]);
                 }
             }
-            
+
             // Check the error data (and count any flagged errors)
             uint32_t error_count = f1_section.get_frame(index).count_errors();
 
             corrupt_bytes_count += error_count;
 
-            if (error_count > 0) invalid_f1_frames_count++;
-            else valid_f1_frames_count++;
+            if (error_count > 0)
+                invalid_f1_frames_count++;
+            else
+                valid_f1_frames_count++;
 
             // Put the resulting data into a Data24 frame and push it to the output buffer
             Data24 data24;
@@ -95,7 +102,8 @@ void F1SectionToData24Section::process_queue() {
     }
 }
 
-void F1SectionToData24Section::show_statistics() {
+void F1SectionToData24Section::show_statistics()
+{
     qInfo() << "F1 Section to Data24 Section statistics:";
 
     qInfo() << "  Frames:";
@@ -108,5 +116,8 @@ void F1SectionToData24Section::show_statistics() {
     qInfo().nospace() << "    Total bytes: " << valid_bytes + corrupt_bytes_count;
     qInfo().nospace() << "    Valid bytes: " << valid_bytes;
     qInfo().nospace() << "    Corrupt bytes: " << corrupt_bytes_count;
-    qInfo().nospace().noquote() << "    Data loss: " << QString::number((corrupt_bytes_count * 100.0) / valid_bytes, 'f', 3) << "%";
+    qInfo().nospace().noquote() << "    Data loss: "
+                                << QString::number((corrupt_bytes_count * 100.0) / valid_bytes, 'f',
+                                                   3)
+                                << "%";
 }

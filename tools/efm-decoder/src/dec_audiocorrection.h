@@ -28,13 +28,14 @@
 #include "decoders.h"
 #include "section.h"
 
-class AudioCorrection : public Decoder {
+class AudioCorrection : public Decoder
+{
 public:
-AudioCorrection();
+    AudioCorrection();
     void push_section(AudioSection audio_section);
     AudioSection pop_section();
     bool is_ready() const;
-    
+
     void show_statistics();
 
 private:

@@ -24,13 +24,15 @@
 
 #include "tvalues.h"
 
-Tvalues::Tvalues() {
+Tvalues::Tvalues()
+{
     invalid_high_t_values_count = 0;
     invalid_low_t_values_count = 0;
     valid_t_values_count = 0;
 }
 
-QString Tvalues::tvalues_to_bit_string(QByteArray t_values) {
+QString Tvalues::tvalues_to_bit_string(QByteArray t_values)
+{
     QString bit_string;
 
     // For every T-value in the input array reserve 11 bits in the output bit string
@@ -39,7 +41,7 @@ QString Tvalues::tvalues_to_bit_string(QByteArray t_values) {
 
     for (int32_t i = 0; i < t_values.size(); i++) {
         // Convert the T-value to a bit string
-        
+
         // Range check
         int t_value = static_cast<int>(t_values[i]);
         if (t_value > 11) {

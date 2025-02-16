@@ -35,11 +35,15 @@ public:
     EfmProcessor();
 
     bool process(QString input_fileName, QString output_fileName);
-    bool set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data, bool _qmode_copy, bool _qmode_nocopy, bool _qmode_nopreemp, bool _qmode_preemp, bool _qmode_2ch, bool _qmode_4ch);
+    bool set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data,
+                           bool _qmode_copy, bool _qmode_nocopy, bool _qmode_nopreemp,
+                           bool _qmode_preemp, bool _qmode_2ch, bool _qmode_4ch);
     void set_show_data(bool _showInput, bool _showF1, bool _showF2, bool _showF3);
     void set_input_type(bool _wavInput);
-    bool set_corruption(bool _corrupt_tvalues, uint32_t _corrupt_tvalues_frequency, bool _corrupt_start, uint32_t _corrupt_start_symbols,
-        bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
+    bool set_corruption(bool _corrupt_tvalues, uint32_t _corrupt_tvalues_frequency,
+                        bool _corrupt_start, uint32_t _corrupt_start_symbols, bool _corrupt_f3sync,
+                        uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync,
+                        uint32_t _corrupt_subcode_sync_frequency);
 
 private:
     SectionMetadata section_metadata;

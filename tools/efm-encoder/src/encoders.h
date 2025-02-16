@@ -32,10 +32,10 @@
 #include <QString>
 #include "frame.h"
 
-class Encoder {
+class Encoder
+{
 public:
     virtual uint32_t get_valid_output_sections_count() const = 0;
 };
 
 #endif // ENCODERS_H
-

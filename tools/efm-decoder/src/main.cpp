@@ -43,16 +43,17 @@ int main(int argc, char *argv[])
 
     // Set application name and version
     QCoreApplication::setApplicationName("efm-decoder");
-    QCoreApplication::setApplicationVersion(QString("Branch: %1 / Commit: %2").arg(APP_BRANCH, APP_COMMIT));
+    QCoreApplication::setApplicationVersion(
+            QString("Branch: %1 / Commit: %2").arg(APP_BRANCH, APP_COMMIT));
     QCoreApplication::setOrganizationDomain("domesday86.com");
 
     // Set up the command line parser
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        "efm-decoder - EFM data decoder\n"
-        "\n"
-        "(c)2025 Simon Inns\n"
-        "GPLv3 Open-Source - github: https://github.com/simoninns/efm-tools");
+            "efm-decoder - EFM data decoder\n"
+            "\n"
+            "(c)2025 Simon Inns\n"
+            "GPLv3 Open-Source - github: https://github.com/simoninns/efm-tools");
     parser.addHelpOption();
     parser.addVersionOption();
 
@@ -61,9 +62,14 @@ int main(int argc, char *argv[])
 
     // Group of options for specifying output data file type
     QList<QCommandLineOption> outputTypeOptions = {
-        QCommandLineOption("output-wav", QCoreApplication::translate("main", "Output data as a WAV file")),
-        QCommandLineOption("output-wav-metadata", QCoreApplication::translate("main", "Output data as a WAV file with metadata")),
-        QCommandLineOption("no-wav-correction", QCoreApplication::translate("main", "Do not correct the output WAV data")),
+        QCommandLineOption("output-wav",
+                           QCoreApplication::translate("main", "Output data as a WAV file")),
+        QCommandLineOption(
+                "output-wav-metadata",
+                QCoreApplication::translate("main", "Output data as a WAV file with metadata")),
+        QCommandLineOption(
+                "no-wav-correction",
+                QCoreApplication::translate("main", "Do not correct the output WAV data")),
     };
     parser.addOptions(outputTypeOptions);
 
@@ -72,28 +78,45 @@ int main(int argc, char *argv[])
         QCommandLineOption("show-f3", QCoreApplication::translate("main", "Show F3 frame data")),
         QCommandLineOption("show-f2", QCoreApplication::translate("main", "Show F2 frame data")),
         QCommandLineOption("show-f1", QCoreApplication::translate("main", "Show F1 frame data")),
-        QCommandLineOption("show-data24", QCoreApplication::translate("main", "Show Data24 frame data")),
-        QCommandLineOption("show-audio", QCoreApplication::translate("main", "Show Audio frame data")),
+        QCommandLineOption("show-data24",
+                           QCoreApplication::translate("main", "Show Data24 frame data")),
+        QCommandLineOption("show-audio",
+                           QCoreApplication::translate("main", "Show Audio frame data")),
     };
     parser.addOptions(displayFrameDataOptions);
 
     // Group of options for advanced debugging
     QList<QCommandLineOption> advancedDebugOptions = {
-        QCommandLineOption("show-tvalues-debug", QCoreApplication::translate("main", "Show T-values to channel decoding debug")),
-        QCommandLineOption("show-channel-debug", QCoreApplication::translate("main", "Show channel to F3 decoding debug")),
-        QCommandLineOption("show-f3-debug", QCoreApplication::translate("main", "Show F3 to F2 section decoding debug")),
-        QCommandLineOption("show-f2-correct-debug", QCoreApplication::translate("main", "Show F2 section correction debug")),
-        QCommandLineOption("show-f2-debug", QCoreApplication::translate("main", "Show F2 to F1 decoding debug")),
-        QCommandLineOption("show-f1-debug", QCoreApplication::translate("main", "Show F1 to Data24 decoding debug")),
-        QCommandLineOption("show-audio-debug", QCoreApplication::translate("main", "Show Data24 to audio decoding debug")),
-        QCommandLineOption("show-audio-correction-debug", QCoreApplication::translate("main", "Show Audio correction debug")),
-        QCommandLineOption("show-all-debug", QCoreApplication::translate("main", "Show all decoding debug")),
+        QCommandLineOption(
+                "show-tvalues-debug",
+                QCoreApplication::translate("main", "Show T-values to channel decoding debug")),
+        QCommandLineOption(
+                "show-channel-debug",
+                QCoreApplication::translate("main", "Show channel to F3 decoding debug")),
+        QCommandLineOption(
+                "show-f3-debug",
+                QCoreApplication::translate("main", "Show F3 to F2 section decoding debug")),
+        QCommandLineOption("show-f2-correct-debug",
+                           QCoreApplication::translate("main", "Show F2 section correction debug")),
+        QCommandLineOption("show-f2-debug",
+                           QCoreApplication::translate("main", "Show F2 to F1 decoding debug")),
+        QCommandLineOption("show-f1-debug",
+                           QCoreApplication::translate("main", "Show F1 to Data24 decoding debug")),
+        QCommandLineOption(
+                "show-audio-debug",
+                QCoreApplication::translate("main", "Show Data24 to audio decoding debug")),
+        QCommandLineOption("show-audio-correction-debug",
+                           QCoreApplication::translate("main", "Show Audio correction debug")),
+        QCommandLineOption("show-all-debug",
+                           QCoreApplication::translate("main", "Show all decoding debug")),
     };
     parser.addOptions(advancedDebugOptions);
 
     // -- Positional arguments --
-    parser.addPositionalArgument("input", QCoreApplication::translate("main", "Specify input EFM file"));
-    parser.addPositionalArgument("output", QCoreApplication::translate("main", "Specify output data file"));
+    parser.addPositionalArgument("input",
+                                 QCoreApplication::translate("main", "Specify input EFM file"));
+    parser.addPositionalArgument("output",
+                                 QCoreApplication::translate("main", "Specify output data file"));
 
     // Process the command line options and arguments given by the user
     parser.process(a);
@@ -139,7 +162,7 @@ int main(int argc, char *argv[])
     QString input_filename;
     QString output_filename;
     QStringList positional_arguments = parser.positionalArguments();
-    
+
     if (positional_arguments.count() != 2) {
         qWarning() << "You must specify the input EFM filename and the output data filename";
         return 1;
@@ -154,7 +177,7 @@ int main(int argc, char *argv[])
     efm_processor.set_show_data(showAudio, showData24, showF1, showF2, showF3);
     efm_processor.set_output_type(output_wav, output_wav_metadata, no_wav_correction);
     efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
-        showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
+                            showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
 
     if (!efm_processor.process(input_filename, output_filename)) {
         return 1;

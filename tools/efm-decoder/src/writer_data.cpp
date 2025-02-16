@@ -27,16 +27,17 @@
 // This writer class writes raw data to a file directly from the Data24 sections
 // This is (generally) used when the output is not stereo audio data
 
-WriterData::WriterData() {
-}
+WriterData::WriterData() { }
 
-WriterData::~WriterData() {
+WriterData::~WriterData()
+{
     if (file.isOpen()) {
         file.close();
     }
 }
 
-bool WriterData::open(const QString &filename) {
+bool WriterData::open(const QString &filename)
+{
     file.setFileName(filename);
     if (!file.open(QIODevice::WriteOnly)) {
         qCritical() << "WriterData::open() - Could not open file" << filename << "for writing";
@@ -46,7 +47,8 @@ bool WriterData::open(const QString &filename) {
     return true;
 }
 
-void WriterData::write(const Data24Section &data24_section) {
+void WriterData::write(const Data24Section &data24_section)
+{
     if (!file.isOpen()) {
         qCritical() << "WriterData::write() - File is not open for writing";
         return;
@@ -55,20 +57,23 @@ void WriterData::write(const Data24Section &data24_section) {
     // Each Data24 section contains 98 frames that we need to write to the output file
     for (int index = 0; index < 98; index++) {
         Data24 data24 = data24_section.get_frame(index);
-        file.write(reinterpret_cast<const char*>(data24.get_data().data()), data24.get_frame_size() * sizeof(uint8_t));
+        file.write(reinterpret_cast<const char *>(data24.get_data().data()),
+                   data24.get_frame_size() * sizeof(uint8_t));
     }
 }
 
-void WriterData::close() {
+void WriterData::close()
+{
     if (!file.isOpen()) {
         return;
     }
 
     file.close();
-    qDebug() << "WriterData::close(): Closed the data file" << file.fileName(); 
+    qDebug() << "WriterData::close(): Closed the data file" << file.fileName();
 }
 
-int64_t WriterData::size() {
+int64_t WriterData::size()
+{
     if (file.isOpen()) {
         return file.size();
     }

@@ -25,23 +25,27 @@
 #include "enc_data24sectiontof1section.h"
 
 // Data24SectionToF1Section class implementation
-Data24SectionToF1Section::Data24SectionToF1Section() {
+Data24SectionToF1Section::Data24SectionToF1Section()
+{
     valid_f1_sections_count = 0;
 }
 
-void Data24SectionToF1Section::push_section(Data24Section data24_section) {
+void Data24SectionToF1Section::push_section(Data24Section data24_section)
+{
     input_buffer.enqueue(data24_section);
     process_queue();
 }
 
-F1Section Data24SectionToF1Section::pop_section() {
+F1Section Data24SectionToF1Section::pop_section()
+{
     if (!is_ready()) {
         qFatal("Data24SectionToF1Section::pop_frame(): No F1 sections are available.");
     }
     return output_buffer.dequeue();
 }
 
-void Data24SectionToF1Section::process_queue() {
+void Data24SectionToF1Section::process_queue()
+{
     while (!input_buffer.isEmpty()) {
         Data24Section data24_section = input_buffer.dequeue();
         F1Section f1_section;
@@ -67,6 +71,7 @@ void Data24SectionToF1Section::process_queue() {
     }
 }
 
-bool Data24SectionToF1Section::is_ready() const {
+bool Data24SectionToF1Section::is_ready() const
+{
     return !output_buffer.isEmpty();
 }

@@ -32,7 +32,8 @@
 #include "reedsolomon.h"
 #include "section.h"
 
-class F1SectionToF2Section : Encoder {
+class F1SectionToF2Section : Encoder
+{
 public:
     F1SectionToF2Section();
     void push_section(F1Section f1_section);

@@ -28,7 +28,8 @@
 #include "encoders.h"
 #include "section.h"
 
-class Data24SectionToF1Section : Encoder {
+class Data24SectionToF1Section : Encoder
+{
 public:
     Data24SectionToF1Section();
     void push_section(Data24Section data);

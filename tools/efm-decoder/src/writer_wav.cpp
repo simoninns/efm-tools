@@ -27,16 +27,17 @@
 // This writer class writes audio data to a file in WAV format
 // This is used when the output is stereo audio data
 
-WriterWav::WriterWav() {
-}
+WriterWav::WriterWav() { }
 
-WriterWav::~WriterWav() {
+WriterWav::~WriterWav()
+{
     if (file.isOpen()) {
         file.close();
     }
 }
 
-bool WriterWav::open(const QString &filename) {
+bool WriterWav::open(const QString &filename)
+{
     file.setFileName(filename);
     if (!file.open(QIODevice::WriteOnly)) {
         qCritical() << "WriterWav::open() - Could not open file" << filename << "for writing";
@@ -52,7 +53,8 @@ bool WriterWav::open(const QString &filename) {
     return true;
 }
 
-void WriterWav::write(const AudioSection &audio_section) {
+void WriterWav::write(const AudioSection &audio_section)
+{
     if (!file.isOpen()) {
         qCritical() << "WriterWav::write() - File is not open for writing";
         return;
@@ -61,11 +63,13 @@ void WriterWav::write(const AudioSection &audio_section) {
     // Each Audio section contains 98 frames that we need to write to the output file
     for (int index = 0; index < 98; index++) {
         Audio audio = audio_section.get_frame(index);
-        file.write(reinterpret_cast<const char*>(audio.get_data().data()), audio.get_frame_size() * sizeof(int16_t));
+        file.write(reinterpret_cast<const char *>(audio.get_data().data()),
+                   audio.get_frame_size() * sizeof(int16_t));
     }
 }
 
-void WriterWav::close() {
+void WriterWav::close()
+{
     if (!file.isOpen()) {
         return;
     }
@@ -74,11 +78,12 @@ void WriterWav::close() {
     qDebug() << "WriterWav::close(): Filling out the WAV header before closing the wav file";
 
     // WAV file header
-    struct WAVHeader {
-        char riff[4] = {'R', 'I', 'F', 'F'};
+    struct WAVHeader
+    {
+        char riff[4] = { 'R', 'I', 'F', 'F' };
         uint32_t chunkSize;
-        char wave[4] = {'W', 'A', 'V', 'E'};
-        char fmt[4] = {'f', 'm', 't', ' '};
+        char wave[4] = { 'W', 'A', 'V', 'E' };
+        char fmt[4] = { 'f', 'm', 't', ' ' };
         uint32_t subchunk1Size = 16; // PCM
         uint16_t audioFormat = 1; // PCM
         uint16_t numChannels = 2; // Stereo
@@ -86,7 +91,7 @@ void WriterWav::close() {
         uint32_t byteRate;
         uint16_t blockAlign;
         uint16_t bitsPerSample = 16; // 16 bits
-        char data[4] = {'d', 'a', 't', 'a'};
+        char data[4] = { 'd', 'a', 't', 'a' };
         uint32_t subchunk2Size;
     };
 
@@ -98,14 +103,15 @@ void WriterWav::close() {
 
     // Move to the beginning of the file to write the header
     file.seek(0);
-    file.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
+    file.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
 
     // Now close the file
     file.close();
-    qDebug() << "WriterWav::close(): Closed the WAV file" << file.fileName(); 
+    qDebug() << "WriterWav::close(): Closed the WAV file" << file.fileName();
 }
 
-int64_t WriterWav::size() {
+int64_t WriterWav::size()
+{
     if (file.isOpen()) {
         return file.size();
     }

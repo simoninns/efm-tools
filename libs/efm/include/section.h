@@ -30,7 +30,8 @@
 #include "audio.h"
 #include "section_metadata.h"
 
-class F2Section {
+class F2Section
+{
 public:
     F2Section();
     void push_frame(F2Frame in_frame);
@@ -46,7 +47,8 @@ private:
     QVector<F2Frame> frames;
 };
 
-class F1Section {
+class F1Section
+{
 public:
     F1Section();
     void push_frame(F1Frame in_frame);
@@ -62,7 +64,8 @@ private:
     QVector<F1Frame> frames;
 };
 
-class Data24Section {
+class Data24Section
+{
 public:
     Data24Section();
     void push_frame(Data24 in_frame);
@@ -78,20 +81,21 @@ private:
     QVector<Data24> frames;
 };
 
-class AudioSection {
-    public:
+class AudioSection
+{
+public:
     AudioSection();
-        void push_frame(Audio in_frame);
-        Audio get_frame(int index) const;
-        void set_frame(int index, Audio in_frame);
-        bool is_complete() const;
-        void clear();
-        void show_data();
-    
-        SectionMetadata metadata;
-    
-    private:
-        QVector<Audio> frames;
-    };
+    void push_frame(Audio in_frame);
+    Audio get_frame(int index) const;
+    void set_frame(int index, Audio in_frame);
+    bool is_complete() const;
+    void clear();
+    void show_data();
+
+    SectionMetadata metadata;
+
+private:
+    QVector<Audio> frames;
+};
 
 #endif // SECTION_H

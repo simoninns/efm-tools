@@ -29,10 +29,11 @@
 #include <QString>
 #include <QVector>
 
-class Tvalues {
+class Tvalues
+{
 public:
     Tvalues();
-    
+
     QString tvalues_to_bit_string(QByteArray tvalues);
 
     uint32_t get_invalid_high_t_values_count() const { return invalid_high_t_values_count; }

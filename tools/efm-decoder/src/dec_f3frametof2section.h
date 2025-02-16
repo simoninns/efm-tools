@@ -29,13 +29,14 @@
 #include "section.h"
 #include "subcode.h"
 
-class F3FrameToF2Section : public Decoder {
+class F3FrameToF2Section : public Decoder
+{
 public:
     F3FrameToF2Section();
     void push_frame(F3Frame data);
     F2Section pop_section();
     bool is_ready() const;
-    
+
     void show_statistics();
 
 private:
@@ -45,12 +46,7 @@ private:
     QQueue<F2Section> output_buffer;
 
     // State machine states
-    enum State {
-        EXPECTING_SYNC0,
-        EXPECTING_SYNC1,
-        EXPECTING_SUBCODE,
-        PROCESS_SECTION
-    };
+    enum State { EXPECTING_SYNC0, EXPECTING_SYNC1, EXPECTING_SUBCODE, PROCESS_SECTION };
 
     State current_state;
     QVector<F3Frame> section_buffer;

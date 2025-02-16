@@ -27,11 +27,12 @@
 
 #include <QVector>
 
-class Interleave {
-    public:
-        Interleave();
-        QVector<uint8_t> interleave(QVector<uint8_t> input_data);
-        QVector<uint8_t> deinterleave(QVector<uint8_t> input_data);
+class Interleave
+{
+public:
+    Interleave();
+    QVector<uint8_t> interleave(QVector<uint8_t> input_data);
+    QVector<uint8_t> deinterleave(QVector<uint8_t> input_data);
 };
 
 #endif // INTERLEAVE_H

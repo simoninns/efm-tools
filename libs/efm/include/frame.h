@@ -30,15 +30,16 @@
 #include <QDebug>
 
 // Frame class - base class for F1, F2, and F3 frames
-class Frame {
+class Frame
+{
 public:
-    virtual ~Frame() {} // Virtual destructor
+    virtual ~Frame() { } // Virtual destructor
     virtual int get_frame_size() const = 0; // Pure virtual function to get frame size
 
-    virtual void set_data(const QVector<uint8_t>& data);
+    virtual void set_data(const QVector<uint8_t> &data);
     virtual QVector<uint8_t> get_data() const;
 
-    virtual void set_error_data(const QVector<uint8_t>& error_data);
+    virtual void set_error_data(const QVector<uint8_t> &error_data);
     virtual QVector<uint8_t> get_error_data() const;
     virtual uint32_t count_errors() const;
 
@@ -50,30 +51,34 @@ protected:
     QVector<uint8_t> frame_error_data;
 };
 
-class Data24 : public Frame {
+class Data24 : public Frame
+{
 public:
     Data24();
     int get_frame_size() const override;
     void show_data();
-    void set_data(const QVector<uint8_t>& data) override;
-    void set_error_data(const QVector<uint8_t>& error_data) override;
+    void set_data(const QVector<uint8_t> &data) override;
+    void set_error_data(const QVector<uint8_t> &error_data) override;
 };
 
-class F1Frame : public Frame {
+class F1Frame : public Frame
+{
 public:
     F1Frame();
     int get_frame_size() const override;
     void show_data();
 };
 
-class F2Frame : public Frame {
+class F2Frame : public Frame
+{
 public:
     F2Frame();
     int get_frame_size() const override;
     void show_data();
 };
 
-class F3Frame : public Frame {
+class F3Frame : public Frame
+{
 public:
     enum F3FrameType { SUBCODE, SYNC0, SYNC1 };
 

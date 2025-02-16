@@ -32,20 +32,21 @@
 
 #include "section_metadata.h"
 
-class Subcode {
+class Subcode
+{
 public:
-    Subcode() : show_debug(false) {}
+    Subcode() : show_debug(false) { }
 
-    SectionMetadata from_data(const QByteArray& data);
-    QByteArray to_data(const SectionMetadata& section_metadata);
+    SectionMetadata from_data(const QByteArray &data);
+    QByteArray to_data(const SectionMetadata &section_metadata);
     void set_show_debug(bool _show_debug) { show_debug = _show_debug; }
 
 private:
-    void set_bit(QByteArray& data, uint8_t bit_position, bool value);
-    bool get_bit(const QByteArray& data, uint8_t bit_position);
+    void set_bit(QByteArray &data, uint8_t bit_position, bool value);
+    bool get_bit(const QByteArray &data, uint8_t bit_position);
     bool is_crc_valid(QByteArray q_channel_data);
     uint16_t get_q_channel_crc(QByteArray q_channel_data);
-    void set_q_channel_crc(QByteArray& q_channel_data);
+    void set_q_channel_crc(QByteArray &q_channel_data);
     uint16_t calculate_q_channel_crc16(const QByteArray &data);
     bool repair_data(QByteArray &q_channel_data);
 

@@ -32,7 +32,8 @@
 
 // To find the integer representation of the polynomial P(x)=x^8+x^4+x^3+x^2+1
 // treat the coefficients as binary digits, where each coefficient corresponds to a power of x,
-// starting from x^0 on the rightmost side. If there is no term for a specific power of x, its coefficient is 0.
+// starting from x^0 on the rightmost side. If there is no term for a specific power of x, its
+// coefficient is 0.
 //
 // Steps:
 //     Write the polynomial in terms of its binary representation:
@@ -46,16 +47,17 @@
 //     Convert the binary number to its decimal (integer) equivalent:
 //     0b100011101 = 0x11D = 285
 
-class ReedSolomon {
+class ReedSolomon
+{
 
 public:
     ReedSolomon();
 
-    void c1_encode(QVector<uint8_t>& input_data);
-    void c1_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data, bool show_debug);
+    void c1_encode(QVector<uint8_t> &input_data);
+    void c1_decode(QVector<uint8_t> &input_data, QVector<uint8_t> &error_data, bool show_debug);
 
-    void c2_encode(QVector<uint8_t>& input_data);
-    void c2_decode(QVector<uint8_t>& input_data, QVector<uint8_t>& error_data, bool show_debug);
+    void c2_encode(QVector<uint8_t> &input_data);
+    void c2_decode(QVector<uint8_t> &input_data, QVector<uint8_t> &error_data, bool show_debug);
 
     int32_t get_valid_c1s();
     int32_t get_fixed_c1s();

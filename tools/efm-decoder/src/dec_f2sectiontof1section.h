@@ -31,18 +31,20 @@
 #include "interleave.h"
 #include "inverter.h"
 
-class F2SectionToF1Section : public Decoder {
+class F2SectionToF1Section : public Decoder
+{
 public:
     F2SectionToF1Section();
     void push_section(F2Section f2_section);
     F1Section pop_section();
     bool is_ready() const;
-    
+
     void show_statistics();
 
 private:
     void process_queue();
-    void show_data(QString description, int32_t index, QString time_string, QVector<uint8_t>& data, QVector<uint8_t>& data_error);
+    void show_data(QString description, int32_t index, QString time_string, QVector<uint8_t> &data,
+                   QVector<uint8_t> &data_error);
 
     QQueue<F2Section> input_buffer;
     QQueue<F1Section> output_buffer;

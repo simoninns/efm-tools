@@ -30,12 +30,13 @@
 #include <QDebug>
 
 // Audio class
-class Audio {
+class Audio
+{
 public:
-    void set_data(const QVector<int16_t>& data);
+    void set_data(const QVector<int16_t> &data);
     QVector<int16_t> get_data() const;
 
-    void set_error_data(const QVector<int16_t>& error_data);
+    void set_error_data(const QVector<int16_t> &error_data);
     QVector<int16_t> get_error_data() const;
     uint32_t count_errors() const;
 

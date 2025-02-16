@@ -34,8 +34,9 @@ static QFile *debugFile;
 // Define the standard logging command line options
 static QCommandLineOption showDebugOption(QStringList() << "d" << "debug",
                                           QCoreApplication::translate("main", "Show debug"));
-static QCommandLineOption setQuietOption({"q", "quiet"},
-                                         QCoreApplication::translate("main", "Suppress info and warning messages"));
+static QCommandLineOption
+        setQuietOption({ "q", "quiet" },
+                       QCoreApplication::translate("main", "Suppress info and warning messages"));
 
 // Qt debug message handler
 void debugOutputHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -76,11 +77,13 @@ void debugOutputHandler(QtMsgType type, const QMessageLogContext &context, const
         // First debug output?
         if (firstDebug && showDebug) {
             firstDebug = false;
-            QTextStream(stderr) << QString("Debug: Version - Git branch: %1 / commit: %2\n").arg(APP_BRANCH, APP_COMMIT);
+            QTextStream(stderr) << QString("Debug: Version - Git branch: %1 / commit: %2\n")
+                                           .arg(APP_BRANCH, APP_COMMIT);
         }
 
         // Display the output message on stderr
-        if (showDebug || (type != QtDebugMsg)) QTextStream(stderr) << outputMessage;
+        if (showDebug || (type != QtDebugMsg))
+            QTextStream(stderr) << outputMessage;
     }
 
     // Optional output to file
@@ -89,7 +92,8 @@ void debugOutputHandler(QtMsgType type, const QMessageLogContext &context, const
     }
 
     // If the error was fatal, then we should abort
-    if (type == QtFatalMsg) abort();
+    if (type == QtFatalMsg)
+        abort();
 }
 
 // Open debug file
@@ -100,13 +104,15 @@ void openDebugFile(QString filename)
     if (!debugFile->open(QIODevice::WriteOnly)) {
         // Failed to open source sample file
         qDebug() << "Could not open" << filename << "as debug output file";
-    } else saveDebug = true;
+    } else
+        saveDebug = true;
 }
 
 // Close debug file
 void closeDebugFile(void)
 {
-    if (saveDebug) debugFile->close();
+    if (saveDebug)
+        debugFile->close();
 }
 
 // Control the show debug flag (debug to stderr if true)
@@ -123,10 +129,10 @@ void setQuiet(bool state)
 
 void setBinaryMode(void)
 {
-    #ifdef _WIN32
-   _setmode(_fileno(stdout), O_BINARY);
-   _setmode(_fileno(stdin), O_BINARY);	
-    #endif
+#ifdef _WIN32
+    _setmode(_fileno(stdout), O_BINARY);
+    _setmode(_fileno(stdin), O_BINARY);
+#endif
 }
 
 // Method to add the standard debug options to the command line parser
@@ -143,8 +149,14 @@ void addStandardDebugOptions(QCommandLineParser &parser)
 void processStandardDebugOptions(QCommandLineParser &parser)
 {
     // Process any options added by the addStandardDebugOptions method
-    if (parser.isSet(showDebugOption)) setDebug(true); else setDebug(false);
-    if (parser.isSet(setQuietOption)) setQuiet(true); else setQuiet(false);
+    if (parser.isSet(showDebugOption))
+        setDebug(true);
+    else
+        setDebug(false);
+    if (parser.isSet(setQuietOption))
+        setQuiet(true);
+    else
+        setQuiet(false);
 }
 
 // Method to get the current debug logging state

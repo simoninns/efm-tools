@@ -43,16 +43,17 @@ int main(int argc, char *argv[])
 
     // Set application name and version
     QCoreApplication::setApplicationName("efm-encoder");
-    QCoreApplication::setApplicationVersion(QString("Branch: %1 / Commit: %2").arg(APP_BRANCH, APP_COMMIT));
+    QCoreApplication::setApplicationVersion(
+            QString("Branch: %1 / Commit: %2").arg(APP_BRANCH, APP_COMMIT));
     QCoreApplication::setOrganizationDomain("domesday86.com");
 
     // Set up the command line parser
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        "efm-encoder - EFM data encoder\n"
-        "\n"
-        "(c)2025 Simon Inns\n"
-        "GPLv3 Open-Source - github: https://github.com/simoninns/efm-tools");
+            "efm-encoder - EFM data encoder\n"
+            "\n"
+            "(c)2025 Simon Inns\n"
+            "GPLv3 Open-Source - github: https://github.com/simoninns/efm-tools");
     parser.addHelpOption();
     parser.addVersionOption();
 
@@ -60,21 +61,37 @@ int main(int argc, char *argv[])
     addStandardDebugOptions(parser);
 
     // Option to specify input data file type
-    QCommandLineOption inputTypeOption("wav-input", QCoreApplication::translate("main", "Treat input data as WAV file"));
+    QCommandLineOption inputTypeOption(
+            "wav-input", QCoreApplication::translate("main", "Treat input data as WAV file"));
     parser.addOption(inputTypeOption);
 
     // Group of options for Q-Channel data
     QList<QCommandLineOption> qChannelOptions = {
-        QCommandLineOption("qmode-1", QCoreApplication::translate("main", "Set Q-Channel mode 1 (default)")),
+        QCommandLineOption("qmode-1",
+                           QCoreApplication::translate("main", "Set Q-Channel mode 1 (default)")),
         QCommandLineOption("qmode-4", QCoreApplication::translate("main", "Set Q-Channel mode 4")),
-        QCommandLineOption("qmode-audio", QCoreApplication::translate("main", "Set Q-Channel control to audio (default)")),
-        QCommandLineOption("qmode-data", QCoreApplication::translate("main", "Set Q-Channel control to data")),
-        QCommandLineOption("qmode-copy", QCoreApplication::translate("main", "Set Q-Channel control to copy permitted (default)")),
-        QCommandLineOption("qmode-nocopy", QCoreApplication::translate("main", "Set Q-Channel control to copy prohibited")),
-        QCommandLineOption("qmode-nopreemp", QCoreApplication::translate("main", "Set Q-Channel audio pre-emphasis to off (default)")),
-        QCommandLineOption("qmode-preemp", QCoreApplication::translate("main", "Set Q-Channel audio pre-emphasis to on")),
-        QCommandLineOption("qmode-2ch", QCoreApplication::translate("main", "Set Q-Channel audio to stereo (default)")),
-        QCommandLineOption("qmode-4ch", QCoreApplication::translate("main", "Set Q-Channel audio to 4 channel")),
+        QCommandLineOption(
+                "qmode-audio",
+                QCoreApplication::translate("main", "Set Q-Channel control to audio (default)")),
+        QCommandLineOption("qmode-data",
+                           QCoreApplication::translate("main", "Set Q-Channel control to data")),
+        QCommandLineOption("qmode-copy",
+                           QCoreApplication::translate(
+                                   "main", "Set Q-Channel control to copy permitted (default)")),
+        QCommandLineOption(
+                "qmode-nocopy",
+                QCoreApplication::translate("main", "Set Q-Channel control to copy prohibited")),
+        QCommandLineOption("qmode-nopreemp",
+                           QCoreApplication::translate(
+                                   "main", "Set Q-Channel audio pre-emphasis to off (default)")),
+        QCommandLineOption(
+                "qmode-preemp",
+                QCoreApplication::translate("main", "Set Q-Channel audio pre-emphasis to on")),
+        QCommandLineOption(
+                "qmode-2ch",
+                QCoreApplication::translate("main", "Set Q-Channel audio to stereo (default)")),
+        QCommandLineOption("qmode-4ch",
+                           QCoreApplication::translate("main", "Set Q-Channel audio to 4 channel")),
     };
     parser.addOptions(qChannelOptions);
 
@@ -89,18 +106,34 @@ int main(int argc, char *argv[])
 
     // Group of options for corrupting data
     QList<QCommandLineOption> corruptionOptions = {
-        QCommandLineOption("corrupt-tvalues", QCoreApplication::translate("main", "Corrupt t-values with specified symbol frequency"), "symbol-frequency"),
-        QCommandLineOption("corrupt-start", QCoreApplication::translate("main", "Add the specified number of random t-value symbols before actual data"), "symbols"),
-        QCommandLineOption("corrupt-f3sync", QCoreApplication::translate("main", "Corrupt F3 Frame 24-bit sync patterns"), "frame-frequency"),
-        QCommandLineOption("corrupt-subcode-sync", QCoreApplication::translate("main", "Corrupt subcode sync0 and sync1 patterns"), "section-frequency"),
+        QCommandLineOption("corrupt-tvalues",
+                           QCoreApplication::translate(
+                                   "main", "Corrupt t-values with specified symbol frequency"),
+                           "symbol-frequency"),
+        QCommandLineOption(
+                "corrupt-start",
+                QCoreApplication::translate(
+                        "main",
+                        "Add the specified number of random t-value symbols before actual data"),
+                "symbols"),
+        QCommandLineOption(
+                "corrupt-f3sync",
+                QCoreApplication::translate("main", "Corrupt F3 Frame 24-bit sync patterns"),
+                "frame-frequency"),
+        QCommandLineOption(
+                "corrupt-subcode-sync",
+                QCoreApplication::translate("main", "Corrupt subcode sync0 and sync1 patterns"),
+                "section-frequency"),
     };
     parser.addOptions(corruptionOptions);
 
     // Positional argument to specify input data file
-    parser.addPositionalArgument("input", QCoreApplication::translate("main", "Specify input data file"));
+    parser.addPositionalArgument("input",
+                                 QCoreApplication::translate("main", "Specify input data file"));
 
     // Positional argument to specify output audio file
-    parser.addPositionalArgument("output", QCoreApplication::translate("main", "Specify output EFM file"));
+    parser.addPositionalArgument("output",
+                                 QCoreApplication::translate("main", "Specify output EFM file"));
 
     // Process the command line options and arguments given by the user
     parser.process(a);
@@ -137,11 +170,16 @@ int main(int argc, char *argv[])
     bool qmode_4ch = parser.isSet("qmode-4ch");
 
     // Apply default Q-Channel options
-    if (!qmode_1 && !qmode_4) qmode_1 = true;
-    if (!qmode_audio && !qmode_data) qmode_audio = true;
-    if (!qmode_copy && !qmode_nocopy) qmode_copy = true;
-    if (!qmode_2ch && !qmode_4ch) qmode_2ch = true;
-    if (!qmode_no_preemp && !qmode_preemp) qmode_no_preemp = true;
+    if (!qmode_1 && !qmode_4)
+        qmode_1 = true;
+    if (!qmode_audio && !qmode_data)
+        qmode_audio = true;
+    if (!qmode_copy && !qmode_nocopy)
+        qmode_copy = true;
+    if (!qmode_2ch && !qmode_4ch)
+        qmode_2ch = true;
+    if (!qmode_no_preemp && !qmode_preemp)
+        qmode_no_preemp = true;
 
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
@@ -164,11 +202,14 @@ int main(int argc, char *argv[])
     // Perform the processing
     EfmProcessor efm_processor;
 
-    bool qmode_options_ok = efm_processor.set_qmode_options(qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy, qmode_no_preemp, qmode_preemp, qmode_2ch, qmode_4ch);
+    bool qmode_options_ok = efm_processor.set_qmode_options(
+            qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy, qmode_no_preemp,
+            qmode_preemp, qmode_2ch, qmode_4ch);
     efm_processor.set_show_data(showInput, showF1, showF2, showF3);
-    bool corruption_options_ok = efm_processor.set_corruption(corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
-        corrupt_f3sync, corrupt_f3sync_frequency,
-        corrupt_subcode_sync, corrupt_subcode_sync_frequency);
+    bool corruption_options_ok = efm_processor.set_corruption(
+            corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
+            corrupt_f3sync, corrupt_f3sync_frequency, corrupt_subcode_sync,
+            corrupt_subcode_sync_frequency);
     efm_processor.set_input_type(wav_input);
 
     if (!corruption_options_ok || !qmode_options_ok) {

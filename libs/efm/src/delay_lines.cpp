@@ -30,13 +30,15 @@
 
 #include "delay_lines.h"
 
-DelayLines::DelayLines(QVector<uint32_t> _delay_lengths) {
+DelayLines::DelayLines(QVector<uint32_t> _delay_lengths)
+{
     for (int32_t i = 0; i < _delay_lengths.size(); i++) {
         delay_lines.append(DelayLine(_delay_lengths[i]));
     }
 }
 
-QVector<uint8_t> DelayLines::push(QVector<uint8_t> input_data) {
+QVector<uint8_t> DelayLines::push(QVector<uint8_t> input_data)
+{
     if (input_data.size() != delay_lines.size()) {
         qFatal("Input data size does not match the number of delay lines.");
     }
@@ -54,7 +56,8 @@ QVector<uint8_t> DelayLines::push(QVector<uint8_t> input_data) {
     return output_data;
 }
 
-bool DelayLines::is_ready() {
+bool DelayLines::is_ready()
+{
     for (int32_t i = 0; i < delay_lines.size(); i++) {
         if (!delay_lines[i].is_ready()) {
             return false;
@@ -63,20 +66,23 @@ bool DelayLines::is_ready() {
     return true;
 }
 
-void DelayLines::flush() {
+void DelayLines::flush()
+{
     for (int32_t i = 0; i < delay_lines.size(); i++) {
         delay_lines[i].flush();
     }
 }
 
 // DelayLine class implementation
-DelayLine::DelayLine(int32_t _delay_length) {
+DelayLine::DelayLine(int32_t _delay_length)
+{
     buffer = new uint8_t[_delay_length];
     delay_length = _delay_length;
     flush();
 }
 
-uint8_t DelayLine::push(uint8_t input_datum) {
+uint8_t DelayLine::push(uint8_t input_datum)
+{
     if (delay_length == 0) {
         return input_datum;
     }
@@ -95,11 +101,13 @@ uint8_t DelayLine::push(uint8_t input_datum) {
     return output_datum;
 }
 
-bool DelayLine::is_ready() {
+bool DelayLine::is_ready()
+{
     return ready;
 }
 
-void DelayLine::flush() {
+void DelayLine::flush()
+{
     if (delay_length > 0) {
         std::fill(buffer, buffer + delay_length, 0);
         ready = false;

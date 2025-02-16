@@ -28,21 +28,22 @@
 #include "decoders.h"
 #include "section_metadata.h"
 
-class F2SectionCorrection : public Decoder {
+class F2SectionCorrection : public Decoder
+{
 public:
     F2SectionCorrection();
     void push_section(F2Section data);
     F2Section pop_section();
     bool is_ready() const;
     void flush();
-    
+
     void show_statistics();
 
 private:
     void process_queue();
 
-    void wait_for_input_to_settle(F2Section& f2_section);
-    void waiting_for_section(F2Section& f2_section);
+    void wait_for_input_to_settle(F2Section &f2_section);
+    void waiting_for_section(F2Section &f2_section);
     SectionTime get_expected_absolute_time();
 
     void correct_internal_buffer();

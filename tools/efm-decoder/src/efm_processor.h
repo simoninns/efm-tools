@@ -54,7 +54,8 @@ public:
     void process_pipeline();
     void set_show_data(bool _showAudio, bool _showData24, bool _showF1, bool _showF2, bool _showF3);
     void set_output_type(bool _wavOutput, bool _outputWavMetadata, bool _noWavCorrection);
-    void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio, bool audioCorrection);
+    void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
+                   bool audioCorrection);
 
 private:
     bool showAudio;

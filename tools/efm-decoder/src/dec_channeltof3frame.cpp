@@ -24,7 +24,8 @@
 
 #include "dec_channeltof3frame.h"
 
-ChannelToF3Frame::ChannelToF3Frame() {
+ChannelToF3Frame::ChannelToF3Frame()
+{
     // Statistics
     good_frames = 0;
     undershoot_frames = 0;
@@ -37,7 +38,8 @@ ChannelToF3Frame::ChannelToF3Frame() {
     invalid_subcode_symbols = 0;
 }
 
-void ChannelToF3Frame::push_frame(QByteArray data) {
+void ChannelToF3Frame::push_frame(QByteArray data)
+{
     // Add the data to the input buffer
     input_buffer.enqueue(data);
 
@@ -45,18 +47,21 @@ void ChannelToF3Frame::push_frame(QByteArray data) {
     process_queue();
 }
 
-F3Frame ChannelToF3Frame::pop_frame() {
+F3Frame ChannelToF3Frame::pop_frame()
+{
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
 
-bool ChannelToF3Frame::is_ready() const {
+bool ChannelToF3Frame::is_ready() const
+{
     // Return true if the output buffer is not empty
     return !output_buffer.isEmpty();
 }
 
-void ChannelToF3Frame::process_queue() {
-    while(input_buffer.size() > 0) {
+void ChannelToF3Frame::process_queue()
+{
+    while (input_buffer.size() > 0) {
         // Extract the first item in the input buffer
         QByteArray frame_data = input_buffer.dequeue();
 
@@ -67,10 +72,15 @@ void ChannelToF3Frame::process_queue() {
         }
 
         // Generate statistics
-        if (bit_count != 588 && show_debug) qDebug() << "ChannelToF3Frame::process_queue() - Frame data is" << bit_count << "bits (should be 588)";
-        if (bit_count == 588) good_frames++;
-        if (bit_count < 588) undershoot_frames++;
-        if (bit_count > 588) overshoot_frames++;
+        if (bit_count != 588 && show_debug)
+            qDebug() << "ChannelToF3Frame::process_queue() - Frame data is" << bit_count
+                     << "bits (should be 588)";
+        if (bit_count == 588)
+            good_frames++;
+        if (bit_count < 588)
+            undershoot_frames++;
+        if (bit_count > 588)
+            overshoot_frames++;
 
         // Create an F3 frame
         F3Frame f3_frame = create_f3_frame(frame_data);
@@ -80,7 +90,8 @@ void ChannelToF3Frame::process_queue() {
     }
 }
 
-F3Frame ChannelToF3Frame::create_f3_frame(QByteArray t_values) {
+F3Frame ChannelToF3Frame::create_f3_frame(QByteArray t_values)
+{
     F3Frame f3_frame;
 
     // The channel frame data is:
@@ -102,7 +113,8 @@ F3Frame ChannelToF3Frame::create_f3_frame(QByteArray t_values) {
     if (subcode == 300) {
         subcode = 0;
         invalid_subcode_symbols++;
-    } else valid_subcode_symbols++;
+    } else
+        valid_subcode_symbols++;
 
     // Extract the data values in bits 44-587 ignoring the merging bits
     QVector<uint8_t> data_values;
@@ -122,11 +134,14 @@ F3Frame ChannelToF3Frame::create_f3_frame(QByteArray t_values) {
     }
 
     // Create an F3 frame...
-    
+
     // Determine the frame type
-    if (subcode == 256) f3_frame.set_frame_type_as_sync0();
-    else if (subcode == 257) f3_frame.set_frame_type_as_sync1();
-    else f3_frame.set_frame_type_as_subcode(subcode);
+    if (subcode == 256)
+        f3_frame.set_frame_type_as_sync0();
+    else if (subcode == 257)
+        f3_frame.set_frame_type_as_sync1();
+    else
+        f3_frame.set_frame_type_as_subcode(subcode);
 
     // Set the frame data
     f3_frame.set_data(data_values);
@@ -135,10 +150,11 @@ F3Frame ChannelToF3Frame::create_f3_frame(QByteArray t_values) {
     return f3_frame;
 }
 
-QByteArray ChannelToF3Frame::tvalues_to_data(QByteArray t_values) {
+QByteArray ChannelToF3Frame::tvalues_to_data(QByteArray t_values)
+{
     QByteArray output_data;
     uint8_t currentByte = 0; // Will accumulate bits until we have 8.
-    uint32_t bitsFilled = 0;     // How many bits are currently in currentByte.
+    uint32_t bitsFilled = 0; // How many bits are currently in currentByte.
 
     // Iterate through each T-value in the input.
     for (uint8_t c : t_values) {
@@ -147,7 +163,7 @@ QByteArray ChannelToF3Frame::tvalues_to_data(QByteArray t_values) {
         if (tValue < 3 || tValue > 11) {
             qFatal("ChannelToF3Frame::tvalues_to_data(): T-value must be in the range 3 to 11.");
         }
-        
+
         // First, append the leading 1 bit.
         currentByte = (currentByte << 1) | 1;
         ++bitsFilled;
@@ -156,7 +172,7 @@ QByteArray ChannelToF3Frame::tvalues_to_data(QByteArray t_values) {
             currentByte = 0;
             bitsFilled = 0;
         }
-        
+
         // Then, append (t_value - 1) zeros.
         for (int i = 1; i < tValue; ++i) {
             currentByte = (currentByte << 1); // Append a 0 bit.
@@ -168,17 +184,18 @@ QByteArray ChannelToF3Frame::tvalues_to_data(QByteArray t_values) {
             }
         }
     }
-    
+
     // If there are remaining bits, pad the final byte with zeros on the right.
     if (bitsFilled > 0) {
         currentByte <<= (8 - bitsFilled);
         output_data.append(currentByte);
     }
-    
+
     return output_data;
 }
 
-uint16_t ChannelToF3Frame::get_bits(QByteArray data, int start_bit, int end_bit) {
+uint16_t ChannelToF3Frame::get_bits(QByteArray data, int start_bit, int end_bit)
+{
     uint16_t value = 0;
 
     // Make sure start and end bits are within a 588 bit range
@@ -191,7 +208,8 @@ uint16_t ChannelToF3Frame::get_bits(QByteArray data, int start_bit, int end_bit)
     }
 
     if (start_bit > end_bit) {
-        qFatal("ChannelToF3Frame::get_bits(): Start bit must be less than or equal to the end bit.");
+        qFatal("ChannelToF3Frame::get_bits(): Start bit must be less than or equal to the end "
+               "bit.");
     }
 
     // Extract the bits from the data
@@ -206,7 +224,8 @@ uint16_t ChannelToF3Frame::get_bits(QByteArray data, int start_bit, int end_bit)
     return value;
 }
 
-void ChannelToF3Frame::show_statistics() {
+void ChannelToF3Frame::show_statistics()
+{
     qInfo() << "Channel to F3 Frame statistics:";
     qInfo() << "  Channel Frames:";
     qInfo() << "    Total:" << good_frames + undershoot_frames + overshoot_frames;

@@ -28,7 +28,8 @@
 #include "decoders.h"
 #include "efm.h"
 
-class ChannelToF3Frame : public Decoder {
+class ChannelToF3Frame : public Decoder
+{
 public:
     ChannelToF3Frame();
     void push_frame(QByteArray data);

@@ -24,157 +24,185 @@
 
 #include "section.h"
 
-F2Section::F2Section() {
+F2Section::F2Section()
+{
     frames.reserve(98);
 }
 
-void F2Section::push_frame(F2Frame in_frame) {
+void F2Section::push_frame(F2Frame in_frame)
+{
     if (frames.size() >= 98) {
         qFatal("F2Section::push_frame - Section is full");
     }
     frames.push_back(in_frame);
 }
 
-F2Frame F2Section::get_frame(int index) const {
+F2Frame F2Section::get_frame(int index) const
+{
     if (index >= frames.size() || index < 0) {
         qFatal("F2Section::get_frame - Index %d out of range", index);
     }
     return frames.at(index);
 }
 
-void F2Section::set_frame(int index, F2Frame in_frame) {
+void F2Section::set_frame(int index, F2Frame in_frame)
+{
     if (index >= frames.size() || index < 0) {
         qFatal("F2Section::set_frame - Index %d out of range", index);
     }
     frames[index] = in_frame;
 }
 
-bool F2Section::is_complete() const {
+bool F2Section::is_complete() const
+{
     return frames.size() == 98;
 }
 
-void F2Section::clear() {
+void F2Section::clear()
+{
     frames.clear();
 }
 
-void F2Section::show_data() {
+void F2Section::show_data()
+{
     for (int i = 0; i < frames.size(); ++i) {
         frames[i].show_data();
     }
 }
 
-F1Section::F1Section() {
+F1Section::F1Section()
+{
     frames.reserve(98);
 }
 
-void F1Section::push_frame(F1Frame in_frame) {
+void F1Section::push_frame(F1Frame in_frame)
+{
     if (frames.size() >= 98) {
         qFatal("F1Section::push_frame - Section is full");
     }
     frames.push_back(in_frame);
 }
 
-F1Frame F1Section::get_frame(int index) const {
+F1Frame F1Section::get_frame(int index) const
+{
     if (index >= frames.size() || index < 0) {
         qFatal("F1Section::get_frame - Index %d out of range", index);
     }
     return frames.at(index);
 }
 
-void F1Section::set_frame(int index, F1Frame in_frame) {
+void F1Section::set_frame(int index, F1Frame in_frame)
+{
     if (index >= 98 || index < 0) {
         qFatal("F1Section::set_frame - Index %d out of range", index);
     }
     frames[index] = in_frame;
 }
 
-bool F1Section::is_complete() const {
+bool F1Section::is_complete() const
+{
     return frames.size() == 98;
 }
 
-void F1Section::clear() {
+void F1Section::clear()
+{
     frames.clear();
 }
 
-void F1Section::show_data() {
+void F1Section::show_data()
+{
     for (int i = 0; i < frames.size(); ++i) {
         frames[i].show_data();
     }
 }
 
-Data24Section::Data24Section() {
+Data24Section::Data24Section()
+{
     frames.reserve(98);
 }
 
-void Data24Section::push_frame(Data24 in_frame) {
+void Data24Section::push_frame(Data24 in_frame)
+{
     if (frames.size() >= 98) {
         qFatal("Data24Section::push_frame - Section is full");
     }
     frames.push_back(in_frame);
 }
 
-Data24 Data24Section::get_frame(int index) const {
+Data24 Data24Section::get_frame(int index) const
+{
     if (index >= frames.size() || index < 0) {
         qFatal("Data24Section::get_frame - Index %d out of range", index);
     }
     return frames.at(index);
 }
 
-void Data24Section::set_frame(int index, Data24 in_frame) {
+void Data24Section::set_frame(int index, Data24 in_frame)
+{
     if (index >= frames.size() || index < 0) {
         qFatal("Data24Section::set_frame - Index %d out of range", index);
     }
     frames[index] = in_frame;
 }
 
-bool Data24Section::is_complete() const {
+bool Data24Section::is_complete() const
+{
     return frames.size() == 98;
 }
 
-void Data24Section::clear() {
+void Data24Section::clear()
+{
     frames.clear();
 }
 
-void Data24Section::show_data() {
+void Data24Section::show_data()
+{
     for (int i = 0; i < frames.size(); ++i) {
         frames[i].show_data();
     }
 }
 
-AudioSection::AudioSection() {
+AudioSection::AudioSection()
+{
     frames.reserve(98);
 }
 
-void AudioSection::push_frame(Audio in_frame) {
+void AudioSection::push_frame(Audio in_frame)
+{
     if (frames.size() >= 98) {
         qFatal("AudioSection::push_frame - Section is full");
     }
     frames.push_back(in_frame);
 }
 
-Audio AudioSection::get_frame(int index) const {
+Audio AudioSection::get_frame(int index) const
+{
     if (index >= frames.size() || index < 0) {
         qFatal("AudioSection::get_frame - Index %d out of range", index);
     }
     return frames.at(index);
 }
 
-void AudioSection::set_frame(int index, Audio in_frame) {
+void AudioSection::set_frame(int index, Audio in_frame)
+{
     if (index >= frames.size() || index < 0) {
         qFatal("AudioSection::set_frame - Index %d out of range", index);
     }
     frames[index] = in_frame;
 }
 
-bool AudioSection::is_complete() const {
+bool AudioSection::is_complete() const
+{
     return frames.size() == 98;
 }
 
-void AudioSection::clear() {
+void AudioSection::clear()
+{
     frames.clear();
 }
 
-void AudioSection::show_data() {
+void AudioSection::show_data()
+{
     for (int i = 0; i < frames.size(); ++i) {
         frames[i].show_data();
     }

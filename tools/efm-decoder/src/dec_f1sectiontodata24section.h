@@ -28,13 +28,14 @@
 #include "decoders.h"
 #include "section.h"
 
-class F1SectionToData24Section : public Decoder {
+class F1SectionToData24Section : public Decoder
+{
 public:
     F1SectionToData24Section();
     void push_section(F1Section f1_section);
     Data24Section pop_section();
     bool is_ready() const;
-    
+
     void show_statistics();
 
 private:

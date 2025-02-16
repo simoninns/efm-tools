@@ -29,7 +29,8 @@
 #include <QDebug>
 #include <QHash>
 
-class Efm {
+class Efm
+{
 public:
     Efm();
     uint16_t fourteen_to_eight(uint16_t efm);
@@ -43,7 +44,7 @@ private:
     // given by the position in the array (i.e. position 0 = EFM code for
     // decimal 0 and so on).  Symbols 256 and 257 are the sync symbols sync0
     // and sync1 respectively.
-    const uint16_t efm_lut[256+2] = {
+    const uint16_t efm_lut[256 + 2] = {
         0x1220, 0x2100, 0x2420, 0x2220, 0x1100, 0x0110, 0x0420, 0x0900, //   8 (7)
         0x1240, 0x2040, 0x2440, 0x2240, 0x1040, 0x0040, 0x0440, 0x0840, //  16
         0x2020, 0x2080, 0x2480, 0x0820, 0x1080, 0x0080, 0x0480, 0x0880, //  24
@@ -76,7 +77,7 @@ private:
         0x2102, 0x2104, 0x0249, 0x0242, 0x1104, 0x0104, 0x0422, 0x0904, // 240
         0x0122, 0x2092, 0x2492, 0x0222, 0x1092, 0x0092, 0x0492, 0x0892, // 248
         0x1212, 0x2012, 0x2412, 0x2212, 0x1012, 0x0212, 0x0412, 0x0812, // 256 (255)
-        0x0801, 0x0012  // sync0 (256), sync1 (257)
+        0x0801, 0x0012 // sync0 (256), sync1 (257)
     };
 };
 

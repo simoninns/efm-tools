@@ -28,13 +28,14 @@
 #include "decoders.h"
 #include "tvalues.h"
 
-class TvaluesToChannel : public Decoder {
+class TvaluesToChannel : public Decoder
+{
 public:
     TvaluesToChannel();
     void push_frame(QByteArray data);
     QByteArray pop_frame();
     bool is_ready() const;
-    
+
     void show_statistics();
 
 private:
@@ -42,12 +43,7 @@ private:
     uint32_t count_bits(QByteArray data, int32_t start_position = 0, int32_t end_position = -1);
 
     // State machine states
-    enum State {
-        EXPECTING_INITIAL_SYNC,
-        EXPECTING_SYNC,
-        HANDLE_OVERSHOOT,
-        HANDLE_UNDERSHOOT
-    };
+    enum State { EXPECTING_INITIAL_SYNC, EXPECTING_SYNC, HANDLE_OVERSHOOT, HANDLE_UNDERSHOOT };
 
     // Statistics
     uint32_t consumed_t_values;
@@ -75,7 +71,6 @@ private:
     State expecting_sync();
     State handle_undershoot();
     State handle_overshoot();
-
 };
 
 #endif // DEC_TVALUESTOCHANNEL_H

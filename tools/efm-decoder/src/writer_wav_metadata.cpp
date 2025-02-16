@@ -27,19 +27,21 @@
 // This writer class writes metadata about audio data to a file in WAV format
 // This is used when the output is stereo audio data
 
-WriterWavMetadata::WriterWavMetadata() {
-}
+WriterWavMetadata::WriterWavMetadata() { }
 
-WriterWavMetadata::~WriterWavMetadata() {
+WriterWavMetadata::~WriterWavMetadata()
+{
     if (file.isOpen()) {
         file.close();
     }
 }
 
-bool WriterWavMetadata::open(const QString &filename) {
+bool WriterWavMetadata::open(const QString &filename)
+{
     file.setFileName(filename);
     if (!file.open(QIODevice::WriteOnly)) {
-        qCritical() << "WriterWavMetadata::open() - Could not open file" << filename << "for writing";
+        qCritical() << "WriterWavMetadata::open() - Could not open file" << filename
+                    << "for writing";
         return false;
     }
     qDebug() << "WriterWavMetadata::open() - Opened file" << filename << "for data writing";
@@ -53,16 +55,17 @@ bool WriterWavMetadata::open(const QString &filename) {
     return true;
 }
 
-void WriterWavMetadata::write(const AudioSection &audio_section) {
+void WriterWavMetadata::write(const AudioSection &audio_section)
+{
     if (!file.isOpen()) {
         qCritical() << "WriterWavMetadata::write() - File is not open for writing";
         return;
     }
 
     // Write a metadata entry for the section
-    QString metadata = audio_section.metadata.get_absolute_section_time().to_string() + "," +
-        QString::number(audio_section.metadata.get_track_number()) + "," +
-        audio_section.metadata.get_section_time().to_string();
+    QString metadata = audio_section.metadata.get_absolute_section_time().to_string() + ","
+            + QString::number(audio_section.metadata.get_track_number()) + ","
+            + audio_section.metadata.get_section_time().to_string();
 
     // Each Audio section contains 98 frames that we need to write metadata for in the output file
     QString section_error_list;
@@ -78,7 +81,8 @@ void WriterWavMetadata::write(const AudioSection &audio_section) {
             for (int i = 0; i < errors.size(); i++) {
                 // Each frame is 12 samples, each section is 98 frames
                 int32_t error_location_in_section = i + (index * 12);
-                if (errors[i] != 0) section_error_list += "," + QString::number(error_location_in_section);
+                if (errors[i] != 0)
+                    section_error_list += "," + QString::number(error_location_in_section);
             }
         }
     }
@@ -89,16 +93,18 @@ void WriterWavMetadata::write(const AudioSection &audio_section) {
     file.write(metadata.toUtf8());
 }
 
-void WriterWavMetadata::close() {
+void WriterWavMetadata::close()
+{
     if (!file.isOpen()) {
         return;
     }
 
     file.close();
-    qDebug() << "WriterWavMetadata::close(): Closed the WAV metadata file" << file.fileName(); 
+    qDebug() << "WriterWavMetadata::close(): Closed the WAV metadata file" << file.fileName();
 }
 
-int64_t WriterWavMetadata::size() {
+int64_t WriterWavMetadata::size()
+{
     if (file.isOpen()) {
         return file.size();
     }

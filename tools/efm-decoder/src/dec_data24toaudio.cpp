@@ -24,7 +24,8 @@
 
 #include "dec_data24toaudio.h"
 
-Data24ToAudio::Data24ToAudio() {
+Data24ToAudio::Data24ToAudio()
+{
     start_time = SectionTime(59, 59, 74);
     end_time = SectionTime(0, 0, 0);
 
@@ -34,7 +35,8 @@ Data24ToAudio::Data24ToAudio() {
     valid_samples_count = 0;
 }
 
-void Data24ToAudio::push_section(Data24Section data24_section) {
+void Data24ToAudio::push_section(Data24Section data24_section)
+{
     // Add the data to the input buffer
     input_buffer.enqueue(data24_section);
 
@@ -42,17 +44,20 @@ void Data24ToAudio::push_section(Data24Section data24_section) {
     process_queue();
 }
 
-AudioSection Data24ToAudio::pop_section() {
+AudioSection Data24ToAudio::pop_section()
+{
     // Return the first item in the output buffer
     return output_buffer.dequeue();
 }
 
-bool Data24ToAudio::is_ready() const {
+bool Data24ToAudio::is_ready() const
+{
     // Return true if the output buffer is not empty
     return !output_buffer.isEmpty();
 }
 
-void Data24ToAudio::process_queue() {
+void Data24ToAudio::process_queue()
+{
     // Process the input buffer
     while (!input_buffer.isEmpty()) {
         Data24Section data24_section = input_buffer.dequeue();
@@ -113,20 +118,23 @@ void Data24ToAudio::process_queue() {
     }
 }
 
-void Data24ToAudio::show_statistics() {
+void Data24ToAudio::show_statistics()
+{
     qInfo() << "Data24 to Audio statistics:";
     qInfo().nospace() << "  Data24 Frames:";
-    qInfo().nospace() << "    Total Frames: " << valid_data24_frames_count + invalid_data24_frames_count;
+    qInfo().nospace() << "    Total Frames: "
+                      << valid_data24_frames_count + invalid_data24_frames_count;
     qInfo().nospace() << "    Valid Frames: " << valid_data24_frames_count;
     qInfo().nospace() << "    Invalid Frames: " << invalid_data24_frames_count;
-    
+
     qInfo() << "  Audio Samples:";
-    qInfo().nospace() << "    Total stereo samples: " << (valid_samples_count + invalid_samples_count) / 2;
+    qInfo().nospace() << "    Total stereo samples: "
+                      << (valid_samples_count + invalid_samples_count) / 2;
     qInfo().nospace() << "    Valid stereo samples: " << valid_samples_count / 2;
-    qInfo().nospace() << "    Corrupt stereo samples: " << invalid_samples_count / 2;  
-    
+    qInfo().nospace() << "    Corrupt stereo samples: " << invalid_samples_count / 2;
+
     qInfo() << "  Section time information:";
     qInfo().noquote() << "    Start time:" << start_time.to_string();
     qInfo().noquote() << "    End time:" << end_time.to_string();
-    qInfo().noquote() << "    Total time:" << (end_time - start_time).to_string();  
+    qInfo().noquote() << "    Total time:" << (end_time - start_time).to_string();
 }

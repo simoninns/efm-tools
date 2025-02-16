@@ -25,23 +25,27 @@
 #include "enc_f2sectiontof3frames.h"
 
 // F2SectionToF3Frames class implementation
-F2SectionToF3Frames::F2SectionToF3Frames() {
+F2SectionToF3Frames::F2SectionToF3Frames()
+{
     valid_f3_frames_count = 0;
 }
 
-void F2SectionToF3Frames::push_section(F2Section f2_section) {
+void F2SectionToF3Frames::push_section(F2Section f2_section)
+{
     input_buffer.enqueue(f2_section);
     process_queue();
 }
 
-QVector<F3Frame> F2SectionToF3Frames::pop_frames() {
+QVector<F3Frame> F2SectionToF3Frames::pop_frames()
+{
     if (!is_ready()) {
         qFatal("F2SectionToF3Frames::pop_frames(): No F3 frames are available.");
     }
     return output_buffer.dequeue();
 }
 
-void F2SectionToF3Frames::process_queue() {
+void F2SectionToF3Frames::process_queue()
+{
     while (input_buffer.size() >= 1) {
         F2Section f2_section = input_buffer.dequeue();
         QVector<F3Frame> f3_frames;
@@ -73,6 +77,7 @@ void F2SectionToF3Frames::process_queue() {
     }
 }
 
-bool F2SectionToF3Frames::is_ready() const {
+bool F2SectionToF3Frames::is_ready() const
+{
     return !output_buffer.isEmpty();
 }

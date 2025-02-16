@@ -29,7 +29,8 @@
 #include "section.h"
 #include "subcode.h"
 
-class F2SectionToF3Frames : Encoder {
+class F2SectionToF3Frames : Encoder
+{
 public:
     F2SectionToF3Frames();
     void push_section(F2Section f2_section);
