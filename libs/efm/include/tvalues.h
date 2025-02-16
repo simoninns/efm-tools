@@ -34,16 +34,16 @@ class Tvalues
 public:
     Tvalues();
 
-    QString tvalues_to_bit_string(QByteArray tvalues);
+    QString tvaluesToBitString(const QByteArray &tvalues);
 
-    uint32_t get_invalid_high_t_values_count() const { return invalid_high_t_values_count; }
-    uint32_t get_invalid_low_t_values_count() const { return invalid_low_t_values_count; }
-    uint32_t get_valid_t_values_count() const { return valid_t_values_count; }
+    quint32 getInvalidHighTValuesCount() const { return m_invalidHighTValuesCount; }
+    quint32 getInvalidLowTValuesCount() const { return m_invalidLowTValuesCount; }
+    quint32 getValidTValuesCount() const { return m_validTValuesCount; }
 
 private:
-    uint32_t invalid_high_t_values_count;
-    uint32_t invalid_low_t_values_count;
-    uint32_t valid_t_values_count;
+    quint32 m_invalidHighTValuesCount;
+    quint32 m_invalidLowTValuesCount;
+    quint32 m_validTValuesCount;
 };
 
-#endif // EFM_H
+#endif // TVALUES_H

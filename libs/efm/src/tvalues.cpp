@@ -25,39 +25,39 @@
 #include "tvalues.h"
 
 Tvalues::Tvalues()
+    : m_invalidHighTValuesCount(0),
+      m_invalidLowTValuesCount(0),
+      m_validTValuesCount(0)
 {
-    invalid_high_t_values_count = 0;
-    invalid_low_t_values_count = 0;
-    valid_t_values_count = 0;
 }
 
-QString Tvalues::tvalues_to_bit_string(QByteArray t_values)
+QString Tvalues::tvaluesToBitString(const QByteArray &tvalues)
 {
-    QString bit_string;
+    QString bitString;
 
     // For every T-value in the input array reserve 11 bits in the output bit string
     // Note: This is just to increase speed
-    bit_string.reserve(t_values.size() * 11);
+    bitString.reserve(tvalues.size() * 11);
 
-    for (int32_t i = 0; i < t_values.size(); i++) {
+    for (qint32 i = 0; i < tvalues.size(); ++i) {
         // Convert the T-value to a bit string
 
         // Range check
-        int t_value = static_cast<int>(t_values[i]);
-        if (t_value > 11) {
-            invalid_high_t_values_count++;
-            t_value = 11;
-        } else if (t_value < 3) {
-            invalid_low_t_values_count++;
-            t_value = 3;
+        qint32 tValue = static_cast<qint32>(tvalues[i]);
+        if (tValue > 11) {
+            m_invalidHighTValuesCount++;
+            tValue = 11;
+        } else if (tValue < 3) {
+            m_invalidLowTValuesCount++;
+            tValue = 3;
         } else {
-            valid_t_values_count++;
+            m_validTValuesCount++;
         }
 
         // T3 = 100, T4 = 1000, ... , T11 = 10000000000
-        bit_string += '1';
-        bit_string += QString(t_value - 1, '0');
+        bitString += '1';
+        bitString += QString(tValue - 1, '0');
     }
 
-    return bit_string;
+    return bitString;
 }

@@ -38,12 +38,12 @@ public:
     ~WriterWavMetadata();
 
     bool open(const QString &filename);
-    void write(const AudioSection &audio_section);
+    void write(const AudioSection &audioSection);
     void close();
-    int64_t size();
+    qint64 size() const;
 
 private:
-    QFile file;
+    QFile m_file;
 };
 
 #endif // WRITER_WAV_METADATA_H

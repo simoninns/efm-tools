@@ -26,30 +26,30 @@
 #define AUDIO_H
 
 #include <QVector>
-#include <cstdint>
+#include <QtGlobal>
 #include <QDebug>
 
 // Audio class
 class Audio
 {
 public:
-    void set_data(const QVector<int16_t> &data);
-    QVector<int16_t> get_data() const;
+    void setData(const QVector<qint16> &data);
+    QVector<qint16> data() const;
 
-    void set_error_data(const QVector<int16_t> &error_data);
-    QVector<int16_t> get_error_data() const;
-    uint32_t count_errors() const;
+    void setErrorData(const QVector<qint16> &errorData);
+    QVector<qint16> errorData() const;
+    quint32 countErrors() const;
 
-    bool is_full() const;
-    bool is_empty() const;
+    bool isFull() const;
+    bool isEmpty() const;
 
-    void show_data();
+    void showData();
 
-    int get_frame_size() const;
+    int frameSize() const;
 
 private:
-    QVector<int16_t> audio_data;
-    QVector<int16_t> audio_error_data;
+    QVector<qint16> m_audioData;
+    QVector<qint16> m_audioErrorData;
 };
 
 #endif // AUDIO_H

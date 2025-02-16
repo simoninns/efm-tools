@@ -31,8 +31,8 @@ class Interleave
 {
 public:
     Interleave();
-    QVector<uint8_t> interleave(QVector<uint8_t> input_data);
-    QVector<uint8_t> deinterleave(QVector<uint8_t> input_data);
+    QVector<quint8> interleave(const QVector<quint8> &inputData);
+    QVector<quint8> deinterleave(const QVector<quint8> &inputData);
 };
 
 #endif // INTERLEAVE_H

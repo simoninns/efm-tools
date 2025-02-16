@@ -33,71 +33,71 @@
 class Frame
 {
 public:
-    virtual ~Frame() { } // Virtual destructor
-    virtual int get_frame_size() const = 0; // Pure virtual function to get frame size
+    virtual ~Frame() {} // Virtual destructor
+    virtual int getFrameSize() const = 0; // Pure virtual function to get frame size
 
-    virtual void set_data(const QVector<uint8_t> &data);
-    virtual QVector<uint8_t> get_data() const;
+    virtual void setData(const QVector<quint8> &data);
+    virtual QVector<quint8> getData() const;
 
-    virtual void set_error_data(const QVector<uint8_t> &error_data);
-    virtual QVector<uint8_t> get_error_data() const;
-    virtual uint32_t count_errors() const;
+    virtual void setErrorData(const QVector<quint8> &errorData);
+    virtual QVector<quint8> getErrorData() const;
+    virtual quint32 countErrors() const;
 
-    bool is_full() const;
-    bool is_empty() const;
+    bool isFull() const;
+    bool isEmpty() const;
 
 protected:
-    QVector<uint8_t> frame_data;
-    QVector<uint8_t> frame_error_data;
+    QVector<quint8> frameData;
+    QVector<quint8> frameErrorData;
 };
 
 class Data24 : public Frame
 {
 public:
     Data24();
-    int get_frame_size() const override;
-    void show_data();
-    void set_data(const QVector<uint8_t> &data) override;
-    void set_error_data(const QVector<uint8_t> &error_data) override;
+    int getFrameSize() const override;
+    void showData();
+    void setData(const QVector<quint8> &data) override;
+    void setErrorData(const QVector<quint8> &errorData) override;
 };
 
 class F1Frame : public Frame
 {
 public:
     F1Frame();
-    int get_frame_size() const override;
-    void show_data();
+    int getFrameSize() const override;
+    void showData();
 };
 
 class F2Frame : public Frame
 {
 public:
     F2Frame();
-    int get_frame_size() const override;
-    void show_data();
+    int getFrameSize() const override;
+    void showData();
 };
 
 class F3Frame : public Frame
 {
 public:
-    enum F3FrameType { SUBCODE, SYNC0, SYNC1 };
+    enum F3FrameType { Subcode, Sync0, Sync1 };
 
     F3Frame();
-    int get_frame_size() const override;
+    int getFrameSize() const override;
 
-    void set_frame_type_as_subcode(uint8_t subcode);
-    void set_frame_type_as_sync0();
-    void set_frame_type_as_sync1();
+    void setFrameTypeAsSubcode(quint8 subcode);
+    void setFrameTypeAsSync0();
+    void setFrameTypeAsSync1();
 
-    F3FrameType get_f3_frame_type() const;
-    QString get_f3_frame_type_as_string() const;
-    uint8_t get_subcode_byte() const;
+    F3FrameType getF3FrameType() const;
+    QString getF3FrameTypeAsString() const;
+    quint8 getSubcodeByte() const;
 
-    void show_data();
+    void showData();
 
 private:
-    F3FrameType f3_frame_type;
-    uint8_t subcode_byte;
+    F3FrameType f3FrameType;
+    quint8 subcodeByte;
 };
 
 #endif // FRAME_H

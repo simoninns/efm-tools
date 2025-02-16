@@ -49,32 +49,31 @@
 
 class ReedSolomon
 {
-
 public:
     ReedSolomon();
 
-    void c1_encode(QVector<uint8_t> &input_data);
-    void c1_decode(QVector<uint8_t> &input_data, QVector<uint8_t> &error_data, bool show_debug);
+    void c1Encode(QVector<quint8> &inputData);
+    void c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorData, bool m_showDebug);
 
-    void c2_encode(QVector<uint8_t> &input_data);
-    void c2_decode(QVector<uint8_t> &input_data, QVector<uint8_t> &error_data, bool show_debug);
+    void c2Encode(QVector<quint8> &inputData);
+    void c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorData, bool m_showDebug);
 
-    int32_t get_valid_c1s();
-    int32_t get_fixed_c1s();
-    int32_t get_error_c1s();
+    qint32 getValidC1s();
+    qint32 getFixedC1s();
+    qint32 getErrorC1s();
 
-    int32_t get_valid_c2s();
-    int32_t get_fixed_c2s();
-    int32_t get_error_c2s();
+    qint32 getValidC2s();
+    qint32 getFixedC2s();
+    qint32 getErrorC2s();
 
 private:
-    int32_t valid_c1s;
-    int32_t fixed_c1s;
-    int32_t error_c1s;
+    qint32 validC1s;
+    qint32 fixedC1s;
+    qint32 errorC1s;
 
-    int32_t valid_c2s;
-    int32_t fixed_c2s;
-    int32_t error_c2s;
+    qint32 validC2s;
+    qint32 fixedC2s;
+    qint32 errorC2s;
 };
 
 #endif // REEDSOLOMON_H

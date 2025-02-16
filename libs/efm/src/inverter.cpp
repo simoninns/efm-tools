@@ -30,17 +30,16 @@ Inverter::Inverter() { }
 
 // Invert the P and Q parity bytes in accordance with
 // ECMA-130 issue 2 page 35/36
-QVector<uint8_t> Inverter::invert_parity(QVector<uint8_t> input_data)
+void Inverter::invertParity(QVector<quint8> &inputData)
 {
-    if (input_data.size() != 32) {
-        qFatal("Inverter::invert_parity(): Data must be a QVector of 32 integers.");
+    if (inputData.size() != 32) {
+        qFatal("Inverter::invertParity(): Data must be a QVector of 32 integers.");
     }
 
     for (int i = 12; i < 16; ++i) {
-        input_data[i] = ~input_data[i] & 0xFF;
+        inputData[i] = ~inputData[i] & 0xFF;
     }
     for (int i = 28; i < 32; ++i) {
-        input_data[i] = ~input_data[i] & 0xFF;
+        inputData[i] = ~inputData[i] & 0xFF;
     }
-    return input_data;
 }

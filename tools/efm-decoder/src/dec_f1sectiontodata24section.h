@@ -32,21 +32,21 @@ class F1SectionToData24Section : public Decoder
 {
 public:
     F1SectionToData24Section();
-    void push_section(F1Section f1_section);
-    Data24Section pop_section();
-    bool is_ready() const;
+    void pushSection(const F1Section &f1Section);
+    Data24Section popSection();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<F1Section> input_buffer;
-    QQueue<Data24Section> output_buffer;
+    QQueue<F1Section> m_inputBuffer;
+    QQueue<Data24Section> m_outputBuffer;
 
-    uint32_t invalid_f1_frames_count;
-    uint32_t valid_f1_frames_count;
-    uint32_t corrupt_bytes_count;
+    quint32 m_invalidF1FramesCount;
+    quint32 m_validF1FramesCount;
+    quint32 m_corruptBytesCount;
 };
 
 #endif // DEC_F1SECTIONTODATA24SECTION_H

@@ -25,116 +25,114 @@
 #include "dec_data24toaudio.h"
 
 Data24ToAudio::Data24ToAudio()
-{
-    start_time = SectionTime(59, 59, 74);
-    end_time = SectionTime(0, 0, 0);
+    : m_startTime(SectionTime(59, 59, 74)),
+      m_endTime(SectionTime(0, 0, 0)),
+      m_invalidData24FramesCount(0),
+      m_validData24FramesCount(0),
+      m_invalidSamplesCount(0),
+      m_validSamplesCount(0)
+{}
 
-    invalid_data24_frames_count = 0;
-    valid_data24_frames_count = 0;
-    invalid_samples_count = 0;
-    valid_samples_count = 0;
-}
-
-void Data24ToAudio::push_section(Data24Section data24_section)
+void Data24ToAudio::pushSection(const Data24Section &data24Section)
 {
     // Add the data to the input buffer
-    input_buffer.enqueue(data24_section);
+    m_inputBuffer.enqueue(data24Section);
 
     // Process the queue
-    process_queue();
+    processQueue();
 }
 
-AudioSection Data24ToAudio::pop_section()
+AudioSection Data24ToAudio::popSection()
 {
     // Return the first item in the output buffer
-    return output_buffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
-bool Data24ToAudio::is_ready() const
+bool Data24ToAudio::isReady() const
 {
     // Return true if the output buffer is not empty
-    return !output_buffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }
 
-void Data24ToAudio::process_queue()
+void Data24ToAudio::processQueue()
 {
     // Process the input buffer
-    while (!input_buffer.isEmpty()) {
-        Data24Section data24_section = input_buffer.dequeue();
-        AudioSection audio_section;
+    while (!m_inputBuffer.isEmpty()) {
+        Data24Section data24Section = m_inputBuffer.dequeue();
+        AudioSection audioSection;
 
         // Sanity check the Data24 section
-        if (data24_section.is_complete() == false) {
-            qFatal("Data24ToAudio::process_queue - Data24 Section is not complete");
+        if (!data24Section.isComplete()) {
+            qFatal("Data24ToAudio::processQueue - Data24 Section is not complete");
         }
 
-        for (int index = 0; index < 98; index++) {
-            QVector<uint8_t> data24_data = data24_section.get_frame(index).get_data();
-            QVector<uint8_t> data24_error_data = data24_section.get_frame(index).get_error_data();
+        for (int index = 0; index < 98; ++index) {
+            QVector<quint8> data24Data = data24Section.frame(index).getData();
+            QVector<quint8> data24ErrorData = data24Section.frame(index).getErrorData();
 
-            if (data24_section.get_frame(index).count_errors() != 0) {
-                invalid_data24_frames_count++;
+            if (data24Section.frame(index).countErrors() != 0) {
+                ++m_invalidData24FramesCount;
             } else {
-                valid_data24_frames_count++;
+                ++m_validData24FramesCount;
             }
 
             // Convert the 24 bytes of data into 12 16-bit audio samples
-            QVector<int16_t> audio_data;
-            QVector<int16_t> audio_error_data;
+            QVector<qint16> audioData;
+            QVector<qint16> audioErrorData;
             for (int i = 0; i < 24; i += 2) {
-                int16_t sample = (data24_data[i + 1] << 8) | data24_data[i];
-                audio_data.append(sample);
+                qint16 sample = (data24Data[i + 1] << 8) | data24Data[i];
+                audioData.append(sample);
 
                 // Set an error flag if either byte of the sample is an error
-                if (data24_error_data[i + 1] == 1 || data24_error_data[i] == 1) {
-                    audio_error_data.append(1);
-                    invalid_samples_count++;
+                if (data24ErrorData[i + 1] == 1 || data24ErrorData[i] == 1) {
+                    audioErrorData.append(1);
+                    ++m_invalidSamplesCount;
                 } else {
-                    audio_error_data.append(0);
-                    valid_samples_count++;
+                    audioErrorData.append(0);
+                    ++m_validSamplesCount;
                 }
             }
 
-            // Put the resulting data into a Audio frame and push it to the output buffer
+            // Put the resulting data into an Audio frame and push it to the output buffer
             Audio audio;
-            audio.set_data(audio_data);
-            audio.set_error_data(audio_error_data);
+            audio.setData(audioData);
+            audio.setErrorData(audioErrorData);
 
-            audio_section.push_frame(audio);
+            audioSection.pushFrame(audio);
         }
 
-        audio_section.metadata = data24_section.metadata;
+        audioSection.metadata = data24Section.metadata;
 
-        if (audio_section.metadata.get_absolute_section_time() < start_time) {
-            start_time = audio_section.metadata.get_absolute_section_time();
+        if (audioSection.metadata.absoluteSectionTime() < m_startTime) {
+            m_startTime = audioSection.metadata.absoluteSectionTime();
         }
 
-        if (audio_section.metadata.get_absolute_section_time() >= end_time) {
-            end_time = audio_section.metadata.get_absolute_section_time();
+        if (audioSection.metadata.absoluteSectionTime() >= m_endTime) {
+            m_endTime = audioSection.metadata.absoluteSectionTime();
         }
 
         // Add the section to the output buffer
-        output_buffer.enqueue(audio_section);
+        m_outputBuffer.enqueue(audioSection);
     }
 }
 
-void Data24ToAudio::show_statistics()
+void Data24ToAudio::showStatistics()
 {
     qInfo() << "Data24 to Audio statistics:";
     qInfo().nospace() << "  Data24 Frames:";
     qInfo().nospace() << "    Total Frames: "
-                      << valid_data24_frames_count + invalid_data24_frames_count;
-    qInfo().nospace() << "    Valid Frames: " << valid_data24_frames_count;
-    qInfo().nospace() << "    Invalid Frames: " << invalid_data24_frames_count;
+                      << m_validData24FramesCount + m_invalidData24FramesCount;
+    qInfo().nospace() << "    Valid Frames: " << m_validData24FramesCount;
+    qInfo().nospace() << "    Invalid Frames: " << m_invalidData24FramesCount;
 
     qInfo() << "  Audio Samples:";
     qInfo().nospace() << "    Total stereo samples: "
-                      << (valid_samples_count + invalid_samples_count) / 2;
-    qInfo().nospace() << "    Valid stereo samples: " << valid_samples_count / 2;
-    qInfo().nospace() << "    Corrupt stereo samples: " << invalid_samples_count / 2;
+                      << (m_validSamplesCount + m_invalidSamplesCount) / 2;
+    qInfo().nospace() << "    Valid stereo samples: " << m_validSamplesCount / 2;
+    qInfo().nospace() << "    Corrupt stereo samples: " << m_invalidSamplesCount / 2;
 
     qInfo() << "  Section time information:";
-    qInfo().noquote() << "    Start time:" << start_time.to_string();
-    qInfo().noquote() << "    End time:" << end_time.to_string();
-    qInfo().noquote() << "    Total time:" << (end_time - start_time).to_string();
+    qInfo().noquote() << "    Start time:" << m_startTime.toString();
+    qInfo().noquote() << "    End time:" << m_endTime.toString();
+    qInfo().noquote() << "    Total time:" << (m_endTime - m_startTime).toString();
 }

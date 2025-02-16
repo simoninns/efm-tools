@@ -30,28 +30,28 @@
 class DelayLine
 {
 public:
-    DelayLine(int32_t _delay_length);
-    uint8_t push(uint8_t input_datum);
-    bool is_ready();
+    DelayLine(int32_t _delayLength);
+    uint8_t push(uint8_t inputDatum);
+    bool isReady();
     void flush();
 
 private:
-    uint8_t *buffer;
-    bool ready;
-    int32_t push_count;
-    int32_t delay_length;
+    uint8_t *m_buffer;
+    bool m_ready;
+    int32_t m_pushCount;
+    int32_t m_delayLength;
 };
 
 class DelayLines
 {
 public:
-    DelayLines(QVector<uint32_t> _delay_lengths);
-    QVector<uint8_t> push(QVector<uint8_t> input_data);
-    bool is_ready();
+    DelayLines(QVector<uint32_t> _delayLengths);
+    QVector<uint8_t> push(QVector<uint8_t> inputData);
+    bool isReady();
     void flush();
 
 private:
-    QVector<DelayLine> delay_lines;
+    QVector<DelayLine> delayLines;
 };
 
 #endif // DELAY_LINES_H

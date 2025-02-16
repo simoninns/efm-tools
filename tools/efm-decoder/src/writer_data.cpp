@@ -31,15 +31,15 @@ WriterData::WriterData() { }
 
 WriterData::~WriterData()
 {
-    if (file.isOpen()) {
-        file.close();
+    if (m_file.isOpen()) {
+        m_file.close();
     }
 }
 
 bool WriterData::open(const QString &filename)
 {
-    file.setFileName(filename);
-    if (!file.open(QIODevice::WriteOnly)) {
+    m_file.setFileName(filename);
+    if (!m_file.open(QIODevice::WriteOnly)) {
         qCritical() << "WriterData::open() - Could not open file" << filename << "for writing";
         return false;
     }
@@ -47,35 +47,35 @@ bool WriterData::open(const QString &filename)
     return true;
 }
 
-void WriterData::write(const Data24Section &data24_section)
+void WriterData::write(const Data24Section &data24Section)
 {
-    if (!file.isOpen()) {
+    if (!m_file.isOpen()) {
         qCritical() << "WriterData::write() - File is not open for writing";
         return;
     }
 
     // Each Data24 section contains 98 frames that we need to write to the output file
     for (int index = 0; index < 98; index++) {
-        Data24 data24 = data24_section.get_frame(index);
-        file.write(reinterpret_cast<const char *>(data24.get_data().data()),
-                   data24.get_frame_size() * sizeof(uint8_t));
+        Data24 data24 = data24Section.frame(index);
+        m_file.write(reinterpret_cast<const char *>(data24.getData().data()),
+                     data24.getFrameSize() * sizeof(uint8_t));
     }
 }
 
 void WriterData::close()
 {
-    if (!file.isOpen()) {
+    if (!m_file.isOpen()) {
         return;
     }
 
-    file.close();
-    qDebug() << "WriterData::close(): Closed the data file" << file.fileName();
+    m_file.close();
+    qDebug() << "WriterData::close(): Closed the data file" << m_file.fileName();
 }
 
-int64_t WriterData::size()
+qint64 WriterData::size() const
 {
-    if (file.isOpen()) {
-        return file.size();
+    if (m_file.isOpen()) {
+        return m_file.size();
     }
 
     return 0;

@@ -24,42 +24,40 @@
 
 #include "efm.h"
 
-Efm::Efm()
+Efm::Efm() noexcept
 {
+    // Pre-allocate hash table to avoid rehashing
+    efmHash.reserve(EFM_LUT_SIZE);
+    
     // Initialise the hash table
-    for (uint16_t i = 0; i < 256 + 2; ++i) {
-        efmHash.insert(efm_lut[i], i);
+    for (quint16 i = 0; i < EFM_LUT_SIZE; ++i) {
+        efmHash.insert(efmLut[i], i);
     }
 }
 
 // Note: There are 257 EFM symbols: 0 to 255 and two additional sync0 and sync1 symbols
 // A value of 300 is returned for an invalid EFM symbol
-uint16_t Efm::fourteen_to_eight(uint16_t efm)
+quint16 Efm::fourteenToEight(quint16 efm) const noexcept
 {
-    // Find the value efm in the efm_lut array
-    for (uint16_t i = 0; i < 256 + 2; ++i) {
-        if (efm_lut[i] == efm) {
-            return i;
-        }
-    }
-
-    // qDebug().noquote() << "Efm::fourteen_to_eight(): EFM symbol not found -" << efm;
-    return 300;
+    // Use hash table for O(1) lookup instead of linear search
+    auto it = efmHash.find(efm);
+    return it != efmHash.end() ? it.value() : INVALID_EFM;
 }
 
-QString Efm::eight_to_fourteen(uint16_t value)
+QString Efm::eightToFourteen(quint16 value) const
 {
-    if (value < 258) {
-        uint16_t efm = efm_lut[value];
-
-        // Convert the 14-bit EFM code to a 14-bit string
-        QString efm_string;
-        for (int i = 13; i >= 0; --i) {
-            efm_string.append((efm & (1 << i)) ? '1' : '0');
-        }
-
-        return efm_string;
-    } else {
-        qFatal("Efm::eight_to_fourteen(): Value must be in the range 0 to 257.");
+    if (value >= EFM_LUT_SIZE) {
+        throw std::out_of_range("EFM value out of valid range");
     }
+
+    quint16 efm = efmLut[value];
+    QString efmString;
+    efmString.reserve(14); // Pre-allocate string space
+
+    // Convert the 14-bit EFM code to a 14-bit string
+    for (int i = 13; i >= 0; --i) {
+        efmString.append((efm & (1 << i)) ? '1' : '0');
+    }
+
+    return efmString;
 }

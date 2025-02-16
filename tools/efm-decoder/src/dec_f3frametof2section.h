@@ -33,37 +33,37 @@ class F3FrameToF2Section : public Decoder
 {
 public:
     F3FrameToF2Section();
-    void push_frame(F3Frame data);
-    F2Section pop_section();
-    bool is_ready() const;
+    void pushFrame(const F3Frame &data);
+    F2Section popSection();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_state_machine();
+    void processStateMachine();
 
-    QQueue<F3Frame> input_buffer;
-    QQueue<F2Section> output_buffer;
+    QQueue<F3Frame> m_inputBuffer;
+    QQueue<F2Section> m_outputBuffer;
 
     // State machine states
-    enum State { EXPECTING_SYNC0, EXPECTING_SYNC1, EXPECTING_SUBCODE, PROCESS_SECTION };
+    enum State { ExpectingSync0, ExpectingSync1, ExpectingSubcode, ProcessSection };
 
-    State current_state;
-    QVector<F3Frame> section_buffer;
+    State m_currentState;
+    QVector<F3Frame> m_sectionBuffer;
 
     // State machine state processing functions
-    State expecting_sync0();
-    State expecting_sync1();
-    State expecting_subcode();
-    State process_section();
+    State expectingSync0();
+    State expectingSync1();
+    State expectingSubcode();
+    State processSection();
 
     // Statistics
-    uint32_t missed_sync0s;
-    uint32_t missed_sync1s;
-    uint32_t missed_subcodes;
-    uint32_t valid_sections;
-    uint32_t invalid_sections;
-    uint32_t input_f3_frames;
+    quint32 m_missedSync0s;
+    quint32 m_missedSync1s;
+    quint32 m_missedSubcodes;
+    quint32 m_validSections;
+    quint32 m_invalidSections;
+    quint32 m_inputF3Frames;
 };
 
 #endif // DEC_F3FRAMETOF2SECTION_H

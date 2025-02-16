@@ -25,99 +25,100 @@
 #include "dec_f1sectiontodata24section.h"
 
 F1SectionToData24Section::F1SectionToData24Section()
+    : m_invalidF1FramesCount(0),
+      m_validF1FramesCount(0),
+      m_corruptBytesCount(0)
 {
-    valid_f1_frames_count = 0;
-    invalid_f1_frames_count = 0;
-    corrupt_bytes_count = 0;
 }
 
-void F1SectionToData24Section::push_section(F1Section f1_section)
+void F1SectionToData24Section::pushSection(const F1Section &f1Section)
 {
     // Add the data to the input buffer
-    input_buffer.enqueue(f1_section);
+    m_inputBuffer.enqueue(f1Section);
 
     // Process the queue
-    process_queue();
+    processQueue();
 }
 
-Data24Section F1SectionToData24Section::pop_section()
+Data24Section F1SectionToData24Section::popSection()
 {
     // Return the first item in the output buffer
-    return output_buffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
-bool F1SectionToData24Section::is_ready() const
+bool F1SectionToData24Section::isReady() const
 {
     // Return true if the output buffer is not empty
-    return !output_buffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }
 
-void F1SectionToData24Section::process_queue()
+void F1SectionToData24Section::processQueue()
 {
     // Process the input buffer
-    while (!input_buffer.isEmpty()) {
-        F1Section f1_section = input_buffer.dequeue();
-        Data24Section data24section;
+    while (!m_inputBuffer.isEmpty()) {
+        F1Section f1Section = m_inputBuffer.dequeue();
+        Data24Section data24Section;
 
         // Sanity check the F1 section
-        if (f1_section.is_complete() == false) {
-            qFatal("F1SectionToData24Section::process_queue - F1 Section is not complete");
+        if (!f1Section.isComplete()) {
+            qFatal("F1SectionToData24Section::processQueue - F1 Section is not complete");
         }
 
-        for (int index = 0; index < 98; index++) {
-            QVector<uint8_t> data = f1_section.get_frame(index).get_data();
-            QVector<uint8_t> error_data = f1_section.get_frame(index).get_error_data();
+        for (int index = 0; index < 98; ++index) {
+            QVector<quint8> data = f1Section.frame(index).getData();
+            QVector<quint8> errorData = f1Section.frame(index).getErrorData();
 
             // ECMA-130 issue 2 page 16 - Clause 16
             // All byte pairs are swapped by the F1 Frame encoder
-            for (int i = 0; i < data.size(); i += 2) {
-                if (i + 1 < data.size()) {
+            if (data.size() == errorData.size()) {
+                for (int i = 0; i < data.size() - 1; i += 2) {
                     std::swap(data[i], data[i + 1]);
-                    std::swap(error_data[i], error_data[i + 1]);
+                    std::swap(errorData[i], errorData[i + 1]);
                 }
+            } else {
+                qFatal("Data and error data size mismatch in F1 frame %d", index);
             }
 
             // Check the error data (and count any flagged errors)
-            uint32_t error_count = f1_section.get_frame(index).count_errors();
+            quint32 errorCount = f1Section.frame(index).countErrors();
 
-            corrupt_bytes_count += error_count;
+            m_corruptBytesCount += errorCount;
 
-            if (error_count > 0)
-                invalid_f1_frames_count++;
+            if (errorCount > 0)
+                ++m_invalidF1FramesCount;
             else
-                valid_f1_frames_count++;
+                ++m_validF1FramesCount;
 
             // Put the resulting data into a Data24 frame and push it to the output buffer
             Data24 data24;
-            data24.set_data(data);
-            data24.set_error_data(error_data);
+            data24.setData(data);
+            data24.setErrorData(errorData);
 
-            data24section.push_frame(data24);
+            data24Section.pushFrame(data24);
         }
 
-        data24section.metadata = f1_section.metadata;
+        data24Section.metadata = f1Section.metadata;
 
         // Add the section to the output buffer
-        output_buffer.enqueue(data24section);
+        m_outputBuffer.enqueue(data24Section);
     }
 }
 
-void F1SectionToData24Section::show_statistics()
+void F1SectionToData24Section::showStatistics()
 {
     qInfo() << "F1 Section to Data24 Section statistics:";
 
     qInfo() << "  Frames:";
-    qInfo() << "    Total F1 frames:" << valid_f1_frames_count + invalid_f1_frames_count;
-    qInfo() << "    Valid F1 frames:" << valid_f1_frames_count;
-    qInfo() << "    Invalid F1 frames:" << invalid_f1_frames_count;
+    qInfo() << "    Total F1 frames:" << m_validF1FramesCount + m_invalidF1FramesCount;
+    qInfo() << "    Valid F1 frames:" << m_validF1FramesCount;
+    qInfo() << "    Invalid F1 frames:" << m_invalidF1FramesCount;
 
     qInfo() << "  Bytes:";
-    uint32_t valid_bytes = (valid_f1_frames_count + invalid_f1_frames_count) * 24;
-    qInfo().nospace() << "    Total bytes: " << valid_bytes + corrupt_bytes_count;
-    qInfo().nospace() << "    Valid bytes: " << valid_bytes;
-    qInfo().nospace() << "    Corrupt bytes: " << corrupt_bytes_count;
+    quint32 validBytes = (m_validF1FramesCount + m_invalidF1FramesCount) * 24;
+    qInfo().nospace() << "    Total bytes: " << validBytes + m_corruptBytesCount;
+    qInfo().nospace() << "    Valid bytes: " << validBytes;
+    qInfo().nospace() << "    Corrupt bytes: " << m_corruptBytesCount;
     qInfo().nospace().noquote() << "    Data loss: "
-                                << QString::number((corrupt_bytes_count * 100.0) / valid_bytes, 'f',
-                                                   3)
+                                << QString::number((m_corruptBytesCount * 100.0) / validBytes, 'f', 3)
                                 << "%";
 }

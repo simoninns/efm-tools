@@ -24,95 +24,111 @@
 
 #include "section_metadata.h"
 
+// SectionType class
+// ---------------------------------------------------------------------------------------------------
+QString SectionType::toString() const
+{
+    switch (m_type) {
+    case LeadIn:
+        return QStringLiteral("LEAD_IN");
+    case LeadOut:
+        return QStringLiteral("LEAD_OUT");
+    case UserData:
+        return QStringLiteral("USER_DATA");
+    default:
+        return QStringLiteral("UNKNOWN");
+    }
+}
+
 // Section time class
 // ---------------------------------------------------------------------------------------------------
-SectionTime::SectionTime() : frames(0)
+SectionTime::SectionTime() : m_frames(0)
 {
     // There are 75 frames per second, 60 seconds per minute, and 60 minutes per hour
     // so the maximum number of frames is 75 * 60 * 60 = 270000
-    if (frames >= 270000) {
-        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
+    if (m_frames >= 270000) {
+        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", m_frames);
     }
 }
 
-SectionTime::SectionTime(int32_t _frames) : frames(_frames)
+SectionTime::SectionTime(qint32 frames) : m_frames(frames)
 {
-    if (frames >= 270000) {
-        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
+    if (m_frames >= 270000) {
+        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", m_frames);
     }
 }
 
-SectionTime::SectionTime(uint8_t _minutes, uint8_t _seconds, uint8_t _frames)
+SectionTime::SectionTime(quint8 minutes, quint8 seconds, quint8 frames)
 {
-    set_time(_minutes, _seconds, _frames);
+    setTime(minutes, seconds, frames);
 }
 
-void SectionTime::set_frames(int32_t _frames)
+void SectionTime::setFrames(qint32 frames)
 {
     if (frames < 0 || frames >= 270000) {
-        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", frames);
+        qFatal("SectionTime::setFrames(): Invalid frame count of %d", frames);
     }
 
-    frames = _frames;
+    m_frames = frames;
 }
 
-void SectionTime::set_time(uint8_t _minutes, uint8_t _seconds, uint8_t _frames)
+void SectionTime::setTime(quint8 minutes, quint8 seconds, quint8 frames)
 {
     // Set the time in minutes, seconds, and frames
 
     // Ensure the time is sane
-    if (_minutes >= 60) {
-        _minutes = 59;
-        qDebug().nospace() << "SectionTime::set_time(): Invalid minutes value " << _minutes
+    if (minutes >= 60) {
+        minutes = 59;
+        qDebug().nospace() << "SectionTime::setTime(): Invalid minutes value " << minutes
                            << ", setting to 59";
     }
-    if (_seconds >= 60) {
-        _seconds = 59;
-        qDebug().nospace() << "SectionTime::set_time(): Invalid seconds value " << _seconds
+    if (seconds >= 60) {
+        seconds = 59;
+        qDebug().nospace() << "SectionTime::setTime(): Invalid seconds value " << seconds
                            << ", setting to 59";
     }
-    if (_frames >= 75) {
-        _frames = 74;
-        qDebug().nospace() << "SectionTime::set_time(): Invalid frames value " << _frames
+    if (frames >= 75) {
+        frames = 74;
+        qDebug().nospace() << "SectionTime::setTime(): Invalid frames value " << frames
                            << ", setting to 74";
     }
 
-    frames = (_minutes * 60 + _seconds) * 75 + _frames;
+    m_frames = (minutes * 60 + seconds) * 75 + frames;
 }
 
-QString SectionTime::to_string() const
+QString SectionTime::toString() const
 {
     // Return the time in the format MM:SS:FF
     return QString("%1:%2:%3")
-            .arg(frames / (75 * 60), 2, 10, QChar('0'))
-            .arg((frames / 75) % 60, 2, 10, QChar('0'))
-            .arg(frames % 75, 2, 10, QChar('0'));
+            .arg(m_frames / (75 * 60), 2, 10, QChar('0'))
+            .arg((m_frames / 75) % 60, 2, 10, QChar('0'))
+            .arg(m_frames % 75, 2, 10, QChar('0'));
 }
 
-QByteArray SectionTime::to_bcd()
+QByteArray SectionTime::toBcd() const
 {
     // Return 3 bytes of BCD data representing the time as MM:SS:FF
     QByteArray bcd;
 
-    uint32_t mins = frames / (75 * 60);
-    uint32_t secs = (frames / 75) % 60;
-    uint32_t frms = frames % 75;
+    quint32 mins = m_frames / (75 * 60);
+    quint32 secs = (m_frames / 75) % 60;
+    quint32 frms = m_frames % 75;
 
-    bcd.append(int_to_bcd(mins));
-    bcd.append(int_to_bcd(secs));
-    bcd.append(int_to_bcd(frms));
+    bcd.append(intToBcd(mins));
+    bcd.append(intToBcd(secs));
+    bcd.append(intToBcd(frms));
 
     return bcd;
 }
 
-uint8_t SectionTime::int_to_bcd(uint32_t value)
+quint8 SectionTime::intToBcd(quint32 value)
 {
     if (value > 99) {
-        qFatal("SectionTime::int_to_bcd(): Value must be in the range 0 to 99.");
+        qFatal("SectionTime::intToBcd(): Value must be in the range 0 to 99.");
     }
 
-    uint16_t bcd = 0;
-    uint16_t factor = 1;
+    quint16 bcd = 0;
+    quint16 factor = 1;
 
     while (value > 0) {
         bcd += (value % 10) * factor;
@@ -126,30 +142,30 @@ uint8_t SectionTime::int_to_bcd(uint32_t value)
 
 // Section metadata class
 // -----------------------------------------------------------------------------------------------
-void SectionMetadata::set_section_type(SectionType _section_type)
+void SectionMetadata::setSectionType(const SectionType &sectionType)
 {
-    section_type = _section_type;
+    m_sectionType = sectionType;
 
     // Ensure track number is sane
-    if (section_type == SectionType::LEAD_IN)
-        track_number = 0;
-    if (section_type == SectionType::LEAD_OUT)
-        track_number = 0;
-    if ((section_type == SectionType::USER_DATA) && (track_number < 1 || track_number > 98)) {
-        track_number = 1;
+    if (m_sectionType.type() == SectionType::LeadIn)
+        m_trackNumber = 0;
+    if (m_sectionType.type() == SectionType::LeadOut)
+        m_trackNumber = 0;
+    if ((m_sectionType.type() == SectionType::UserData) && (m_trackNumber < 1 || m_trackNumber > 98)) {
+        m_trackNumber = 1;
     }
 }
 
-void SectionMetadata::set_track_number(uint8_t _track_number)
+void SectionMetadata::setTrackNumber(quint8 trackNumber)
 {
-    track_number = _track_number;
+    m_trackNumber = trackNumber;
 
     // Ensure track number is sane
-    if (section_type == SectionType::LEAD_IN)
-        track_number = 0;
-    if (section_type == SectionType::LEAD_OUT)
-        track_number = 0;
-    if ((section_type == SectionType::USER_DATA) && (track_number < 1 || track_number > 98)) {
-        track_number = 1;
+    if (m_sectionType.type() == SectionType::LeadIn)
+        m_trackNumber = 0;
+    if (m_sectionType.type() == SectionType::LeadOut)
+        m_trackNumber = 0;
+    if ((m_sectionType.type() == SectionType::UserData) && (m_trackNumber < 1 || m_trackNumber > 98)) {
+        m_trackNumber = 1;
     }
 }

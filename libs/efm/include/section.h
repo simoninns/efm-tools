@@ -34,68 +34,68 @@ class F2Section
 {
 public:
     F2Section();
-    void push_frame(F2Frame in_frame);
-    F2Frame get_frame(int index) const;
-    void set_frame(int index, F2Frame in_frame);
-    bool is_complete() const;
+    void pushFrame(const F2Frame &inFrame);
+    F2Frame frame(int index) const;
+    void setFrame(int index, const F2Frame &inFrame);
+    bool isComplete() const;
     void clear();
-    void show_data();
+    void showData();
 
     SectionMetadata metadata;
 
 private:
-    QVector<F2Frame> frames;
+    QVector<F2Frame> m_frames;
 };
 
 class F1Section
 {
 public:
     F1Section();
-    void push_frame(F1Frame in_frame);
-    F1Frame get_frame(int index) const;
-    void set_frame(int index, F1Frame in_frame);
-    bool is_complete() const;
+    void pushFrame(const F1Frame &inFrame);
+    F1Frame frame(int index) const;
+    void setFrame(int index, const F1Frame &inFrame);
+    bool isComplete() const;
     void clear();
-    void show_data();
+    void showData();
 
     SectionMetadata metadata;
 
 private:
-    QVector<F1Frame> frames;
+    QVector<F1Frame> m_frames;
 };
 
 class Data24Section
 {
 public:
     Data24Section();
-    void push_frame(Data24 in_frame);
-    Data24 get_frame(int index) const;
-    void set_frame(int index, Data24 in_frame);
-    bool is_complete() const;
+    void pushFrame(const Data24 &inFrame);
+    Data24 frame(int index) const;
+    void setFrame(int index, const Data24 &inFrame);
+    bool isComplete() const;
     void clear();
-    void show_data();
+    void showData();
 
     SectionMetadata metadata;
 
 private:
-    QVector<Data24> frames;
+    QVector<Data24> m_frames;
 };
 
 class AudioSection
 {
 public:
     AudioSection();
-    void push_frame(Audio in_frame);
-    Audio get_frame(int index) const;
-    void set_frame(int index, Audio in_frame);
-    bool is_complete() const;
+    void pushFrame(const Audio &inFrame);
+    Audio frame(int index) const;
+    void setFrame(int index, const Audio &inFrame);
+    bool isComplete() const;
     void clear();
-    void show_data();
+    void showData();
 
     SectionMetadata metadata;
 
 private:
-    QVector<Audio> frames;
+    QVector<Audio> m_frames;
 };
 
 #endif // SECTION_H

@@ -30,36 +30,36 @@
 
 #include "delay_lines.h"
 
-DelayLines::DelayLines(QVector<uint32_t> _delay_lengths)
+DelayLines::DelayLines(QVector<quint32> delayLengths)
 {
-    for (int32_t i = 0; i < _delay_lengths.size(); i++) {
-        delay_lines.append(DelayLine(_delay_lengths[i]));
+    for (qint32 i = 0; i < delayLengths.size(); ++i) {
+        delayLines.append(DelayLine(delayLengths[i]));
     }
 }
 
-QVector<uint8_t> DelayLines::push(QVector<uint8_t> input_data)
+QVector<quint8> DelayLines::push(QVector<quint8> inputData)
 {
-    if (input_data.size() != delay_lines.size()) {
+    if (inputData.size() != delayLines.size()) {
         qFatal("Input data size does not match the number of delay lines.");
     }
 
-    QVector<uint8_t> output_data;
-    for (int32_t i = 0; i < delay_lines.size(); i++) {
-        output_data.append(delay_lines[i].push(input_data[i]));
+    QVector<quint8> outputData;
+    for (qint32 i = 0; i < delayLines.size(); ++i) {
+        outputData.append(delayLines[i].push(inputData[i]));
     }
 
     // Check if the delay lines are ready and, if not, return an empty vector
-    if (!is_ready()) {
-        return QVector<uint8_t>{};
+    if (!isReady()) {
+        return QVector<quint8>{};
     }
 
-    return output_data;
+    return outputData;
 }
 
-bool DelayLines::is_ready()
+bool DelayLines::isReady()
 {
-    for (int32_t i = 0; i < delay_lines.size(); i++) {
-        if (!delay_lines[i].is_ready()) {
+    for (qint32 i = 0; i < delayLines.size(); ++i) {
+        if (!delayLines[i].isReady()) {
             return false;
         }
     }
@@ -68,51 +68,54 @@ bool DelayLines::is_ready()
 
 void DelayLines::flush()
 {
-    for (int32_t i = 0; i < delay_lines.size(); i++) {
-        delay_lines[i].flush();
+    for (qint32 i = 0; i < delayLines.size(); ++i) {
+        delayLines[i].flush();
     }
 }
 
 // DelayLine class implementation
-DelayLine::DelayLine(int32_t _delay_length)
+DelayLine::DelayLine(qint32 delayLength)
 {
-    buffer = new uint8_t[_delay_length];
-    delay_length = _delay_length;
+    m_buffer = new quint8[delayLength];
+
+    m_delayLength = delayLength;
     flush();
 }
 
-uint8_t DelayLine::push(uint8_t input_datum)
+quint8 DelayLine::push(quint8 inputDatum)
 {
-    if (delay_length == 0) {
-        return input_datum;
+    if (m_delayLength == 0) {
+        return inputDatum;
     }
 
-    uint8_t output_datum = buffer[0];
-    std::copy(buffer + 1, buffer + delay_length, buffer);
-    buffer[delay_length - 1] = input_datum;
+    // Make sure the buffer is valid before accessing
+    quint8 outputDatum = m_buffer[0];
+
+    std::copy(m_buffer + 1, m_buffer + m_delayLength, m_buffer);
+    m_buffer[m_delayLength - 1] = inputDatum;
 
     // Check if the delay line is ready
-    if (push_count >= delay_length) {
-        ready = true;
+    if (m_pushCount >= m_delayLength) {
+        m_ready = true;
     } else {
-        push_count++;
+        ++m_pushCount;
     }
 
-    return output_datum;
+    return outputDatum;
 }
 
-bool DelayLine::is_ready()
+bool DelayLine::isReady()
 {
-    return ready;
+    return m_ready;
 }
 
 void DelayLine::flush()
 {
-    if (delay_length > 0) {
-        std::fill(buffer, buffer + delay_length, 0);
-        ready = false;
+    if (m_delayLength > 0) {
+        std::fill(m_buffer, m_buffer + m_delayLength, 0);
+        m_ready = false;
     } else {
-        ready = true;
+        m_ready = true;
     }
-    push_count = 0;
+    m_pushCount = 0;
 }

@@ -80,7 +80,7 @@ void F1SectionToF2Section::process_queue()
             }
 
             data = interleave.interleave(data); // 24
-            circ.c2_encode(data); // 24 + 4 = 28
+            circ.c2Encode(data); // 24 + 4 = 28
 
             data = delay_lineM.push(data); // 28
             if (data.isEmpty()) {
@@ -92,7 +92,7 @@ void F1SectionToF2Section::process_queue()
                 continue;
             }
 
-            circ.c1_encode(data); // 28 + 4 = 32
+            circ.c1Encode(data); // 28 + 4 = 32
 
             data = delay_line1.push(data); // 32
             if (data.isEmpty()) {

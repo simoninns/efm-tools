@@ -28,126 +28,126 @@
 // --------------------------------------------------------------------------------------------------------
 
 // Set the data for the frame, ensuring it matches the frame size
-void Frame::set_data(const QVector<uint8_t> &data)
+void Frame::setData(const QVector<quint8> &data)
 {
-    if (data.size() != get_frame_size()) {
-        qFatal("Frame::set_data(): Data size of %d does not match frame size of %d", data.size(),
-               get_frame_size());
+    if (data.size() != getFrameSize()) {
+        qFatal("Frame::setData(): Data size of %d does not match frame size of %d", data.size(),
+               getFrameSize());
     }
-    frame_data = data;
+    frameData = data;
 }
 
 // Get the data for the frame, returning a zero-filled vector if empty
-QVector<uint8_t> Frame::get_data() const
+QVector<quint8> Frame::getData() const
 {
-    if (frame_data.isEmpty()) {
-        qDebug() << "Frame::get_data(): Frame is empty, returning zero-filled vector";
-        return QVector<uint8_t>(get_frame_size(), 0);
+    if (frameData.isEmpty()) {
+        qDebug() << "Frame::getData(): Frame is empty, returning zero-filled vector";
+        return QVector<quint8>(getFrameSize(), 0);
     }
-    return frame_data;
+    return frameData;
 }
 
 // Set the error data for the frame, ensuring it matches the frame size
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-void Frame::set_error_data(const QVector<uint8_t> &error_data)
+void Frame::setErrorData(const QVector<quint8> &errorData)
 {
-    if (error_data.size() != get_frame_size()) {
-        qFatal("Frame::set_error_data(): Error sata size of %d does not match frame size of %d",
-               error_data.size(), get_frame_size());
+    if (errorData.size() != getFrameSize()) {
+        qFatal("Frame::setErrorData(): Error data size of %d does not match frame size of %d",
+               errorData.size(), getFrameSize());
     }
-    frame_error_data = error_data;
+    frameErrorData = errorData;
 }
 
 // Get the error_data for the frame, returning a zero-filled vector if empty
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-QVector<uint8_t> Frame::get_error_data() const
+QVector<quint8> Frame::getErrorData() const
 {
-    if (frame_data.isEmpty()) {
-        qDebug() << "Frame::get_error_data(): Error frame is empty, returning zero-filled vector";
-        return QVector<uint8_t>(get_frame_size(), 0);
+    if (frameErrorData.isEmpty()) {
+        qDebug() << "Frame::getErrorData(): Error frame is empty, returning zero-filled vector";
+        return QVector<quint8>(getFrameSize(), 0);
     }
-    return frame_error_data;
+    return frameErrorData;
 }
 
 // Count the number of errors in the frame
-uint32_t Frame::count_errors() const
+quint32 Frame::countErrors() const
 {
-    uint32_t error_count = 0;
-    for (int i = 0; i < frame_error_data.size(); ++i) {
-        if (frame_error_data[i] == 1) {
-            error_count++;
+    quint32 errorCount = 0;
+    for (int i = 0; i < frameErrorData.size(); ++i) {
+        if (frameErrorData[i] == 1) {
+            errorCount++;
         }
     }
-    return error_count;
+    return errorCount;
 }
 
 // Check if the frame is full (i.e., has data)
-bool Frame::is_full() const
+bool Frame::isFull() const
 {
-    return !frame_data.isEmpty();
+    return !frameData.isEmpty();
 }
 
 // Check if the frame is empty (i.e., has no data)
-bool Frame::is_empty() const
+bool Frame::isEmpty() const
 {
-    return frame_data.isEmpty();
+    return frameData.isEmpty();
 }
 
 // Constructor for Data24, initializes data to the frame size
 Data24::Data24()
 {
-    frame_data.resize(get_frame_size());
-    frame_error_data.resize(get_frame_size());
-    frame_error_data.fill(0);
+    frameData.resize(getFrameSize());
+    frameErrorData.resize(getFrameSize());
+    frameErrorData.fill(0);
 }
 
 // We override the set_data function to ensure the data is 24 bytes
 // since it's possible to have less than 24 bytes of data
-void Data24::set_data(const QVector<uint8_t> &data)
+void Data24::setData(const QVector<quint8> &data)
 {
-    frame_data = data;
+    frameData = data;
 
     // If there are less than 24 bytes, pad data with zeros to 24 bytes
-    if (frame_data.size() < 24) {
-        frame_data.resize(24);
-        for (int i = frame_data.size(); i < 24; ++i) {
-            frame_data[i] = 0;
+    if (frameData.size() < 24) {
+        frameData.resize(24);
+        for (int i = frameData.size(); i < 24; ++i) {
+            frameData[i] = 0;
         }
     }
 }
 
-void Data24::set_error_data(const QVector<uint8_t> &error_data)
+void Data24::setErrorData(const QVector<quint8> &errorData)
 {
-    frame_error_data = error_data;
+    frameErrorData = errorData;
 
     // If there are less than 24 bytes, pad data with zeros to 24 bytes
-    if (frame_error_data.size() < 24) {
-        frame_error_data.resize(24);
-        for (int i = frame_error_data.size(); i < 24; ++i) {
-            frame_error_data[i] = 0;
+    if (frameErrorData.size() < 24) {
+        frameErrorData.resize(24);
+        for (int i = frameErrorData.size(); i < 24; ++i) {
+            frameErrorData[i] = 0;
         }
     }
 }
 
 // Get the frame size for Data24
-int Data24::get_frame_size() const
+int Data24::getFrameSize() const
 {
     return 24;
 }
 
-void Data24::show_data()
+void Data24::showData()
 {
     QString dataString;
-    bool has_error = false;
-    for (int i = 0; i < frame_data.size(); ++i) {
-        if (frame_error_data[i] == 0) {
-            dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
+    bool hasError = false;
+    for (int i = 0; i < frameData.size(); ++i) {
+        if (frameErrorData[i] == 0) {
+            dataString.append(QString("%1 ").arg(frameData[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
-            has_error = true;
+            hasError = true;
         }
     }
-    if (has_error) {
+    if (hasError) {
         qInfo().noquote() << "Data24:" << dataString.trimmed() << "ERROR";
     } else {
         qInfo().noquote() << "Data24:" << dataString.trimmed();
@@ -157,30 +157,30 @@ void Data24::show_data()
 // Constructor for F1Frame, initializes data to the frame size
 F1Frame::F1Frame()
 {
-    frame_data.resize(get_frame_size());
-    frame_error_data.resize(get_frame_size());
-    frame_error_data.fill(0);
+    frameData.resize(getFrameSize());
+    frameErrorData.resize(getFrameSize());
+    frameErrorData.fill(0);
 }
 
 // Get the frame size for F1Frame
-int F1Frame::get_frame_size() const
+int F1Frame::getFrameSize() const
 {
     return 24;
 }
 
-void F1Frame::show_data()
+void F1Frame::showData()
 {
     QString dataString;
-    bool has_error = false;
-    for (int i = 0; i < frame_data.size(); ++i) {
-        if (frame_error_data[i] == 0) {
-            dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
+    bool hasError = false;
+    for (int i = 0; i < frameData.size(); ++i) {
+        if (frameErrorData[i] == 0) {
+            dataString.append(QString("%1 ").arg(frameData[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
-            has_error = true;
+            hasError = true;
         }
     }
-    if (has_error) {
+    if (hasError) {
         qInfo().noquote() << "F1Frame:" << dataString.trimmed() << "ERROR";
     } else {
         qInfo().noquote() << "F1Frame:" << dataString.trimmed();
@@ -190,30 +190,30 @@ void F1Frame::show_data()
 // Constructor for F2Frame, initializes data to the frame size
 F2Frame::F2Frame()
 {
-    frame_data.resize(get_frame_size());
-    frame_error_data.resize(get_frame_size());
-    frame_error_data.fill(0);
+    frameData.resize(getFrameSize());
+    frameErrorData.resize(getFrameSize());
+    frameErrorData.fill(0);
 }
 
 // Get the frame size for F2Frame
-int F2Frame::get_frame_size() const
+int F2Frame::getFrameSize() const
 {
     return 32;
 }
 
-void F2Frame::show_data()
+void F2Frame::showData()
 {
     QString dataString;
-    bool has_error = false;
-    for (int i = 0; i < frame_data.size(); ++i) {
-        if (frame_error_data[i] == 0) {
-            dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
+    bool hasError = false;
+    for (int i = 0; i < frameData.size(); ++i) {
+        if (frameErrorData[i] == 0) {
+            dataString.append(QString("%1 ").arg(frameData[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
-            has_error = true;
+            hasError = true;
         }
     }
-    if (has_error) {
+    if (hasError) {
         qInfo().noquote() << "F2Frame:" << dataString.trimmed() << "ERROR";
     } else {
         qInfo().noquote() << "F2Frame:" << dataString.trimmed();
@@ -223,92 +223,92 @@ void F2Frame::show_data()
 // Constructor for F3Frame, initializes data to the frame size
 F3Frame::F3Frame()
 {
-    frame_data.resize(get_frame_size());
-    subcode_byte = 0;
-    f3_frame_type = SUBCODE;
+    frameData.resize(getFrameSize());
+    subcodeByte = 0;
+    f3FrameType = Subcode;
 }
 
 // Get the frame size for F3Frame
-int F3Frame::get_frame_size() const
+int F3Frame::getFrameSize() const
 {
     return 32;
 }
 
 // Set the frame type as subcode and set the subcode value
-void F3Frame::set_frame_type_as_subcode(uint8_t subcode_value)
+void F3Frame::setFrameTypeAsSubcode(quint8 subcodeValue)
 {
-    f3_frame_type = SUBCODE;
-    subcode_byte = subcode_value;
+    f3FrameType = Subcode;
+    subcodeByte = subcodeValue;
 }
 
 // Set the frame type as sync0 and set the subcode value to 0
-void F3Frame::set_frame_type_as_sync0()
+void F3Frame::setFrameTypeAsSync0()
 {
-    f3_frame_type = SYNC0;
-    subcode_byte = 0;
+    f3FrameType = Sync0;
+    subcodeByte = 0;
 }
 
 // Set the frame type as sync1 and set the subcode value to 0
-void F3Frame::set_frame_type_as_sync1()
+void F3Frame::setFrameTypeAsSync1()
 {
-    f3_frame_type = SYNC1;
-    subcode_byte = 0;
+    f3FrameType = Sync1;
+    subcodeByte = 0;
 }
 
 // Get the F3 frame type
-F3Frame::F3FrameType F3Frame::get_f3_frame_type() const
+F3Frame::F3FrameType F3Frame::getF3FrameType() const
 {
-    return f3_frame_type;
+    return f3FrameType;
 }
 
 // Get the F3 frame type as a QString
-QString F3Frame::get_f3_frame_type_as_string() const
+QString F3Frame::getF3FrameTypeAsString() const
 {
-    switch (f3_frame_type) {
-    case SUBCODE:
-        return "SUBCODE";
-    case SYNC0:
-        return "SYNC0";
-    case SYNC1:
-        return "SYNC1";
+    switch (f3FrameType) {
+    case Subcode:
+        return "Subcode";
+    case Sync0:
+        return "Sync0";
+    case Sync1:
+        return "Sync1";
     default:
         return "UNKNOWN";
     }
 }
 
 // Get the subcode value
-uint8_t F3Frame::get_subcode_byte() const
+quint8 F3Frame::getSubcodeByte() const
 {
-    return subcode_byte;
+    return subcodeByte;
 }
 
-void F3Frame::show_data()
+void F3Frame::showData()
 {
     QString dataString;
-    bool has_error = false;
-    for (int i = 0; i < frame_data.size(); ++i) {
-        if (frame_error_data[i] == 0) {
-            dataString.append(QString("%1 ").arg(frame_data[i], 2, 16, QChar('0')));
+    bool hasError = false;
+    for (int i = 0; i < frameData.size(); ++i) {
+        if (frameErrorData[i] == 0) {
+            dataString.append(QString("%1 ").arg(frameData[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
-            has_error = true;
+            hasError = true;
         }
     }
 
     QString errorString;
-    if (has_error)
+    if (hasError)
         errorString = "ERROR";
     else
         errorString = "";
 
-    if (f3_frame_type == SUBCODE) {
+    if (f3FrameType == Subcode) {
         qInfo().noquote() << "F3Frame:" << dataString.trimmed()
-                          << " subcode:" << QString("0x%1").arg(subcode_byte, 2, 16, QChar('0'))
+                          << " subcode:" << QString("0x%1").arg(subcodeByte, 2, 16, QChar('0'))
                           << errorString;
-    } else if (f3_frame_type == SYNC0) {
-        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " SYNC0" << errorString;
-    } else if (f3_frame_type == SYNC1) {
-        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " SYNC1" << errorString;
+    } else if (f3FrameType == Sync0) {
+        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " Sync0" << errorString;
+    } else if (f3FrameType == Sync1) {
+        qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " Sync1" << errorString;
     } else {
         qInfo().noquote() << "F3Frame:" << dataString.trimmed() << " UNKNOWN" << errorString;
     }

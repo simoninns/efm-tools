@@ -32,19 +32,32 @@
 class Efm
 {
 public:
-    Efm();
-    uint16_t fourteen_to_eight(uint16_t efm);
-    QString eight_to_fourteen(uint16_t value);
+    Efm() noexcept;
+    ~Efm() = default;
+
+    // Delete copy operations to prevent accidental copies
+    Efm(const Efm&) = delete;
+    Efm& operator=(const Efm&) = delete;
+
+    // Make move operations default
+    Efm(Efm&&) = default;
+    Efm& operator=(Efm&&) = default;
+
+    // Convert methods made const as they don't modify state
+    quint16 fourteenToEight(quint16 efm) const noexcept;
+    QString eightToFourteen(quint16 value) const;
 
 private:
-    QHash<uint16_t, uint16_t> efmHash;
+    static constexpr size_t EFM_LUT_SIZE = 258; // 256 + 2 sync symbols
+    static constexpr quint16 INVALID_EFM = 300;
+    QHash<quint16, quint16> efmHash;
 
     // The following table provides the 10-bit EFM code (padded with leading
     // zeros to 16-bit) corresponding to 0 to 255.  The represented number is
     // given by the position in the array (i.e. position 0 = EFM code for
     // decimal 0 and so on).  Symbols 256 and 257 are the sync symbols sync0
     // and sync1 respectively.
-    const uint16_t efm_lut[256 + 2] = {
+    const quint16 efmLut[256 + 2] = {
         0x1220, 0x2100, 0x2420, 0x2220, 0x1100, 0x0110, 0x0420, 0x0900, //   8 (7)
         0x1240, 0x2040, 0x2440, 0x2240, 0x1040, 0x0040, 0x0440, 0x0840, //  16
         0x2020, 0x2080, 0x2480, 0x0820, 0x1080, 0x0080, 0x0480, 0x0880, //  24

@@ -25,7 +25,6 @@
 #ifndef SUBCODE_H
 #define SUBCODE_H
 
-#include <cstdint>
 #include <QByteArray>
 #include <QString>
 #include <QDebug>
@@ -35,25 +34,25 @@
 class Subcode
 {
 public:
-    Subcode() : show_debug(false) { }
+    Subcode() : m_showDebug(false) { }
 
-    SectionMetadata from_data(const QByteArray &data);
-    QByteArray to_data(const SectionMetadata &section_metadata);
-    void set_show_debug(bool _show_debug) { show_debug = _show_debug; }
+    SectionMetadata fromData(const QByteArray &data);
+    QByteArray toData(const SectionMetadata &sectionMetadata);
+    void setShowDebug(bool showDebug) { m_showDebug = showDebug; }
 
 private:
-    void set_bit(QByteArray &data, uint8_t bit_position, bool value);
-    bool get_bit(const QByteArray &data, uint8_t bit_position);
-    bool is_crc_valid(QByteArray q_channel_data);
-    uint16_t get_q_channel_crc(QByteArray q_channel_data);
-    void set_q_channel_crc(QByteArray &q_channel_data);
-    uint16_t calculate_q_channel_crc16(const QByteArray &data);
-    bool repair_data(QByteArray &q_channel_data);
+    void setBit(QByteArray &data, quint8 bitPosition, bool value);
+    bool getBit(const QByteArray &data, quint8 bitPosition);
+    bool isCrcValid(QByteArray qChannelData);
+    quint16 getQChannelCrc(QByteArray qChannelData);
+    void setQChannelCrc(QByteArray &qChannelData);
+    quint16 calculateQChannelCrc16(const QByteArray &data);
+    bool repairData(QByteArray &qChannelData);
 
-    uint8_t int_to_bcd2(uint8_t value);
-    uint8_t bcd2_to_int(uint8_t bcd);
+    quint8 intToBcd2(quint8 value);
+    quint8 bcd2ToInt(quint8 bcd);
 
-    bool show_debug;
+    bool m_showDebug;
 };
 
 #endif // SUBCODE_H

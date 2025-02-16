@@ -28,44 +28,44 @@ ReaderData::ReaderData() { }
 
 ReaderData::~ReaderData()
 {
-    if (file.isOpen()) {
-        file.close();
+    if (m_file.isOpen()) {
+        m_file.close();
     }
 }
 
 bool ReaderData::open(const QString &filename)
 {
-    file.setFileName(filename);
-    if (!file.open(QIODevice::ReadOnly)) {
+    m_file.setFileName(filename);
+    if (!m_file.open(QIODevice::ReadOnly)) {
         qCritical() << "ReaderData::open() - Could not open file" << filename << "for reading";
         return false;
     }
     qDebug() << "ReaderData::open() - Opened file" << filename << "for data reading with size"
-             << file.size() << "bytes";
+             << m_file.size() << "bytes";
     return true;
 }
 
-QByteArray ReaderData::read(uint32_t chunk_size)
+QByteArray ReaderData::read(uint32_t chunkSize)
 {
-    if (!file.isOpen()) {
+    if (!m_file.isOpen()) {
         qCritical() << "ReaderData::read() - File is not open for reading";
         return QByteArray();
     }
-    QByteArray data = file.read(chunk_size);
+    QByteArray data = m_file.read(chunkSize);
     return data;
 }
 
 void ReaderData::close()
 {
-    if (!file.isOpen()) {
+    if (!m_file.isOpen()) {
         return;
     }
 
-    file.close();
-    qDebug() << "ReaderData::close(): Closed the data file" << file.fileName();
+    m_file.close();
+    qDebug() << "ReaderData::close(): Closed the data file" << m_file.fileName();
 }
 
-int64_t ReaderData::size()
+qint64 ReaderData::size() const
 {
-    return file.size();
+    return m_file.size();
 }

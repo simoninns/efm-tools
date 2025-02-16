@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     setDebug(true);
     qInstallMessageHandler(debugOutputHandler);
 
-    QCoreApplication a(argc, argv);
+    QCoreApplication app(argc, argv);
 
     // Set application name and version
     QCoreApplication::setApplicationName("efm-decoder");
@@ -119,15 +119,15 @@ int main(int argc, char *argv[])
                                  QCoreApplication::translate("main", "Specify output data file"));
 
     // Process the command line options and arguments given by the user
-    parser.process(a);
+    parser.process(app);
 
     // Standard logging options
     processStandardDebugOptions(parser);
 
     // Check for output data type options
-    bool output_wav = parser.isSet("output-wav");
-    bool output_wav_metadata = parser.isSet("output-wav-metadata");
-    bool no_wav_correction = parser.isSet("no-wav-correction");
+    bool outputWav = parser.isSet("output-wav");
+    bool outputWavMetadata = parser.isSet("output-wav-metadata");
+    bool noWavCorrection = parser.isSet("no-wav-correction");
 
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
@@ -159,27 +159,27 @@ int main(int argc, char *argv[])
     }
 
     // Get the filename arguments from the parser
-    QString input_filename;
-    QString output_filename;
-    QStringList positional_arguments = parser.positionalArguments();
+    QString inputFilename;
+    QString outputFilename;
+    QStringList positionalArguments = parser.positionalArguments();
 
-    if (positional_arguments.count() != 2) {
+    if (positionalArguments.count() != 2) {
         qWarning() << "You must specify the input EFM filename and the output data filename";
         return 1;
     }
-    input_filename = positional_arguments.at(0);
-    output_filename = positional_arguments.at(1);
+    inputFilename = positionalArguments.at(0);
+    outputFilename = positionalArguments.at(1);
 
     // Perform the processing
-    qInfo() << "Beginning EFM decoding of" << input_filename;
-    EfmProcessor efm_processor;
+    qInfo() << "Beginning EFM decoding of" << inputFilename;
+    EfmProcessor efmProcessor;
 
-    efm_processor.set_show_data(showAudio, showData24, showF1, showF2, showF3);
-    efm_processor.set_output_type(output_wav, output_wav_metadata, no_wav_correction);
-    efm_processor.set_debug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
-                            showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
+    efmProcessor.setShowData(showAudio, showData24, showF1, showF2, showF3);
+    efmProcessor.setOutputType(outputWav, outputWavMetadata, noWavCorrection);
+    efmProcessor.setDebug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
+                          showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
 
-    if (!efm_processor.process(input_filename, output_filename)) {
+    if (!efmProcessor.process(inputFilename, outputFilename)) {
         return 1;
     }
 

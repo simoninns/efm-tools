@@ -32,27 +32,27 @@ class AudioCorrection : public Decoder
 {
 public:
     AudioCorrection();
-    void push_section(AudioSection audio_section);
-    AudioSection pop_section();
-    bool is_ready() const;
+    void pushSection(const AudioSection &audioSection);
+    AudioSection popSection();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<AudioSection> input_buffer;
-    QQueue<AudioSection> output_buffer;
+    QQueue<AudioSection> m_inputBuffer;
+    QQueue<AudioSection> m_outputBuffer;
 
     // Statistics
-    uint32_t concealed_samples_count;
-    uint32_t silenced_samples_count;
-    uint32_t valid_samples_count;
+    quint32 m_concealedSamplesCount;
+    quint32 m_silencedSamplesCount;
+    quint32 m_validSamplesCount;
 
-    int16_t last_section_left_sample;
-    int16_t last_section_right_sample;
-    int16_t last_section_left_error;
-    int16_t last_section_right_error;
+    qint16 m_lastSectionLeftSample;
+    qint16 m_lastSectionRightSample;
+    qint16 m_lastSectionLeftError;
+    qint16 m_lastSectionRightError;
 };
 
 #endif // DEC_AUDIOCORRECTION_H

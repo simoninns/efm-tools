@@ -32,45 +32,45 @@ class TvaluesToChannel : public Decoder
 {
 public:
     TvaluesToChannel();
-    void push_frame(QByteArray data);
-    QByteArray pop_frame();
-    bool is_ready() const;
+    void pushFrame(const QByteArray &data);
+    QByteArray popFrame();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_state_machine();
-    uint32_t count_bits(QByteArray data, int32_t start_position = 0, int32_t end_position = -1);
+    void processStateMachine();
+    quint32 countBits(const QByteArray &data, qint32 startPosition = 0, qint32 endPosition = -1);
 
     // State machine states
-    enum State { EXPECTING_INITIAL_SYNC, EXPECTING_SYNC, HANDLE_OVERSHOOT, HANDLE_UNDERSHOOT };
+    enum State { ExpectingInitialSync, ExpectingSync, HandleOvershoot, HandleUndershoot };
 
     // Statistics
-    uint32_t consumed_t_values;
-    uint32_t discarded_t_values;
-    uint32_t channel_frame_count;
+    quint32 m_consumedTValues;
+    quint32 m_discardedTValues;
+    quint32 m_channelFrameCount;
 
-    uint32_t perfect_frames;
-    uint32_t long_frames;
-    uint32_t short_frames;
+    quint32 m_perfectFrames;
+    quint32 m_longFrames;
+    quint32 m_shortFrames;
 
-    uint32_t overshoot_syncs;
-    uint32_t undershoot_syncs;
-    uint32_t perfect_syncs;
+    quint32 m_overshootSyncs;
+    quint32 m_undershootSyncs;
+    quint32 m_perfectSyncs;
 
-    State current_state;
-    QByteArray internal_buffer;
-    QByteArray frame_data;
+    State m_currentState;
+    QByteArray m_internalBuffer;
+    QByteArray m_frameData;
 
-    QQueue<QByteArray> input_buffer;
-    QQueue<QByteArray> output_buffer;
+    QQueue<QByteArray> m_inputBuffer;
+    QQueue<QByteArray> m_outputBuffer;
 
-    Tvalues tvalues;
+    Tvalues m_tvalues;
 
-    State expecting_initial_sync();
-    State expecting_sync();
-    State handle_undershoot();
-    State handle_overshoot();
+    State expectingInitialSync();
+    State expectingSync();
+    State handleUndershoot();
+    State handleOvershoot();
 };
 
 #endif // DEC_TVALUESTOCHANNEL_H

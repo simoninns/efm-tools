@@ -35,48 +35,48 @@ class F2SectionToF1Section : public Decoder
 {
 public:
     F2SectionToF1Section();
-    void push_section(F2Section f2_section);
-    F1Section pop_section();
-    bool is_ready() const;
+    void pushSection(const F2Section &f2Section);
+    F1Section popSection();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_queue();
-    void show_data(QString description, int32_t index, QString time_string, QVector<uint8_t> &data,
-                   QVector<uint8_t> &data_error);
+    void processQueue();
+    void showData(const QString &description, qint32 index, const QString &timeString, QVector<quint8> &data,
+                  QVector<quint8> &dataError);
 
-    QQueue<F2Section> input_buffer;
-    QQueue<F1Section> output_buffer;
+    QQueue<F2Section> inputBuffer;
+    QQueue<F1Section> outputBuffer;
 
     ReedSolomon circ;
 
-    DelayLines delay_line1;
-    DelayLines delay_line2;
-    DelayLines delay_lineM;
+    DelayLines delayLine1;
+    DelayLines delayLine2;
+    DelayLines delayLineM;
 
-    DelayLines delay_line1_err;
-    DelayLines delay_line2_err;
-    DelayLines delay_lineM_err;
+    DelayLines delayLine1Err;
+    DelayLines delayLine2Err;
+    DelayLines delayLineMErr;
 
     Interleave interleave;
     Inverter inverter;
 
-    Interleave interleave_err;
+    Interleave interleaveErr;
 
     // Statistics
-    uint32_t invalid_input_f2_frames_count;
-    uint32_t valid_input_f2_frames_count;
-    uint32_t invalid_output_f1_frames_count;
-    uint32_t valid_output_f1_frames_count;
-    uint32_t dl_lost_frames_count;
-    uint32_t continuity_error_count;
+    quint32 invalidInputF2FramesCount;
+    quint32 validInputF2FramesCount;
+    quint32 invalidOutputF1FramesCount;
+    quint32 validOutputF1FramesCount;
+    quint32 dlLostFramesCount;
+    quint32 continuityErrorCount;
 
-    uint32_t input_byte_errors;
-    uint32_t output_byte_errors;
+    quint32 inputByteErrors;
+    quint32 outputByteErrors;
 
     // Continuity check
-    int32_t last_frame_number;
+    qint32 lastFrameNumber;
 };
 
 #endif // DEC_F2SECTIONTOF1SECTION_H

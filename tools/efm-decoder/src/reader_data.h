@@ -36,12 +36,12 @@ public:
     ~ReaderData();
 
     bool open(const QString &filename);
-    QByteArray read(uint32_t chunk_size);
+    QByteArray read(uint32_t chunkSize);
     void close();
-    int64_t size();
+    qint64 size() const;
 
 private:
-    QFile file;
+    QFile m_file;
 };
 
 #endif // READER_DATA_H

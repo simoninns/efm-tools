@@ -38,12 +38,12 @@ public:
     ~WriterData();
 
     bool open(const QString &filename);
-    void write(const Data24Section &data24_section);
+    void write(const Data24Section &data24Section);
     void close();
-    int64_t size();
+    qint64 size() const;
 
 private:
-    QFile file;
+    QFile m_file;
 };
 
 #endif // WRITER_DATA_H

@@ -26,122 +26,120 @@
 
 EfmProcessor::EfmProcessor() { }
 
-bool EfmProcessor::process(QString input_filename, QString output_filename)
+bool EfmProcessor::process(const QString &inputFilename, const QString &outputFilename)
 {
-    qDebug() << "EfmProcessor::process(): Decoding EFM from file:" << input_filename
-             << "to file:" << output_filename;
+    qDebug() << "EfmProcessor::process(): Decoding EFM from file:" << inputFilename
+             << "to file:" << outputFilename;
 
     // Prepare the input file reader
-    if (!reader_data.open(input_filename)) {
-        qDebug() << "EfmProcessor::process(): Failed to open input file:" << input_filename;
+    if (!m_readerData.open(inputFilename)) {
+        qDebug() << "EfmProcessor::process(): Failed to open input file:" << inputFilename;
         return false;
     }
 
     // Prepare the output files...
-    if (!is_output_data_wav)
-        writer_data.open(output_filename);
+    if (!m_isOutputDataWav)
+        m_writerData.open(outputFilename);
     else
-        writer_wav.open(output_filename);
+        m_writerWav.open(outputFilename);
 
-    if (output_wav_metadata && is_output_data_wav) {
+    if (m_outputWavMetadata && m_isOutputDataWav) {
         // Prepare the metadata output file
-        // If the output filename ends in .wav, replace it with .metadata
-        // otherwise append .metadata to the output filename
-        QString metadata_filename = output_filename;
-        if (metadata_filename.endsWith(".wav")) {
-            metadata_filename.replace(".wav", ".metadata");
+        QString metadataFilename = outputFilename;
+        if (metadataFilename.endsWith(".wav")) {
+            metadataFilename.replace(".wav", ".metadata");
         } else {
-            metadata_filename.append(".metadata");
+            metadataFilename.append(".metadata");
         }
 
-        writer_wav_metadata.open(metadata_filename);
+        m_writerWavMetadata.open(metadataFilename);
     }
 
     // Get the total size of the input file for progress reporting
-    qint64 total_size = reader_data.size();
-    qint64 processed_size = 0;
-    int last_progress = 0;
+    qint64 totalSize = m_readerData.size();
+    qint64 processedSize = 0;
+    int lastProgress = 0;
 
     // Process the EFM data in chunks of 1024 T-values
-    bool end_of_data = false;
-    while (!end_of_data) {
+    bool endOfData = false;
+    while (!endOfData) {
         // Read 1024 T-values from the input file
-        QByteArray t_values = reader_data.read(1024);
-        processed_size += t_values.size();
+        QByteArray tValues = m_readerData.read(1024);
+        processedSize += tValues.size();
 
-        int progress = static_cast<int>((processed_size * 100) / total_size);
-        if (progress >= last_progress + 5) { // Show progress every 5%
+        int progress = static_cast<int>((processedSize * 100) / totalSize);
+        if (progress >= lastProgress + 5) { // Show progress every 5%
             qInfo() << "Progress:" << progress << "%";
-            last_progress = progress;
+            lastProgress = progress;
         }
 
-        if (t_values.isEmpty()) {
-            end_of_data = true;
+        if (tValues.isEmpty()) {
+            endOfData = true;
         } else {
-            t_values_to_channel.push_frame(t_values);
+            m_tValuesToChannel.pushFrame(tValues);
         }
 
-        process_pipeline();
+        processPipeline();
     }
 
     // We are out of data flush the pipeline and process it one last time
     qInfo() << "Flushing decoding pipelines";
-    f2_section_correction.flush();
-    process_pipeline();
+    m_f2SectionCorrection.flush();
+    processPipeline();
 
     // Show summary
     qInfo() << "Decoding complete";
 
-    t_values_to_channel.show_statistics();
+    m_tValuesToChannel.showStatistics();
     qInfo() << "";
-    channel_to_f3.show_statistics();
+    m_channelToF3.showStatistics();
     qInfo() << "";
-    f3_frame_to_f2_section.show_statistics();
+    m_f3FrameToF2Section.showStatistics();
     qInfo() << "";
-    f2_section_correction.show_statistics();
+    m_f2SectionCorrection.showStatistics();
     qInfo() << "";
-    f2_section_to_f1_section.show_statistics();
+    m_f2SectionToF1Section.showStatistics();
     qInfo() << "";
-    f1_section_to_data24_section.show_statistics();
+    m_f1SectionToData24Section.showStatistics();
     qInfo() << "";
-    if (is_output_data_wav) {
-        data24_to_audio.show_statistics();
+    if (m_isOutputDataWav) {
+        m_data24ToAudio.showStatistics();
         qInfo() << "";
     }
-    if (is_output_data_wav && !no_wav_correction) {
-        audio_correction.show_statistics();
+    if (m_isOutputDataWav && !m_noWavCorrection) {
+        m_audioCorrection.showStatistics();
         qInfo() << "";
     }
 
     // Close the input file
-    reader_data.close();
+    m_readerData.close();
 
     // Close the output files
-    if (!is_output_data_wav)
-        writer_data.close();
+    if (!m_isOutputDataWav)
+        m_writerData.close();
     else
-        writer_wav.close();
-    if (output_wav_metadata && is_output_data_wav)
-        writer_wav_metadata.close();
+        m_writerWav.close();
+    if (m_outputWavMetadata && m_isOutputDataWav)
+        m_writerWavMetadata.close();
 
     qInfo() << "Encoding complete";
     return true;
 }
 
-void EfmProcessor::process_pipeline()
+void EfmProcessor::processPipeline()
 {
     // Are there any T-values ready?
-    while (t_values_to_channel.is_ready()) {
-        QByteArray channel_data = t_values_to_channel.pop_frame();
-        channel_to_f3.push_frame(channel_data);
+    while (m_tValuesToChannel.isReady()) {
+        QByteArray channelData = m_tValuesToChannel.popFrame();
+        m_channelToF3.pushFrame(channelData);
     }
 
     // Are there any F3 frames ready?
-    while (channel_to_f3.is_ready()) {
-        F3Frame f3_frame = channel_to_f3.pop_frame();
-        if (showF3)
-            f3_frame.show_data();
-        f3_frame_to_f2_section.push_frame(f3_frame);
+    while (m_channelToF3.isReady()) {
+        F3Frame f3Frame = m_channelToF3.popFrame();
+        if (m_showF3)
+            f3Frame.showData();
+        m_f3FrameToF2Section.pushFrame(f3Frame);
     }
 
     // Note: Once we have F2 frames, we have to group them into 98 frame
@@ -149,116 +147,116 @@ void EfmProcessor::process_pipeline()
     // otherwise we can't keep track of the metadata as we decode the data...
 
     // Are there any F2 sections ready?
-    while (f3_frame_to_f2_section.is_ready()) {
-        F2Section section = f3_frame_to_f2_section.pop_section();
-        f2_section_correction.push_section(section);
+    while (m_f3FrameToF2Section.isReady()) {
+        F2Section section = m_f3FrameToF2Section.popSection();
+        m_f2SectionCorrection.pushSection(section);
     }
 
     // Are there any corrected F2 sections ready?
-    while (f2_section_correction.is_ready()) {
-        F2Section f2_section = f2_section_correction.pop_section();
+    while (m_f2SectionCorrection.isReady()) {
+        F2Section f2Section = m_f2SectionCorrection.popSection();
 
-        if (showF2)
-            f2_section.show_data();
-        f2_section_to_f1_section.push_section(f2_section);
+        if (m_showF2)
+            f2Section.showData();
+        m_f2SectionToF1Section.pushSection(f2Section);
     }
 
     // Are there any F1 sections ready?
-    while (f2_section_to_f1_section.is_ready()) {
-        F1Section f1_section = f2_section_to_f1_section.pop_section();
-        if (showF1)
-            f1_section.show_data();
-        f1_section_to_data24_section.push_section(f1_section);
+    while (m_f2SectionToF1Section.isReady()) {
+        F1Section f1Section = m_f2SectionToF1Section.popSection();
+        if (m_showF1)
+            f1Section.showData();
+        m_f1SectionToData24Section.pushSection(f1Section);
     }
 
-    if (!is_output_data_wav) {
+    if (!m_isOutputDataWav) {
         // Output is data, so we write the Data24 sections directly to the output file
 
         // Are there any data24 frames ready?
-        while (f1_section_to_data24_section.is_ready()) {
-            Data24Section data24section = f1_section_to_data24_section.pop_section();
+        while (m_f1SectionToData24Section.isReady()) {
+            Data24Section data24Section = m_f1SectionToData24Section.popSection();
 
             // Write the Data24 frames to the output file as raw data
-            writer_data.write(data24section);
+            m_writerData.write(data24Section);
 
-            if (showData24) {
-                data24section.show_data();
+            if (m_showData24) {
+                data24Section.showData();
             }
         }
     } else {
         // Output is audio, so we convert the Data24 sections to audio sections
 
         // Are there any data24 frames ready?
-        while (f1_section_to_data24_section.is_ready()) {
-            Data24Section data24section = f1_section_to_data24_section.pop_section();
-            data24_to_audio.push_section(data24section);
+        while (m_f1SectionToData24Section.isReady()) {
+            Data24Section data24Section = m_f1SectionToData24Section.popSection();
+            m_data24ToAudio.pushSection(data24Section);
 
-            if (showData24) {
-                data24section.show_data();
+            if (m_showData24) {
+                data24Section.showData();
             }
         }
 
-        if (no_wav_correction) {
+        if (m_noWavCorrection) {
             // Are there any audio frames ready?
             // If so we write them to the output file
-            while (data24_to_audio.is_ready()) {
-                AudioSection audio_section = data24_to_audio.pop_section();
+            while (m_data24ToAudio.isReady()) {
+                AudioSection audioSection = m_data24ToAudio.popSection();
 
                 // Write the Audio frames to the output file as wav data
-                writer_wav.write(audio_section);
-                if (output_wav_metadata)
-                    writer_wav_metadata.write(audio_section);
+                m_writerWav.write(audioSection);
+                if (m_outputWavMetadata)
+                    m_writerWavMetadata.write(audioSection);
             }
         } else {
             // Are there any audio frames ready?
             // If so, attempt to correct them
-            while (data24_to_audio.is_ready()) {
-                AudioSection audio_section = data24_to_audio.pop_section();
-                audio_correction.push_section(audio_section);
+            while (m_data24ToAudio.isReady()) {
+                AudioSection audioSection = m_data24ToAudio.popSection();
+                m_audioCorrection.pushSection(audioSection);
             }
 
             // Are there any corrected audio frames ready?
             // If so we write them to the output file
-            while (audio_correction.is_ready()) {
-                AudioSection audio_section = audio_correction.pop_section();
+            while (m_audioCorrection.isReady()) {
+                AudioSection audioSection = m_audioCorrection.popSection();
 
                 // Write the Audio frames to the output file as wav data
-                writer_wav.write(audio_section);
-                if (output_wav_metadata)
-                    writer_wav_metadata.write(audio_section);
+                m_writerWav.write(audioSection);
+                if (m_outputWavMetadata)
+                    m_writerWavMetadata.write(audioSection);
             }
         }
     }
 }
 
-void EfmProcessor::set_show_data(bool _showAudio, bool _showData24, bool _showF1, bool _showF2,
-                                 bool _showF3)
+void EfmProcessor::setShowData(bool showAudio, bool showData24, bool showF1, bool showF2,
+                               bool showF3)
 {
-    showAudio = _showAudio;
-    showData24 = _showData24;
-    showF1 = _showF1;
-    showF2 = _showF2;
-    showF3 = _showF3;
+    m_showAudio = showAudio;
+    m_showData24 = showData24;
+    m_showF1 = showF1;
+    m_showF2 = showF2;
+    m_showF3 = showF3;
 }
 
 // Set the output data type (true for WAV, false for raw)
-void EfmProcessor::set_output_type(bool _wavOutput, bool _outputWavMetadata, bool _noWavCorrection)
+void EfmProcessor::setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection)
 {
-    is_output_data_wav = _wavOutput;
-    no_wav_correction = _noWavCorrection;
-    output_wav_metadata = _outputWavMetadata;
+    m_isOutputDataWav = wavOutput;
+    m_noWavCorrection = noWavCorrection;
+    m_outputWavMetadata = outputWavMetadata;
 }
 
-void EfmProcessor::set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,
-                             bool audio, bool audioCorrection)
+void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,
+                            bool audio, bool audioCorrection)
 {
     // Set the debug flags
-    t_values_to_channel.set_show_debug(tvalue);
-    channel_to_f3.set_show_debug(channel);
-    f3_frame_to_f2_section.set_show_debug(f3);
-    f2_section_correction.set_show_debug(f2);
-    f2_section_to_f1_section.set_show_debug(f1);
-    f1_section_to_data24_section.set_show_debug(data24);
-    data24_to_audio.set_show_debug(audio);
-    audio_correction.set_show_debug(audioCorrection);
+    m_tValuesToChannel.setShowDebug(tvalue);
+    m_channelToF3.setShowDebug(channel);
+    m_f3FrameToF2Section.setShowDebug(f3);
+    m_f2SectionCorrection.setShowDebug(f2);
+    m_f2SectionToF1Section.setShowDebug(f1);
+    m_f1SectionToData24Section.setShowDebug(data24);
+    m_data24ToAudio.setShowDebug(audio);
+    m_audioCorrection.setShowDebug(audioCorrection);
 }

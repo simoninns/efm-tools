@@ -25,92 +25,90 @@
 #include "audio.h"
 
 // Set the data for the audio frame, ensuring it matches the frame size
-void Audio::set_data(const QVector<int16_t> &data)
+void Audio::setData(const QVector<qint16> &data)
 {
     if (data.size() != 12) {
-        qFatal("Audio::set_data(): Data size of %d does not match frame size of %d", data.size(),
-               12);
+        qFatal("Audio::setData(): Data size of %d does not match frame size of %d", data.size(), 12);
     }
-    audio_data = data;
+    m_audioData = data;
 }
 
 // Get the data for the audio frame, returning a zero-filled vector if empty
-QVector<int16_t> Audio::get_data() const
+QVector<qint16> Audio::data() const
 {
-    if (audio_data.isEmpty()) {
-        qDebug() << "Audio::get_data(): Frame is empty, returning zero-filled vector";
-        return QVector<int16_t>(12, 0);
+    if (m_audioData.isEmpty()) {
+        qDebug() << "Audio::data(): Frame is empty, returning zero-filled vector";
+        return QVector<qint16>(12, 0);
     }
-    return audio_data;
+    return m_audioData;
 }
 
 // Set the error data for the audio frame, ensuring it matches the frame size
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-void Audio::set_error_data(const QVector<int16_t> &error_data)
+void Audio::setErrorData(const QVector<qint16> &errorData)
 {
-    if (error_data.size() != 12) {
-        qFatal("Audio::set_error_data(): Error sata size of %d does not match frame size of %d",
-               error_data.size(), 12);
+    if (errorData.size() != 12) {
+        qFatal("Audio::setErrorData(): Error data size of %d does not match frame size of %d", errorData.size(), 12);
     }
-    audio_error_data = error_data;
+    m_audioErrorData = errorData;
 }
 
 // Get the error_data for the audio frame, returning a zero-filled vector if empty
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-QVector<int16_t> Audio::get_error_data() const
+QVector<qint16> Audio::errorData() const
 {
-    if (audio_data.isEmpty()) {
-        qDebug() << "Audio::get_error_data(): Error frame is empty, returning zero-filled vector";
-        return QVector<int16_t>(12, 0);
+    if (m_audioErrorData.isEmpty()) {
+        qDebug() << "Audio::errorData(): Error frame is empty, returning zero-filled vector";
+        return QVector<qint16>(12, 0);
     }
-    return audio_error_data;
+    return m_audioErrorData;
 }
 
 // Count the number of errors in the audio frame
-uint32_t Audio::count_errors() const
+quint32 Audio::countErrors() const
 {
-    uint32_t error_count = 0;
+    quint32 errorCount = 0;
     for (int i = 0; i < 12; ++i) {
-        if (audio_error_data[i] == 1) {
-            error_count++;
+        if (m_audioErrorData[i] == 1) {
+            errorCount++;
         }
     }
-    return error_count;
+    return errorCount;
 }
 
 // Check if the audio frame is full (i.e., has data)
-bool Audio::is_full() const
+bool Audio::isFull() const
 {
-    return !audio_data.isEmpty();
+    return !m_audioData.isEmpty();
 }
 
 // Check if the audio frame is empty (i.e., has no data)
-bool Audio::is_empty() const
+bool Audio::isEmpty() const
 {
-    return audio_data.isEmpty();
+    return m_audioData.isEmpty();
 }
 
 // Show the frame data and errors in debug
-void Audio::show_data()
+void Audio::showData()
 {
     QString dataString;
-    bool has_error = false;
-    for (int i = 0; i < audio_data.size(); ++i) {
-        if (audio_error_data[i] == 0) {
-            dataString.append(QString("%1 ").arg(audio_data[i], 2, 16, QChar('0')));
+    bool hasError = false;
+    for (int i = 0; i < m_audioData.size(); ++i) {
+        if (m_audioErrorData[i] == 0) {
+            dataString.append(QString("%1 ").arg(m_audioData[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));
-            has_error = true;
+            hasError = true;
         }
     }
-    if (has_error) {
+    if (hasError) {
         qInfo().noquote() << "Audio:" << dataString.trimmed() << "ERROR";
     } else {
         qInfo().noquote() << "Audio:" << dataString.trimmed();
     }
 }
 
-int Audio::get_frame_size() const
+int Audio::frameSize() const
 {
     return 12;
 }

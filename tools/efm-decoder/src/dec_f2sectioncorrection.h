@@ -25,6 +25,8 @@
 #ifndef DEC_F2SECTIONCORRECTION_H
 #define DEC_F2SECTIONCORRECTION_H
 
+#include <QQueue>
+#include <QVector>
 #include "decoders.h"
 #include "section_metadata.h"
 
@@ -32,49 +34,49 @@ class F2SectionCorrection : public Decoder
 {
 public:
     F2SectionCorrection();
-    void push_section(F2Section data);
-    F2Section pop_section();
-    bool is_ready() const;
+    void pushSection(const F2Section &data);
+    F2Section popSection();
+    bool isReady() const;
     void flush();
 
-    void show_statistics();
+    void showStatistics() const;
 
 private:
-    void process_queue();
+    void processQueue();
 
-    void wait_for_input_to_settle(F2Section &f2_section);
-    void waiting_for_section(F2Section &f2_section);
-    SectionTime get_expected_absolute_time();
+    void waitForInputToSettle(F2Section &f2Section);
+    void waitingForSection(F2Section &f2Section);
+    SectionTime getExpectedAbsoluteTime() const;
 
-    void correct_internal_buffer();
-    void output_sections();
+    void correctInternalBuffer();
+    void outputSections();
 
-    QQueue<F2Section> input_buffer;
-    QQueue<F2Section> leadin_buffer;
-    QQueue<F2Section> internal_buffer;
-    QQueue<F2Section> output_buffer;
+    QQueue<F2Section> m_inputBuffer;
+    QQueue<F2Section> m_leadinBuffer;
+    QQueue<F2Section> m_internalBuffer;
+    QQueue<F2Section> m_outputBuffer;
 
-    SectionTime internal_buffer_median_time;
+    SectionTime m_internalBufferMedianTime;
 
-    bool leadin_complete;
+    bool m_leadinComplete;
 
-    QQueue<F2Section> window;
-    uint32_t maximum_gap_size;
-    uint32_t maximum_internal_buffer_size;
+    QQueue<F2Section> m_window;
+    quint32 m_maximumGapSize;
+    quint32 m_maximumInternalBufferSize;
 
     // Statistics
-    uint32_t total_sections;
-    uint32_t corrected_sections;
-    uint32_t uncorrectable_sections;
-    uint32_t pre_leadin_sections;
-    uint32_t missing_sections;
+    quint32 m_totalSections;
+    quint32 m_correctedSections;
+    quint32 m_uncorrectableSections;
+    quint32 m_preLeadinSections;
+    quint32 m_missingSections;
 
     // Time statistics
-    SectionTime absolute_start_time;
-    SectionTime absolute_end_time;
-    QVector<uint8_t> track_numbers;
-    QVector<SectionTime> track_start_times;
-    QVector<SectionTime> track_end_times;
+    SectionTime m_absoluteStartTime;
+    SectionTime m_absoluteEndTime;
+    QVector<quint8> m_trackNumbers;
+    QVector<SectionTime> m_trackStartTimes;
+    QVector<SectionTime> m_trackEndTimes;
 };
 
 #endif // DEC_F2SECTIONCORRECTION_H

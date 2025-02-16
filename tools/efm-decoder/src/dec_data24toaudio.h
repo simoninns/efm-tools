@@ -32,26 +32,26 @@ class Data24ToAudio : public Decoder
 {
 public:
     Data24ToAudio();
-    void push_section(Data24Section f1_section);
-    AudioSection pop_section();
-    bool is_ready() const;
+    void pushSection(const Data24Section &f1Section);
+    AudioSection popSection();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<Data24Section> input_buffer;
-    QQueue<AudioSection> output_buffer;
+    QQueue<Data24Section> m_inputBuffer;
+    QQueue<AudioSection> m_outputBuffer;
 
     // Statistics
-    uint32_t invalid_data24_frames_count;
-    uint32_t valid_data24_frames_count;
-    uint32_t invalid_samples_count;
-    uint32_t valid_samples_count;
+    quint32 m_invalidData24FramesCount;
+    quint32 m_validData24FramesCount;
+    quint32 m_invalidSamplesCount;
+    quint32 m_validSamplesCount;
 
-    SectionTime start_time;
-    SectionTime end_time;
+    SectionTime m_startTime;
+    SectionTime m_endTime;
 };
 
 #endif // DEC_DATA24TOAUDIO_H

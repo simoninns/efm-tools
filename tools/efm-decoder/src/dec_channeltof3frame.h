@@ -32,32 +32,32 @@ class ChannelToF3Frame : public Decoder
 {
 public:
     ChannelToF3Frame();
-    void push_frame(QByteArray data);
-    F3Frame pop_frame();
-    bool is_ready() const;
+    void pushFrame(const QByteArray &data);
+    F3Frame popFrame();
+    bool isReady() const;
 
-    void show_statistics();
+    void showStatistics();
 
 private:
-    void process_queue();
-    F3Frame create_f3_frame(QByteArray data);
+    void processQueue();
+    F3Frame createF3Frame(const QByteArray &data);
 
-    QByteArray tvalues_to_data(QByteArray tvalues);
-    uint16_t get_bits(QByteArray data, int start_bit, int end_bit);
+    QByteArray tvaluesToData(const QByteArray &tvalues);
+    quint16 getBits(const QByteArray &data, int startBit, int endBit);
 
     Efm efm;
 
-    QQueue<QByteArray> input_buffer;
-    QQueue<F3Frame> output_buffer;
+    QQueue<QByteArray> inputBuffer;
+    QQueue<F3Frame> outputBuffer;
 
     // Statistics
-    uint32_t good_frames;
-    uint32_t undershoot_frames;
-    uint32_t overshoot_frames;
-    uint32_t valid_efm_symbols;
-    uint32_t invalid_efm_symbols;
-    uint32_t valid_subcode_symbols;
-    uint32_t invalid_subcode_symbols;
+    quint32 goodFrames;
+    quint32 undershootFrames;
+    quint32 overshootFrames;
+    quint32 validEfmSymbols;
+    quint32 invalidEfmSymbols;
+    quint32 validSubcodeSymbols;
+    quint32 invalidSubcodeSymbols;
 };
 
 #endif // DEC_CHANNELTOF3FRAME_H

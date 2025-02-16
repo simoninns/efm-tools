@@ -6,7 +6,12 @@
         "string_view": "cpp",
         "chrono": "cpp",
         "random": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "rssimple.C": "cpp",
+        "rsvalidate.C": "cpp",
+        "rscompare.C": "cpp",
+        "rskey.C": "cpp",
+        "rspwd_test.C": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "none"
 }

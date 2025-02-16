@@ -50,40 +50,40 @@ class EfmProcessor
 public:
     EfmProcessor();
 
-    bool process(QString input_filename, QString output_filename);
-    void process_pipeline();
-    void set_show_data(bool _showAudio, bool _showData24, bool _showF1, bool _showF2, bool _showF3);
-    void set_output_type(bool _wavOutput, bool _outputWavMetadata, bool _noWavCorrection);
-    void set_debug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
-                   bool audioCorrection);
+    bool process(const QString &inputFilename, const QString &outputFilename);
+    void processPipeline();
+    void setShowData(bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
+    void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection);
+    void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
+                  bool audioCorrection);
 
 private:
-    bool showAudio;
-    bool showData24;
-    bool showF1;
-    bool showF2;
-    bool showF3;
-    bool is_output_data_wav;
-    bool no_wav_correction;
-    bool output_wav_metadata;
+    bool m_showAudio;
+    bool m_showData24;
+    bool m_showF1;
+    bool m_showF2;
+    bool m_showF3;
+    bool m_isOutputDataWav;
+    bool m_noWavCorrection;
+    bool m_outputWavMetadata;
 
     // Decoders
-    TvaluesToChannel t_values_to_channel;
-    ChannelToF3Frame channel_to_f3;
-    F3FrameToF2Section f3_frame_to_f2_section;
-    F2SectionCorrection f2_section_correction;
-    F2SectionToF1Section f2_section_to_f1_section;
-    F1SectionToData24Section f1_section_to_data24_section;
-    Data24ToAudio data24_to_audio;
-    AudioCorrection audio_correction;
+    TvaluesToChannel m_tValuesToChannel;
+    ChannelToF3Frame m_channelToF3;
+    F3FrameToF2Section m_f3FrameToF2Section;
+    F2SectionCorrection m_f2SectionCorrection;
+    F2SectionToF1Section m_f2SectionToF1Section;
+    F1SectionToData24Section m_f1SectionToData24Section;
+    Data24ToAudio m_data24ToAudio;
+    AudioCorrection m_audioCorrection;
 
     // Input file readers
-    ReaderData reader_data;
+    ReaderData m_readerData;
 
     // Output file writers
-    WriterData writer_data;
-    WriterWav writer_wav;
-    WriterWavMetadata writer_wav_metadata;
+    WriterData m_writerData;
+    WriterWav m_writerWav;
+    WriterWavMetadata m_writerWavMetadata;
 };
 
 #endif // EFM_PROCESSOR_H

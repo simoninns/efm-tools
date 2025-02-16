@@ -31,15 +31,15 @@ WriterWav::WriterWav() { }
 
 WriterWav::~WriterWav()
 {
-    if (file.isOpen()) {
-        file.close();
+    if (m_file.isOpen()) {
+        m_file.close();
     }
 }
 
 bool WriterWav::open(const QString &filename)
 {
-    file.setFileName(filename);
-    if (!file.open(QIODevice::WriteOnly)) {
+    m_file.setFileName(filename);
+    if (!m_file.open(QIODevice::WriteOnly)) {
         qCritical() << "WriterWav::open() - Could not open file" << filename << "for writing";
         return false;
     }
@@ -48,29 +48,29 @@ bool WriterWav::open(const QString &filename)
     // Add 44 bytes of blank header data to the file
     // (we will fill this in later once we know the size of the data)
     QByteArray header(44, 0);
-    file.write(header);
+    m_file.write(header);
 
     return true;
 }
 
-void WriterWav::write(const AudioSection &audio_section)
+void WriterWav::write(const AudioSection &audioSection)
 {
-    if (!file.isOpen()) {
+    if (!m_file.isOpen()) {
         qCritical() << "WriterWav::write() - File is not open for writing";
         return;
     }
 
     // Each Audio section contains 98 frames that we need to write to the output file
-    for (int index = 0; index < 98; index++) {
-        Audio audio = audio_section.get_frame(index);
-        file.write(reinterpret_cast<const char *>(audio.get_data().data()),
-                   audio.get_frame_size() * sizeof(int16_t));
+    for (int index = 0; index < 98; ++index) {
+        Audio audio = audioSection.frame(index);
+        m_file.write(reinterpret_cast<const char *>(audio.data().data()),
+                     audio.frameSize() * sizeof(qint16));
     }
 }
 
 void WriterWav::close()
 {
-    if (!file.isOpen()) {
+    if (!m_file.isOpen()) {
         return;
     }
 
@@ -81,39 +81,39 @@ void WriterWav::close()
     struct WAVHeader
     {
         char riff[4] = { 'R', 'I', 'F', 'F' };
-        uint32_t chunkSize;
+        quint32 chunkSize;
         char wave[4] = { 'W', 'A', 'V', 'E' };
         char fmt[4] = { 'f', 'm', 't', ' ' };
-        uint32_t subchunk1Size = 16; // PCM
-        uint16_t audioFormat = 1; // PCM
-        uint16_t numChannels = 2; // Stereo
-        uint32_t sampleRate = 44100; // 44.1kHz
-        uint32_t byteRate;
-        uint16_t blockAlign;
-        uint16_t bitsPerSample = 16; // 16 bits
+        quint32 subchunk1Size = 16; // PCM
+        quint16 audioFormat = 1; // PCM
+        quint16 numChannels = 2; // Stereo
+        quint32 sampleRate = 44100; // 44.1kHz
+        quint32 byteRate;
+        quint16 blockAlign;
+        quint16 bitsPerSample = 16; // 16 bits
         char data[4] = { 'd', 'a', 't', 'a' };
-        uint32_t subchunk2Size;
+        quint32 subchunk2Size;
     };
 
     WAVHeader header;
-    header.chunkSize = 36 + file.size();
+    header.chunkSize = 36 + m_file.size();
     header.byteRate = header.sampleRate * header.numChannels * header.bitsPerSample / 8;
     header.blockAlign = header.numChannels * header.bitsPerSample / 8;
-    header.subchunk2Size = file.size();
+    header.subchunk2Size = m_file.size();
 
     // Move to the beginning of the file to write the header
-    file.seek(0);
-    file.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
+    m_file.seek(0);
+    m_file.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
 
     // Now close the file
-    file.close();
-    qDebug() << "WriterWav::close(): Closed the WAV file" << file.fileName();
+    m_file.close();
+    qDebug() << "WriterWav::close(): Closed the WAV file" << m_file.fileName();
 }
 
-int64_t WriterWav::size()
+qint64 WriterWav::size() const
 {
-    if (file.isOpen()) {
-        return file.size();
+    if (m_file.isOpen()) {
+        return m_file.size();
     }
 
     return 0;

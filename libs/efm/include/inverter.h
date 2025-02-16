@@ -31,7 +31,7 @@ class Inverter
 {
 public:
     Inverter();
-    QVector<uint8_t> invert_parity(QVector<uint8_t> input_data);
+    void invertParity(QVector<quint8> &inputData);
 };
 
 #endif // INVERTER_H

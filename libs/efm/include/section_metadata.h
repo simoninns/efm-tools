@@ -27,98 +27,95 @@
 
 #include <QDebug>
 #include <QVector>
-#include <cstdint>
+#include <QtGlobal>
 
 // Section time class - stores ECMA-130 frame time as minutes, seconds, and frames (1/75th of a
 // second)
-class SectionTime
+class SectionTime 
 {
 public:
     SectionTime();
-    SectionTime(int32_t _frames);
-    SectionTime(uint8_t minutes, uint8_t seconds, uint8_t frames);
+    explicit SectionTime(qint32 frames);
+    SectionTime(quint8 minutes, quint8 seconds, quint8 frames);
 
-    uint32_t get_frames() const { return frames; }
-    void set_frames(int32_t _frames);
-    void set_time(uint8_t _minutes, uint8_t _seconds, uint8_t _frames);
+    qint32 frames() const { return m_frames; }
+    void setFrames(qint32 frames);
+    void setTime(quint8 minutes, quint8 seconds, quint8 frames);
 
-    QString to_string() const;
-    QByteArray to_bcd();
+    QString toString() const;
+    QByteArray toBcd() const;
 
-    bool operator==(const SectionTime &other) const { return frames == other.frames; }
-    bool operator!=(const SectionTime &other) const { return frames != other.frames; }
-    bool operator<(const SectionTime &other) const { return frames < other.frames; }
-    bool operator>(const SectionTime &other) const { return frames > other.frames; }
+    bool operator==(const SectionTime &other) const { return m_frames == other.m_frames; }
+    bool operator!=(const SectionTime &other) const { return m_frames != other.m_frames; }
+    bool operator<(const SectionTime &other) const { return m_frames < other.m_frames; }
+    bool operator>(const SectionTime &other) const { return m_frames > other.m_frames; }
     bool operator<=(const SectionTime &other) const { return !(*this > other); }
     bool operator>=(const SectionTime &other) const { return !(*this < other); }
     SectionTime operator+(const SectionTime &other) const
     {
-        return SectionTime(frames + other.frames);
+        return SectionTime(m_frames + other.m_frames);
     }
     SectionTime operator-(const SectionTime &other) const
     {
-        return SectionTime(frames - other.frames);
+        return SectionTime(m_frames - other.m_frames);
     }
-    SectionTime operator++()
+    SectionTime &operator++()
     {
-        ++frames;
+        ++m_frames;
         return *this;
     }
     SectionTime operator++(int)
     {
         SectionTime tmp(*this);
-        frames++;
+        m_frames++;
         return tmp;
     }
-    SectionTime operator--()
+    SectionTime &operator--()
     {
-        --frames;
+        --m_frames;
         return *this;
     }
     SectionTime operator--(int)
     {
         SectionTime tmp(*this);
-        frames--;
+        m_frames--;
         return tmp;
     }
 
+    SectionTime operator+(int frames) const
+    {
+        return SectionTime(m_frames + frames);
+    }
+
+    SectionTime operator-(int frames) const
+    {
+        return SectionTime(m_frames - frames);
+    }
+
 private:
-    int32_t frames;
-    uint8_t int_to_bcd(uint32_t value);
+    qint32 m_frames;
+    static quint8 intToBcd(quint32 value);
 };
 
 // Section type class - stores the type of section (LEAD_IN, LEAD_OUT, USER_DATA)
 class SectionType
 {
 public:
-    enum Type { LEAD_IN, LEAD_OUT, USER_DATA };
+    enum Type { LeadIn, LeadOut, UserData };
 
-    SectionType() : type(USER_DATA) { }
-    SectionType(Type _type) : type(_type) { }
+    SectionType() : m_type(UserData) { }
+    explicit SectionType(Type type) : m_type(type) { }
 
-    Type get_type() const { return type; }
-    void set_type(Type _type) { type = _type; }
+    Type type() const { return m_type; }
+    void setType(Type type) { m_type = type; }
 
-    QString to_string() const
-    {
-        switch (type) {
-        case LEAD_IN:
-            return "LEAD_IN";
-        case LEAD_OUT:
-            return "LEAD_OUT";
-        case USER_DATA:
-            return "USER_DATA";
-        default:
-            return "UNKNOWN";
-        }
-    }
+    QString toString() const;
 
-    bool operator==(const SectionType &other) const { return type == other.type; }
-
-    bool operator!=(const SectionType &other) const { return type != other.type; }
+    bool operator==(const SectionType &other) const { return m_type == other.m_type; }
+    bool operator!=(const SectionType &other) const { return m_type != other.m_type; }
 
 private:
-    Type type;
+    Type m_type;
 };
 
 // Section metadata class - stores the Section type, Section time, absolute Section time, and track
@@ -126,73 +123,73 @@ private:
 class SectionMetadata
 {
 public:
-    enum QModes { QMODE_1, QMODE_2, QMODE_3, QMODE_4 };
+    enum QMode { QMode1, QMode2, QMode3, QMode4 };
 
     SectionMetadata()
-        : section_type(SectionType::USER_DATA),
-          section_time(SectionTime()),
-          absolute_section_time(SectionTime()),
-          track_number(0),
-          valid_data(false),
-          is_audio_flag(true),
-          is_copy_prohibited_flag(true),
-          is_preemphasis_flag(false),
-          is_2_channel_flag(true),
-          p_flag(true),
-          q_mode(QModes::QMODE_1)
+        : m_sectionType(SectionType::UserData),
+          m_sectionTime(SectionTime()),
+          m_absoluteSectionTime(SectionTime()),
+          m_trackNumber(0),
+          m_isValid(false),
+          m_isAudio(true),
+          m_isCopyProhibited(true),
+          m_hasPreemphasis(false),
+          m_is2Channel(true),
+          m_pFlag(true),
+          m_qMode(QMode1)
     {
     }
 
-    SectionType get_section_type() const { return section_type; }
-    void set_section_type(SectionType _section_type);
+    SectionType sectionType() const { return m_sectionType; }
+    void setSectionType(const SectionType &sectionType);
 
-    SectionTime get_section_time() const { return section_time; }
-    void set_section_time(const SectionTime &_section_time) { section_time = _section_time; }
+    SectionTime sectionTime() const { return m_sectionTime; }
+    void setSectionTime(const SectionTime &sectionTime) { m_sectionTime = sectionTime; }
 
-    SectionTime get_absolute_section_time() const { return absolute_section_time; }
-    void set_absolute_section_time(const SectionTime &_section_time)
+    SectionTime absoluteSectionTime() const { return m_absoluteSectionTime; }
+    void setAbsoluteSectionTime(const SectionTime &sectionTime)
     {
-        absolute_section_time = _section_time;
+        m_absoluteSectionTime = sectionTime;
     }
 
-    uint8_t get_track_number() const { return track_number; }
-    void set_track_number(uint8_t _track_number);
+    quint8 trackNumber() const { return m_trackNumber; }
+    void setTrackNumber(quint8 trackNumber);
 
-    QModes get_q_mode() const { return q_mode; }
-    void set_q_mode(QModes _q_mode) { q_mode = _q_mode; }
+    QMode qMode() const { return m_qMode; }
+    void setQMode(QMode qMode) { m_qMode = qMode; }
 
-    bool is_audio() const { return is_audio_flag; }
-    void set_audio(bool audio) { is_audio_flag = audio; }
-    bool is_copy_prohibited() const { return is_copy_prohibited_flag; }
-    void set_copy_prohibited(bool copy_prohibited) { is_copy_prohibited_flag = copy_prohibited; }
-    bool is_preemphasis() const { return is_preemphasis_flag; }
-    void set_preemphasis(bool preemphasis) { is_preemphasis_flag = preemphasis; }
-    bool is_2_channel() const { return is_2_channel_flag; }
-    void set_2_channel(bool _2_channel) { is_2_channel_flag = _2_channel; }
+    bool isAudio() const { return m_isAudio; }
+    void setAudio(bool audio) { m_isAudio = audio; }
+    bool isCopyProhibited() const { return m_isCopyProhibited; }
+    void setCopyProhibited(bool copyProhibited) { m_isCopyProhibited = copyProhibited; }
+    bool hasPreemphasis() const { return m_hasPreemphasis; }
+    void setPreemphasis(bool preemphasis) { m_hasPreemphasis = preemphasis; }
+    bool is2Channel() const { return m_is2Channel; }
+    void set2Channel(bool is2Channel) { m_is2Channel = is2Channel; }
 
-    bool is_p_flag() const { return p_flag; }
-    void set_p_flag(bool p) { p_flag = p; }
+    bool pFlag() const { return m_pFlag; }
+    void setPFlag(bool pFlag) { m_pFlag = pFlag; }
 
-    bool is_valid() const { return valid_data; }
-    void set_valid(bool valid) { valid_data = valid; }
+    bool isValid() const { return m_isValid; }
+    void setValid(bool valid) { m_isValid = valid; }
 
 private:
     // P-Channel metadata
-    bool p_flag;
+    bool m_pFlag;
 
     // Q-Channel metadata
-    QModes q_mode;
-    SectionType section_type;
-    SectionTime section_time;
-    SectionTime absolute_section_time;
-    uint8_t track_number;
-    bool valid_data;
+    QMode m_qMode;
+    SectionType m_sectionType;
+    SectionTime m_sectionTime;
+    SectionTime m_absoluteSectionTime;
+    quint8 m_trackNumber;
+    bool m_isValid;
 
     // Q-Channel control metadata
-    bool is_audio_flag;
-    bool is_copy_prohibited_flag;
-    bool is_preemphasis_flag;
-    bool is_2_channel_flag;
+    bool m_isAudio;
+    bool m_isCopyProhibited;
+    bool m_hasPreemphasis;
+    bool m_is2Channel;
 };
 
 #endif // SECTION_METADATA_H

@@ -28,82 +28,80 @@
 
 Interleave::Interleave() { }
 
-QVector<uint8_t> Interleave::interleave(QVector<uint8_t> input_data)
+QVector<quint8> Interleave::interleave(const QVector<quint8> &inputData)
 {
     // Ensure input data is 24 bytes long
-    if (input_data.size() != 24) {
+    if (inputData.size() != 24) {
         qDebug() << "Interleave::interleave - Input data must be 24 bytes long";
-        return input_data;
+        return inputData;
     }
 
     // Interleave the input data
-    QVector<uint8_t> output_data;
-    output_data.resize(24);
+    QVector<quint8> outputData(24);
 
-    output_data[0] = input_data[0];
-    output_data[1] = input_data[1];
-    output_data[6] = input_data[2];
-    output_data[7] = input_data[3];
-    output_data[12] = input_data[4];
-    output_data[13] = input_data[5];
-    output_data[18] = input_data[6];
-    output_data[19] = input_data[7];
-    output_data[2] = input_data[8];
-    output_data[3] = input_data[9];
-    output_data[8] = input_data[10];
-    output_data[9] = input_data[11];
-    output_data[14] = input_data[12];
-    output_data[15] = input_data[13];
-    output_data[20] = input_data[14];
-    output_data[21] = input_data[15];
-    output_data[4] = input_data[16];
-    output_data[5] = input_data[17];
-    output_data[10] = input_data[18];
-    output_data[11] = input_data[19];
-    output_data[16] = input_data[20];
-    output_data[17] = input_data[21];
-    output_data[22] = input_data[22];
-    output_data[23] = input_data[23];
+    outputData[0] = inputData[0];
+    outputData[1] = inputData[1];
+    outputData[6] = inputData[2];
+    outputData[7] = inputData[3];
+    outputData[12] = inputData[4];
+    outputData[13] = inputData[5];
+    outputData[18] = inputData[6];
+    outputData[19] = inputData[7];
+    outputData[2] = inputData[8];
+    outputData[3] = inputData[9];
+    outputData[8] = inputData[10];
+    outputData[9] = inputData[11];
+    outputData[14] = inputData[12];
+    outputData[15] = inputData[13];
+    outputData[20] = inputData[14];
+    outputData[21] = inputData[15];
+    outputData[4] = inputData[16];
+    outputData[5] = inputData[17];
+    outputData[10] = inputData[18];
+    outputData[11] = inputData[19];
+    outputData[16] = inputData[20];
+    outputData[17] = inputData[21];
+    outputData[22] = inputData[22];
+    outputData[23] = inputData[23];
 
-    return output_data;
+    return outputData;
 }
 
-QVector<uint8_t> Interleave::deinterleave(QVector<uint8_t> input_data)
+QVector<quint8> Interleave::deinterleave(const QVector<quint8> &inputData)
 {
     // Ensure input data is 24 bytes long
-    if (input_data.size() != 24) {
+    if (inputData.size() != 24) {
         qDebug() << "Interleave::deinterleave - Input data must be 24 bytes long";
-        return input_data;
+        return inputData;
     }
 
     // De-Interleave the input data
-    QVector<uint8_t> output_data;
-    output_data.resize(24);
+    QVector<quint8> outputData(24);
 
-    output_data[0] = input_data[0];
-    output_data[1] = input_data[1];
-    output_data[8] = input_data[2];
-    output_data[9] = input_data[3];
-    output_data[16] = input_data[4];
-    output_data[17] = input_data[5];
-    output_data[2] = input_data[6];
-    output_data[3] = input_data[7];
-    output_data[10] = input_data[8];
-    output_data[11] = input_data[9];
-    output_data[18] = input_data[10];
-    output_data[19] = input_data[11];
-    output_data[4] = input_data[12];
-    output_data[5] = input_data[13];
-    output_data[12] = input_data[14];
-    output_data[13] = input_data[15];
-    output_data[20] = input_data[16];
-    output_data[21] = input_data[17];
-    output_data[6] = input_data[18];
-    output_data[7] = input_data[19];
-    output_data[14] = input_data[20];
-    output_data[15] = input_data[21];
-    output_data[22] = input_data[22];
-    output_data[23] = input_data[23];
+    outputData[0] = inputData[0];
+    outputData[1] = inputData[1];
+    outputData[8] = inputData[2];
+    outputData[9] = inputData[3];
+    outputData[16] = inputData[4];
+    outputData[17] = inputData[5];
+    outputData[2] = inputData[6];
+    outputData[3] = inputData[7];
+    outputData[10] = inputData[8];
+    outputData[11] = inputData[9];
+    outputData[18] = inputData[10];
+    outputData[19] = inputData[11];
+    outputData[4] = inputData[12];
+    outputData[5] = inputData[13];
+    outputData[12] = inputData[14];
+    outputData[13] = inputData[15];
+    outputData[20] = inputData[16];
+    outputData[21] = inputData[17];
+    outputData[6] = inputData[18];
+    outputData[7] = inputData[19];
+    outputData[14] = inputData[20];
+    outputData[15] = inputData[21];
+    outputData[22] = inputData[22];
+    outputData[23] = inputData[23];
 
-    return output_data;
+    return outputData;
 }
