@@ -26,52 +26,52 @@
 
 // Data24SectionToF1Section class implementation
 Data24SectionToF1Section::Data24SectionToF1Section()
+    : validF1SectionsCount(0)
 {
-    valid_f1_sections_count = 0;
 }
 
-void Data24SectionToF1Section::push_section(Data24Section data24_section)
+void Data24SectionToF1Section::pushSection(Data24Section data24Section)
 {
-    input_buffer.enqueue(data24_section);
-    process_queue();
+    inputBuffer.enqueue(data24Section);
+    processQueue();
 }
 
-F1Section Data24SectionToF1Section::pop_section()
+F1Section Data24SectionToF1Section::popSection()
 {
-    if (!is_ready()) {
-        qFatal("Data24SectionToF1Section::pop_frame(): No F1 sections are available.");
+    if (!isReady()) {
+        qFatal("Data24SectionToF1Section::popSection(): No F1 sections are available.");
     }
-    return output_buffer.dequeue();
+    return outputBuffer.dequeue();
 }
 
-void Data24SectionToF1Section::process_queue()
+void Data24SectionToF1Section::processQueue()
 {
-    while (!input_buffer.isEmpty()) {
-        Data24Section data24_section = input_buffer.dequeue();
-        F1Section f1_section;
-        f1_section.metadata = data24_section.metadata;
+    while (!inputBuffer.isEmpty()) {
+        Data24Section data24Section = inputBuffer.dequeue();
+        F1Section f1Section;
+        f1Section.metadata = data24Section.metadata;
 
-        for (int index = 0; index < 98; ++index) {
-            Data24 data24 = data24_section.frame(index);
+        for (qint32 index = 0; index < 98; ++index) {
+            Data24 data24 = data24Section.frame(index);
 
             // ECMA-130 issue 2 page 16 - Clause 16
             // All byte pairs are swapped by the F1 Frame encoder
-            QVector<uint8_t> data = data24.data();
-            for (int i = 0; i < data.size(); i += 2) {
+            QVector<quint8> data = data24.data();
+            for (qint32 i = 0; i < data.size(); i += 2) {
                 std::swap(data[i], data[i + 1]);
             }
 
-            F1Frame f1_frame;
-            f1_frame.setData(data);
-            f1_section.pushFrame(f1_frame);
+            F1Frame f1Frame;
+            f1Frame.setData(data);
+            f1Section.pushFrame(f1Frame);
         }
 
-        valid_f1_sections_count++;
-        output_buffer.enqueue(f1_section);
+        validF1SectionsCount++;
+        outputBuffer.enqueue(f1Section);
     }
 }
 
-bool Data24SectionToF1Section::is_ready() const
+bool Data24SectionToF1Section::isReady() const
 {
-    return !output_buffer.isEmpty();
+    return !outputBuffer.isEmpty();
 }

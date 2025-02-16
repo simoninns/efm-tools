@@ -202,15 +202,15 @@ int main(int argc, char *argv[])
     // Perform the processing
     EfmProcessor efm_processor;
 
-    bool qmode_options_ok = efm_processor.set_qmode_options(
+    bool qmode_options_ok = efm_processor.setQmodeOptions(
             qmode_1, qmode_4, qmode_audio, qmode_data, qmode_copy, qmode_nocopy, qmode_no_preemp,
             qmode_preemp, qmode_2ch, qmode_4ch);
-    efm_processor.set_show_data(showInput, showF1, showF2, showF3);
-    bool corruption_options_ok = efm_processor.set_corruption(
+    efm_processor.setShowData(showInput, showF1, showF2, showF3);
+    bool corruption_options_ok = efm_processor.setCorruption(
             corrupt_tvalues, corrupt_tvalues_frequency, corrupt_start, corrupt_start_symbols,
             corrupt_f3sync, corrupt_f3sync_frequency, corrupt_subcode_sync,
             corrupt_subcode_sync_frequency);
-    efm_processor.set_input_type(wav_input);
+    efm_processor.setInputType(wav_input);
 
     if (!corruption_options_ok || !qmode_options_ok) {
         return 1;

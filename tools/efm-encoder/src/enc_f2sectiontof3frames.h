@@ -33,18 +33,18 @@ class F2SectionToF3Frames : Encoder
 {
 public:
     F2SectionToF3Frames();
-    void push_section(F2Section f2_section);
-    QVector<F3Frame> pop_frames();
-    bool is_ready() const;
-    uint32_t validOutputSectionsCount() const override { return valid_f3_frames_count; };
+    void pushSection(F2Section f2Section);
+    QVector<F3Frame> popFrames();
+    bool isReady() const;
+    quint32 validOutputSectionsCount() const override { return validF3FramesCount; };
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<F2Section> input_buffer;
-    QQueue<QVector<F3Frame>> output_buffer;
+    QQueue<F2Section> inputBuffer;
+    QQueue<QVector<F3Frame>> outputBuffer;
 
-    uint32_t valid_f3_frames_count;
+    quint32 validF3FramesCount;
 };
 
 #endif // ENC_F2SECTIONTOF3FRAMES_H

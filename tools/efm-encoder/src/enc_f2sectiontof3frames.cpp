@@ -25,59 +25,59 @@
 #include "enc_f2sectiontof3frames.h"
 
 // F2SectionToF3Frames class implementation
-F2SectionToF3Frames::F2SectionToF3Frames()
+F2SectionToF3Frames::F2SectionToF3Frames() :
+    validF3FramesCount(0)
 {
-    valid_f3_frames_count = 0;
 }
 
-void F2SectionToF3Frames::push_section(F2Section f2_section)
+void F2SectionToF3Frames::pushSection(F2Section f2Section)
 {
-    input_buffer.enqueue(f2_section);
-    process_queue();
+    inputBuffer.enqueue(f2Section);
+    processQueue();
 }
 
-QVector<F3Frame> F2SectionToF3Frames::pop_frames()
+QVector<F3Frame> F2SectionToF3Frames::popFrames()
 {
-    if (!is_ready()) {
-        qFatal("F2SectionToF3Frames::pop_frames(): No F3 frames are available.");
+    if (!isReady()) {
+        qFatal("F2SectionToF3Frames::popFrames(): No F3 frames are available.");
     }
-    return output_buffer.dequeue();
+    return outputBuffer.dequeue();
 }
 
-void F2SectionToF3Frames::process_queue()
+void F2SectionToF3Frames::processQueue()
 {
-    while (input_buffer.size() >= 1) {
-        F2Section f2_section = input_buffer.dequeue();
-        QVector<F3Frame> f3_frames;
+    while (inputBuffer.size() >= 1) {
+        F2Section f2Section = inputBuffer.dequeue();
+        QVector<F3Frame> f3Frames;
 
         // Take the metadata information from the first F2 frame in the section
         Subcode subcode;
-        QByteArray subcode_data = subcode.toData(f2_section.metadata);
+        QByteArray subcodeData = subcode.toData(f2Section.metadata);
 
-        for (uint32_t symbol_number = 0; symbol_number < 98; ++symbol_number) {
-            F2Frame f2_frame = f2_section.frame(symbol_number);
-            F3Frame f3_frame;
+        for (quint32 symbolNumber = 0; symbolNumber < 98; ++symbolNumber) {
+            F2Frame f2Frame = f2Section.frame(symbolNumber);
+            F3Frame f3Frame;
 
-            if (symbol_number == 0) {
-                f3_frame.setFrameTypeAsSync0();
-            } else if (symbol_number == 1) {
-                f3_frame.setFrameTypeAsSync1();
+            if (symbolNumber == 0) {
+                f3Frame.setFrameTypeAsSync0();
+            } else if (symbolNumber == 1) {
+                f3Frame.setFrameTypeAsSync1();
             } else {
                 // Generate the subcode byte
-                f3_frame.setFrameTypeAsSubcode(subcode_data[symbol_number]);
+                f3Frame.setFrameTypeAsSubcode(subcodeData[symbolNumber]);
             }
 
-            f3_frame.setData(f2_frame.data());
+            f3Frame.setData(f2Frame.data());
 
-            valid_f3_frames_count++;
-            f3_frames.append(f3_frame);
+            validF3FramesCount++;
+            f3Frames.append(f3Frame);
         }
 
-        output_buffer.enqueue(f3_frames);
+        outputBuffer.enqueue(f3Frames);
     }
 }
 
-bool F2SectionToF3Frames::is_ready() const
+bool F2SectionToF3Frames::isReady() const
 {
-    return !output_buffer.isEmpty();
+    return !outputBuffer.isEmpty();
 }

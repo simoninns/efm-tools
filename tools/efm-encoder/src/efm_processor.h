@@ -26,46 +26,55 @@
 #define EFMPROCESSOR_H
 
 #include <QString>
+#include <QDebug>
+#include <QFile>
+
 #include "section_metadata.h"
 #include "section.h"
+
+#include "encoders.h"
+#include "enc_data24sectiontof1section.h"
+#include "enc_f1sectiontof2section.h"
+#include "enc_f2sectiontof3frames.h"
+#include "enc_f3frametochannel.h"
 
 class EfmProcessor
 {
 public:
     EfmProcessor();
 
-    bool process(QString input_fileName, QString output_fileName);
-    bool set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_audio, bool _qmode_data,
-                           bool _qmode_copy, bool _qmode_nocopy, bool _qmode_nopreemp,
-                           bool _qmode_preemp, bool _qmode_2ch, bool _qmode_4ch);
-    void set_show_data(bool _showInput, bool _showF1, bool _showF2, bool _showF3);
-    void set_input_type(bool _wavInput);
-    bool set_corruption(bool _corrupt_tvalues, uint32_t _corrupt_tvalues_frequency,
-                        bool _corrupt_start, uint32_t _corrupt_start_symbols, bool _corrupt_f3sync,
-                        uint32_t _corrupt_f3sync_frequency, bool _corrupt_subcode_sync,
-                        uint32_t _corrupt_subcode_sync_frequency);
+    bool process(const QString &inputFileName, const QString &outputFileName);
+    bool setQmodeOptions(bool qmode1, bool qmode4, bool qmodeAudio, bool qmodeData,
+                         bool qmodeCopy, bool qmodeNocopy, bool qmodeNopreemp,
+                         bool qmodePreemp, bool qmode2ch, bool qmode4ch);
+    void setShowData(bool showInput, bool showF1, bool showF2, bool showF3);
+    void setInputType(bool wavInput);
+    bool setCorruption(bool corruptTvalues, quint32 corruptTvaluesFrequency,
+                       bool corruptStart, quint32 corruptStartSymbols, bool corruptF3sync,
+                       quint32 corruptF3syncFrequency, bool corruptSubcodeSync,
+                       quint32 corruptSubcodeSyncFrequency);
 
 private:
-    SectionMetadata section_metadata;
+    SectionMetadata m_sectionMetadata;
 
     // Show data flags
-    bool showInput;
-    bool showF1;
-    bool showF2;
-    bool showF3;
+    bool m_showInput;
+    bool m_showF1;
+    bool m_showF2;
+    bool m_showF3;
 
     // Input type flag
-    bool is_input_data_wav;
+    bool m_isInputDataWav;
 
     // Corruption flags
-    bool corrupt_tvalues;
-    uint32_t corrupt_tvalues_frequency;
-    bool corrupt_start;
-    uint32_t corrupt_start_symbols;
-    bool corrupt_f3sync;
-    uint32_t corrupt_f3sync_frequency;
-    bool corrupt_subcode_sync;
-    uint32_t corrupt_subcode_sync_frequency;
+    bool m_corruptTvalues;
+    quint32 m_corruptTvaluesFrequency;
+    bool m_corruptStart;
+    quint32 m_corruptStartSymbols;
+    bool m_corruptF3sync;
+    quint32 m_corruptF3syncFrequency;
+    bool m_corruptSubcodeSync;
+    quint32 m_corruptSubcodeSyncFrequency;
 };
 
 #endif // EFMPROCESSOR_H

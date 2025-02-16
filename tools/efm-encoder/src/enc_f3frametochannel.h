@@ -34,51 +34,51 @@ class F3FrameToChannel : Encoder
 {
 public:
     F3FrameToChannel();
-    void push_frame(F3Frame f3_frame);
-    QVector<uint8_t> pop_frame();
-    bool is_ready() const;
-    int32_t get_total_t_values() const;
-    uint32_t validOutputSectionsCount() const override
+    void pushFrame(F3Frame f3Frame);
+    QVector<quint8> popFrame();
+    bool isReady() const;
+    qint32 getTotalTValues() const;
+    quint32 validOutputSectionsCount() const override
     {
-        return valid_channel_frames_count;
+        return validChannelFramesCount;
     };
 
-    void set_corruption(bool _corrupt_f3sync, uint32_t _corrupt_f3sync_frequency,
-                        bool _corrupt_subcode_sync, uint32_t _corrupt_subcode_sync_frequency);
+    void setCorruption(bool corruptF3Sync, quint32 corruptF3SyncFrequency,
+                      bool corruptSubcodeSync, quint32 corruptSubcodeSyncFrequency);
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<F3Frame> input_buffer;
-    QQueue<QVector<uint8_t>> output_buffer;
+    QQueue<F3Frame> inputBuffer;
+    QQueue<QVector<quint8>> outputBuffer;
 
-    void write_frame(QString channel_frame);
+    void writeFrame(QString channelFrame);
 
-    QString add_merging_bits(QString channel_frame);
-    QStringList get_legal_merging_bit_patterns(const QString &current_efm, const QString &next_efm);
-    QStringList order_patterns_by_dsv_delta(const QStringList &merging_patterns,
-                                            const QString &current_efm, const QString &next_efm);
-    int32_t calculate_dsv_delta(const QString data);
+    QString addMergingBits(QString channelFrame);
+    QStringList getLegalMergingBitPatterns(const QString &currentEfm, const QString &nextEfm);
+    QStringList orderPatternsByDsvDelta(const QStringList &mergingPatterns,
+                                       const QString &currentEfm, const QString &nextEfm);
+    qint32 calculateDsvDelta(const QString data);
 
-    int32_t dsv;
-    bool dsv_direction;
-    int32_t total_t_values;
-    int32_t total_sections;
-    QString previous_channel_frame;
-    uint32_t valid_channel_frames_count;
+    qint32 dsv;
+    bool dsvDirection;
+    qint32 totalTValues;
+    qint32 totalSections;
+    QString previousChannelFrame;
+    quint32 validChannelFramesCount;
     Efm efm;
 
     // Define the 24-bit F3 sync header for the F3 frame
-    const QString sync_header = "100000000001000000000010";
+    const QString syncHeader = "100000000001000000000010";
 
     // Corruption flags
-    bool corrupt_f3sync;
-    uint32_t corrupt_f3sync_frequency;
-    bool corrupt_subcode_sync;
-    uint32_t corrupt_subcode_sync_frequency;
-    uint32_t subcode_corruption_type;
+    bool corruptF3Sync;
+    quint32 corruptF3SyncFrequency;
+    bool corruptSubcodeSync;
+    quint32 corruptSubcodeSyncFrequency;
+    quint32 subcodeCorruptionType;
 
-    QString generate_random_sync_value();
+    QString generateRandomSyncValue();
 };
 
 #endif // ENC_F3FRAMETOCHANNEL_H

@@ -26,27 +26,28 @@
 
 // F1SectionToF2Section class implementation
 F1SectionToF2Section::F1SectionToF2Section()
-    : delay_line1({ 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
-                    1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0 }),
-      delay_line2({ 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0 }),
-      delay_lineM({ 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, 40, 44,  48,  52,
-                    56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108 })
+    : delayLine1({1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+                  1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0})
+    , delayLine2({2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0,
+                  2, 2, 2, 2, 0, 0, 0, 0})
+    , delayLineM({0,  4,  8,  12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52,
+                  56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108})
+    , validF2SectionsCount(0)
 {
-    valid_f2_sections_count = 0;
 }
 
-void F1SectionToF2Section::push_section(F1Section f1_section)
+void F1SectionToF2Section::pushSection(F1Section f1Section)
 {
-    input_buffer.enqueue(f1_section);
-    process_queue();
+    inputBuffer.enqueue(f1Section);
+    processQueue();
 }
 
-F2Section F1SectionToF2Section::pop_section()
+F2Section F1SectionToF2Section::popSection()
 {
-    if (!is_ready()) {
-        qFatal("F1SectionToF2Section::pop_section(): No F2 sections are available.");
+    if (!isReady()) {
+        qFatal("F1SectionToF2Section::popSection(): No F2 sections are available.");
     }
-    return output_buffer.dequeue();
+    return outputBuffer.dequeue();
 }
 
 // Note: The F2 frames will not be correct until the delay lines are full
@@ -56,69 +57,69 @@ F2Section F1SectionToF2Section::pop_section()
 // This will drop 108+2+1 = 111 F2 frames of data - The decoder will also have
 // the same issue and will loose another 111 frames of data (so you need at least
 // 222 frames of lead-in data to ensure the decoder has enough data to start decoding)
-void F1SectionToF2Section::process_queue()
+void F1SectionToF2Section::processQueue()
 {
-    while (!input_buffer.isEmpty()) {
-        F1Section f1_section = input_buffer.dequeue();
-        F2Section f2_section;
-        f2_section.metadata = f1_section.metadata;
+    while (!inputBuffer.isEmpty()) {
+        F1Section f1Section = inputBuffer.dequeue();
+        F2Section f2Section;
+        f2Section.metadata = f1Section.metadata;
 
         for (int index = 0; index < 98; ++index) {
             // Pop the F1 frame and copy the data
-            F1Frame f1_frame = f1_section.frame(index);
-            QVector<uint8_t> data = f1_frame.data();
+            F1Frame f1Frame = f1Section.frame(index);
+            QVector<uint8_t> data = f1Frame.data();
 
             // Process the data
-            data = delay_line2.push(data);
+            data = delayLine2.push(data);
             if (data.isEmpty()) {
                 // Generate a blank F2 frame (to keep the section in sync)
-                F2Frame f2_frame;
-                QVector<uint8_t> blank_data(32, 0);
-                f2_frame.setData(blank_data);
-                f2_section.pushFrame(f2_frame);
+                F2Frame f2Frame;
+                QVector<uint8_t> blankData(32, 0);
+                f2Frame.setData(blankData);
+                f2Section.pushFrame(f2Frame);
                 continue;
             }
 
             data = interleave.interleave(data); // 24
-            m_circ.c2Encode(data); // 24 + 4 = 28
+            mCirc.c2Encode(data); // 24 + 4 = 28
 
-            data = delay_lineM.push(data); // 28
+            data = delayLineM.push(data); // 28
             if (data.isEmpty()) {
                 // Generate a blank F2 frame (to keep the section in sync)
-                F2Frame f2_frame;
-                QVector<uint8_t> blank_data(32, 0);
-                f2_frame.setData(blank_data);
-                f2_section.pushFrame(f2_frame);
+                F2Frame f2Frame;
+                QVector<uint8_t> blankData(32, 0);
+                f2Frame.setData(blankData);
+                f2Section.pushFrame(f2Frame);
                 continue;
             }
 
-            m_circ.c1Encode(data); // 28 + 4 = 32
+            mCirc.c1Encode(data); // 28 + 4 = 32
 
-            data = delay_line1.push(data); // 32
+            data = delayLine1.push(data); // 32
             if (data.isEmpty()) {
                 // Generate a blank F2 frame (to keep the section in sync)
-                F2Frame f2_frame;
-                QVector<uint8_t> blank_data(32, 0);
-                f2_frame.setData(blank_data);
-                f2_section.pushFrame(f2_frame);
+                F2Frame f2Frame;
+                QVector<uint8_t> blankData(32, 0);
+                f2Frame.setData(blankData);
+                f2Section.pushFrame(f2Frame);
                 continue;
             }
 
             inverter.invertParity(data); // 32
 
             // Put the resulting data into an F2 frame and push it to the output buffer
-            F2Frame f2_frame;
-            f2_frame.setData(data);
+            F2Frame f2Frame;
+            f2Frame.setData(data);
 
-            f2_section.pushFrame(f2_frame);
+            f2Section.pushFrame(f2Frame);
         }
 
-        valid_f2_sections_count++;
-        output_buffer.enqueue(f2_section);
+        validF2SectionsCount++;
+        outputBuffer.enqueue(f2Section);
     }
 }
 
-bool F1SectionToF2Section::is_ready() const
+bool F1SectionToF2Section::isReady() const
 {
-    return !output_buffer.isEmpty();
+    return !outputBuffer.isEmpty();
 }

@@ -32,19 +32,19 @@ class Data24SectionToF1Section : Encoder
 {
 public:
     Data24SectionToF1Section();
-    void push_section(Data24Section data);
-    F1Section pop_section();
-    bool is_ready() const;
+    void pushSection(Data24Section data);
+    F1Section popSection();
+    bool isReady() const;
 
-    uint32_t validOutputSectionsCount() const override { return valid_f1_sections_count; }
+    quint32 validOutputSectionsCount() const override { return validF1SectionsCount; }
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<Data24Section> input_buffer;
-    QQueue<F1Section> output_buffer;
+    QQueue<Data24Section> inputBuffer;
+    QQueue<F1Section> outputBuffer;
 
-    uint32_t valid_f1_sections_count;
+    quint32 validF1SectionsCount;
 };
 
 #endif // ENC_DATA24SECTIONTOF1SECTION_H

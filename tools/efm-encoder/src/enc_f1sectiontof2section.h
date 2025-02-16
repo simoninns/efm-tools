@@ -36,27 +36,27 @@ class F1SectionToF2Section : Encoder
 {
 public:
     F1SectionToF2Section();
-    void push_section(F1Section f1_section);
-    F2Section pop_section();
-    bool is_ready() const;
-    uint32_t validOutputSectionsCount() const override { return valid_f2_sections_count; };
+    void pushSection(F1Section f1Section);
+    F2Section popSection();
+    bool isReady() const;
+    quint32 validOutputSectionsCount() const override { return validF2SectionsCount; };
 
 private:
-    void process_queue();
+    void processQueue();
 
-    QQueue<F1Section> input_buffer;
-    QQueue<F2Section> output_buffer;
+    QQueue<F1Section> inputBuffer;
+    QQueue<F2Section> outputBuffer;
 
-    ReedSolomon m_circ;
+    ReedSolomon mCirc;
 
-    DelayLines delay_line1;
-    DelayLines delay_line2;
-    DelayLines delay_lineM;
+    DelayLines delayLine1;
+    DelayLines delayLine2;
+    DelayLines delayLineM;
 
     Interleave interleave;
     Inverter inverter;
 
-    uint32_t valid_f2_sections_count;
+    quint32 validF2SectionsCount;
 };
 
 #endif // ENC_F1SECTIONTOF2SECTION_H
