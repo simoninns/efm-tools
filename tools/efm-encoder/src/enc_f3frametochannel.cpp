@@ -72,7 +72,7 @@ void F3FrameToChannel::process_queue()
     while (!input_buffer.isEmpty()) {
         // Pop the F3 frame data from the processing queue
         F3Frame f3_frame = input_buffer.dequeue();
-        QVector<uint8_t> f3_frame_data = f3_frame.get_data();
+        QVector<uint8_t> f3_frame_data = f3_frame.getData();
 
         // Ensure the F3 frame data is 32 bytes long
         if (f3_frame_data.size() != 32) {
@@ -102,10 +102,10 @@ void F3FrameToChannel::process_queue()
         QString subcode_value;
 
         // Subcode sync0 and sync1 headers (based on the F3 frame type)
-        if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SUBCODE) {
-            subcode_value = efm.eight_to_fourteen(f3_frame.get_subcode_byte());
-        } else if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC0) {
-            subcode_value += efm.eight_to_fourteen(256);
+        if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Subcode) {
+            subcode_value = efm.eightToFourteen(f3_frame.getSubcodeByte());
+        } else if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Sync0) {
+            subcode_value += efm.eightToFourteen(256);
             total_sections++;
 
             // Note: This is 0-8 because we want it to be unlikely that both sync0 and sync1 are
@@ -114,28 +114,28 @@ void F3FrameToChannel::process_queue()
             subcode_corruption_type = random_generator.bounded(9); // 0-8
         } else {
             // SYNC1
-            subcode_value += efm.eight_to_fourteen(257);
+            subcode_value += efm.eightToFourteen(257);
         }
 
         // Corrupt the subcode sync0 and sync1 patterns?
         if (corrupt_subcode_sync) {
             if (total_sections % corrupt_subcode_sync_frequency == 0) {
-                if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC0) {
+                if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Sync0) {
                     if (subcode_corruption_type == 0
                         || (subcode_corruption_type >= 1 && subcode_corruption_type <= 4)) {
                         // Corrupt the sync0 pattern
-                        subcode_value = efm.eight_to_fourteen(random_generator.bounded(256));
+                        subcode_value = efm.eightToFourteen(random_generator.bounded(256));
                         qDebug() << "F3FrameToChannel::process_queue(): Corrupting subcode sync0 "
                                     "value:"
                                  << subcode_value;
                     }
                 }
 
-                if (f3_frame.get_f3_frame_type() == F3Frame::F3FrameType::SYNC1) {
+                if (f3_frame.getF3FrameType() == F3Frame::F3FrameType::Sync1) {
                     if (subcode_corruption_type == 0
                         || (subcode_corruption_type >= 5 && subcode_corruption_type <= 8)) {
                         // Corrupt the sync1 pattern
-                        subcode_value = efm.eight_to_fourteen(random_generator.bounded(256));
+                        subcode_value = efm.eightToFourteen(random_generator.bounded(256));
                         qDebug() << "F3FrameToChannel::process_queue(): Corrupting subcode sync1 "
                                     "value:"
                                  << subcode_value;
@@ -149,7 +149,7 @@ void F3FrameToChannel::process_queue()
 
         // Now we output the actual F3 frame data
         for (uint32_t index = 0; index < f3_frame_data.size(); index++) {
-            channel_frame += efm.eight_to_fourteen(f3_frame_data[index]);
+            channel_frame += efm.eightToFourteen(f3_frame_data[index]);
             channel_frame += merging_bits;
         }
 

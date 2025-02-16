@@ -52,22 +52,22 @@ void F2SectionToF3Frames::process_queue()
 
         // Take the metadata information from the first F2 frame in the section
         Subcode subcode;
-        QByteArray subcode_data = subcode.to_data(f2_section.metadata);
+        QByteArray subcode_data = subcode.toData(f2_section.metadata);
 
         for (uint32_t symbol_number = 0; symbol_number < 98; ++symbol_number) {
-            F2Frame f2_frame = f2_section.get_frame(symbol_number);
+            F2Frame f2_frame = f2_section.frame(symbol_number);
             F3Frame f3_frame;
 
             if (symbol_number == 0) {
-                f3_frame.set_frame_type_as_sync0();
+                f3_frame.setFrameTypeAsSync0();
             } else if (symbol_number == 1) {
-                f3_frame.set_frame_type_as_sync1();
+                f3_frame.setFrameTypeAsSync1();
             } else {
                 // Generate the subcode byte
-                f3_frame.set_frame_type_as_subcode(subcode_data[symbol_number]);
+                f3_frame.setFrameTypeAsSubcode(subcode_data[symbol_number]);
             }
 
-            f3_frame.set_data(f2_frame.get_data());
+            f3_frame.setData(f2_frame.getData());
 
             valid_f3_frames_count++;
             f3_frames.append(f3_frame);

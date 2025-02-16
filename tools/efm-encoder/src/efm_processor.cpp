@@ -138,7 +138,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
     // Process the input audio data 24 bytes at a time
     // The time, type and track number are set to default values for now
     uint8_t track_number = 1;
-    SectionType section_type = SectionType::USER_DATA;
+    SectionType section_type(SectionType::UserData);
     SectionTime section_time;
     uint32_t data24_section_count = 0;
 
@@ -151,20 +151,20 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
     while (bytes_read >= 98 * 24) {
         // Create a Data24Section object
         Data24Section data24_section;
-        section_metadata.set_section_type(section_type);
-        section_metadata.set_section_time(section_time);
-        section_metadata.set_absolute_section_time(section_time);
-        section_metadata.set_track_number(track_number);
+        section_metadata.setSectionType(section_type);
+        section_metadata.setSectionTime(section_time);
+        section_metadata.setAbsoluteSectionTime(section_time);
+        section_metadata.setTrackNumber(track_number);
         data24_section.metadata = section_metadata;
 
         for (int index = 0; index < 98; ++index) {
             // Create a Data24 object and set the data
             Data24 data24;
-            data24.set_data(input_data.mid(index * 24, 24));
-            data24_section.push_frame(data24);
+            data24.setData(input_data.mid(index * 24, 24));
+            data24_section.pushFrame(data24);
         }
         if (showInput)
-            data24_section.show_data();
+            data24_section.showData();
 
         // Push the data to the first converter
         data24_section_to_f1_section.push_section(data24_section);
@@ -178,7 +178,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
             // Pop the F1 frame, count it and push it to the next converter
             F1Section f1_section = data24_section_to_f1_section.pop_section();
             if (showF1)
-                f1_section.show_data();
+                f1_section.showData();
             f1_section_to_f2_section.push_section(f1_section);
         }
 
@@ -187,7 +187,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
             // Pop the F2 frame, count it and push it to the next converter
             F2Section f2_section = f1_section_to_f2_section.pop_section();
             if (showF2)
-                f2_section.show_data();
+                f2_section.showData();
             f2_section_to_f3_frames.push_section(f2_section);
         }
 
@@ -198,7 +198,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
 
             for (int i = 0; i < f3_frames.size(); i++) {
                 if (showF3)
-                    f3_frames[i].show_data();
+                    f3_frames[i].showData();
                 f3_frame_to_channel.push_frame(f3_frames[i]);
             }
         }
@@ -274,7 +274,7 @@ bool EfmProcessor::process(QString input_filename, QString output_filename)
 
     qInfo().noquote() << "Processed" << data24_section_count << "data24 sections totalling"
                       << size_value << size_unit;
-    qInfo().noquote() << "Final time was" << section_time.to_string();
+    qInfo().noquote() << "Final time was" << section_time.toString();
 
     qInfo() << data24_section_to_f1_section.get_valid_output_sections_count() << "F1 sections";
     qInfo() << f1_section_to_f2_section.get_valid_output_sections_count() << "F2 sections";
@@ -338,79 +338,79 @@ bool EfmProcessor::set_qmode_options(bool _qmode_1, bool _qmode_4, bool _qmode_a
     }
 
     if (_qmode_1) {
-        section_metadata.set_q_mode(SectionMetadata::QMODE_1);
-        qInfo() << "Q-Channel mode set to: QMODE_1";
+        section_metadata.setQMode(SectionMetadata::QMode1);
+        qInfo() << "Q-Channel mode set to: QMode1";
     } else if (_qmode_4) {
-        section_metadata.set_q_mode(SectionMetadata::QMODE_4);
-        qInfo() << "Q-Channel mode set to: QMODE_4";
+        section_metadata.setQMode(SectionMetadata::QMode4);
+        qInfo() << "Q-Channel mode set to: QMode4";
     }
 
     if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_2ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(false);
-        section_metadata.set_preemphasis(true);
-        section_metadata.set_2_channel(true);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(false);
+        section_metadata.setPreemphasis(true);
+        section_metadata.set2Channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_2ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(false);
-        section_metadata.set_preemphasis(false);
-        section_metadata.set_2_channel(true);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(false);
+        section_metadata.setPreemphasis(false);
+        section_metadata.set2Channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_2ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(true);
-        section_metadata.set_preemphasis(true);
-        section_metadata.set_2_channel(true);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(true);
+        section_metadata.setPreemphasis(true);
+        section_metadata.set2Channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_PREEMPHASIS_COPY_PROHIBITED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_2ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(true);
-        section_metadata.set_preemphasis(false);
-        section_metadata.set_2_channel(true);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(true);
+        section_metadata.setPreemphasis(false);
+        section_metadata.set2Channel(true);
         qInfo() << "Q-Channel control mode set to: AUDIO_2CH_NO_PREEMPHASIS_COPY_PROHIBITED";
     }
 
     if (_qmode_audio && _qmode_copy && _qmode_preemp && _qmode_4ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(false);
-        section_metadata.set_preemphasis(true);
-        section_metadata.set_2_channel(false);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(false);
+        section_metadata.setPreemphasis(true);
+        section_metadata.set2Channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_copy && _qmode_nopreemp && _qmode_4ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(false);
-        section_metadata.set_preemphasis(false);
-        section_metadata.set_2_channel(false);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(false);
+        section_metadata.setPreemphasis(false);
+        section_metadata.set2Channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PERMITTED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_preemp && _qmode_4ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(true);
-        section_metadata.set_preemphasis(true);
-        section_metadata.set_2_channel(false);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(true);
+        section_metadata.setPreemphasis(true);
+        section_metadata.set2Channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_PREEMPHASIS_COPY_PROHIBITED";
     }
     if (_qmode_audio && _qmode_nocopy && _qmode_nopreemp && _qmode_4ch) {
-        section_metadata.set_audio(true);
-        section_metadata.set_copy_prohibited(true);
-        section_metadata.set_preemphasis(false);
-        section_metadata.set_2_channel(false);
+        section_metadata.setAudio(true);
+        section_metadata.setCopyProhibited(true);
+        section_metadata.setPreemphasis(false);
+        section_metadata.set2Channel(false);
         qInfo() << "Q-Channel control mode set to: AUDIO_4CH_NO_PREEMPHASIS_COPY_PROHIBITED";
     }
 
     if (_qmode_data && _qmode_copy) {
-        section_metadata.set_audio(false);
-        section_metadata.set_copy_prohibited(false);
+        section_metadata.setAudio(false);
+        section_metadata.setCopyProhibited(false);
         qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PERMITTED";
     }
     if (_qmode_data && _qmode_nocopy) {
-        section_metadata.set_audio(false);
-        section_metadata.set_copy_prohibited(true);
+        section_metadata.setAudio(false);
+        section_metadata.setCopyProhibited(true);
         qInfo() << "Q-Channel control mode set to: DIGITAL_COPY_PROHIBITED";
     }
 

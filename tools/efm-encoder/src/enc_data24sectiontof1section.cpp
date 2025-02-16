@@ -52,18 +52,18 @@ void Data24SectionToF1Section::process_queue()
         f1_section.metadata = data24_section.metadata;
 
         for (int index = 0; index < 98; ++index) {
-            Data24 data24 = data24_section.get_frame(index);
+            Data24 data24 = data24_section.frame(index);
 
             // ECMA-130 issue 2 page 16 - Clause 16
             // All byte pairs are swapped by the F1 Frame encoder
-            QVector<uint8_t> data = data24.get_data();
+            QVector<uint8_t> data = data24.getData();
             for (int i = 0; i < data.size(); i += 2) {
                 std::swap(data[i], data[i + 1]);
             }
 
             F1Frame f1_frame;
-            f1_frame.set_data(data);
-            f1_section.push_frame(f1_frame);
+            f1_frame.setData(data);
+            f1_section.pushFrame(f1_frame);
         }
 
         valid_f1_sections_count++;

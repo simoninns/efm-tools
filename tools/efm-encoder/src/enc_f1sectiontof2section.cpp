@@ -65,8 +65,8 @@ void F1SectionToF2Section::process_queue()
 
         for (int index = 0; index < 98; ++index) {
             // Pop the F1 frame and copy the data
-            F1Frame f1_frame = f1_section.get_frame(index);
-            QVector<uint8_t> data = f1_frame.get_data();
+            F1Frame f1_frame = f1_section.frame(index);
+            QVector<uint8_t> data = f1_frame.getData();
 
             // Process the data
             data = delay_line2.push(data);
@@ -74,8 +74,8 @@ void F1SectionToF2Section::process_queue()
                 // Generate a blank F2 frame (to keep the section in sync)
                 F2Frame f2_frame;
                 QVector<uint8_t> blank_data(32, 0);
-                f2_frame.set_data(blank_data);
-                f2_section.push_frame(f2_frame);
+                f2_frame.setData(blank_data);
+                f2_section.pushFrame(f2_frame);
                 continue;
             }
 
@@ -87,8 +87,8 @@ void F1SectionToF2Section::process_queue()
                 // Generate a blank F2 frame (to keep the section in sync)
                 F2Frame f2_frame;
                 QVector<uint8_t> blank_data(32, 0);
-                f2_frame.set_data(blank_data);
-                f2_section.push_frame(f2_frame);
+                f2_frame.setData(blank_data);
+                f2_section.pushFrame(f2_frame);
                 continue;
             }
 
@@ -99,18 +99,18 @@ void F1SectionToF2Section::process_queue()
                 // Generate a blank F2 frame (to keep the section in sync)
                 F2Frame f2_frame;
                 QVector<uint8_t> blank_data(32, 0);
-                f2_frame.set_data(blank_data);
-                f2_section.push_frame(f2_frame);
+                f2_frame.setData(blank_data);
+                f2_section.pushFrame(f2_frame);
                 continue;
             }
 
-            data = inverter.invert_parity(data); // 32
+            inverter.invertParity(data); // 32
 
             // Put the resulting data into an F2 frame and push it to the output buffer
             F2Frame f2_frame;
-            f2_frame.set_data(data);
+            f2_frame.setData(data);
 
-            f2_section.push_frame(f2_frame);
+            f2_section.pushFrame(f2_frame);
         }
 
         valid_f2_sections_count++;
