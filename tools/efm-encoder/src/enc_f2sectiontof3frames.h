@@ -36,15 +36,15 @@ public:
     void pushSection(F2Section f2Section);
     QVector<F3Frame> popFrames();
     bool isReady() const;
-    quint32 validOutputSectionsCount() const override { return validF3FramesCount; };
+    quint32 validOutputSectionsCount() const override { return m_validF3FramesCount; };
 
 private:
     void processQueue();
 
-    QQueue<F2Section> inputBuffer;
-    QQueue<QVector<F3Frame>> outputBuffer;
+    QQueue<F2Section> m_inputBuffer;
+    QQueue<QVector<F3Frame>> m_outputBuffer;
 
-    quint32 validF3FramesCount;
+    quint32 m_validF3FramesCount;
 };
 
 #endif // ENC_F2SECTIONTOF3FRAMES_H

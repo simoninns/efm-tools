@@ -40,7 +40,7 @@ public:
     qint32 getTotalTValues() const;
     quint32 validOutputSectionsCount() const override
     {
-        return validChannelFramesCount;
+        return m_validChannelFramesCount;
     };
 
     void setCorruption(bool corruptF3Sync, quint32 corruptF3SyncFrequency,
@@ -49,8 +49,8 @@ public:
 private:
     void processQueue();
 
-    QQueue<F3Frame> inputBuffer;
-    QQueue<QVector<quint8>> outputBuffer;
+    QQueue<F3Frame> m_inputBuffer;
+    QQueue<QVector<quint8>> m_outputBuffer;
 
     void writeFrame(QString channelFrame);
 
@@ -60,23 +60,23 @@ private:
                                        const QString &currentEfm, const QString &nextEfm);
     qint32 calculateDsvDelta(const QString data);
 
-    qint32 dsv;
-    bool dsvDirection;
-    qint32 totalTValues;
-    qint32 totalSections;
-    QString previousChannelFrame;
-    quint32 validChannelFramesCount;
-    Efm efm;
+    qint32 m_dsv;
+    bool m_dsvDirection;
+    qint32 m_totalTValues;
+    qint32 m_totalSections;
+    QString m_previousChannelFrame;
+    quint32 m_validChannelFramesCount;
+    Efm m_efm;
 
     // Define the 24-bit F3 sync header for the F3 frame
-    const QString syncHeader = "100000000001000000000010";
+    const QString m_syncHeader = "100000000001000000000010";
 
     // Corruption flags
-    bool corruptF3Sync;
-    quint32 corruptF3SyncFrequency;
-    bool corruptSubcodeSync;
-    quint32 corruptSubcodeSyncFrequency;
-    quint32 subcodeCorruptionType;
+    bool m_corruptF3Sync;
+    quint32 m_corruptF3SyncFrequency;
+    bool m_corruptSubcodeSync;
+    quint32 m_corruptSubcodeSyncFrequency;
+    quint32 m_subcodeCorruptionType;
 
     QString generateRandomSyncValue();
 };

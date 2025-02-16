@@ -36,15 +36,15 @@ public:
     F1Section popSection();
     bool isReady() const;
 
-    quint32 validOutputSectionsCount() const override { return validF1SectionsCount; }
+    quint32 validOutputSectionsCount() const override { return m_validF1SectionsCount; }
 
 private:
     void processQueue();
 
-    QQueue<Data24Section> inputBuffer;
-    QQueue<F1Section> outputBuffer;
+    QQueue<Data24Section> m_inputBuffer;
+    QQueue<F1Section> m_outputBuffer;
 
-    quint32 validF1SectionsCount;
+    quint32 m_validF1SectionsCount;
 };
 
 #endif // ENC_DATA24SECTIONTOF1SECTION_H

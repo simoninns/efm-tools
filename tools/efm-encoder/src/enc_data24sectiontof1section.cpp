@@ -26,13 +26,13 @@
 
 // Data24SectionToF1Section class implementation
 Data24SectionToF1Section::Data24SectionToF1Section()
-    : validF1SectionsCount(0)
+    : m_validF1SectionsCount(0)
 {
 }
 
 void Data24SectionToF1Section::pushSection(Data24Section data24Section)
 {
-    inputBuffer.enqueue(data24Section);
+    m_inputBuffer.enqueue(data24Section);
     processQueue();
 }
 
@@ -41,13 +41,13 @@ F1Section Data24SectionToF1Section::popSection()
     if (!isReady()) {
         qFatal("Data24SectionToF1Section::popSection(): No F1 sections are available.");
     }
-    return outputBuffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
 void Data24SectionToF1Section::processQueue()
 {
-    while (!inputBuffer.isEmpty()) {
-        Data24Section data24Section = inputBuffer.dequeue();
+    while (!m_inputBuffer.isEmpty()) {
+        Data24Section data24Section = m_inputBuffer.dequeue();
         F1Section f1Section;
         f1Section.metadata = data24Section.metadata;
 
@@ -66,12 +66,12 @@ void Data24SectionToF1Section::processQueue()
             f1Section.pushFrame(f1Frame);
         }
 
-        validF1SectionsCount++;
-        outputBuffer.enqueue(f1Section);
+        m_validF1SectionsCount++;
+        m_outputBuffer.enqueue(f1Section);
     }
 }
 
 bool Data24SectionToF1Section::isReady() const
 {
-    return !outputBuffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }

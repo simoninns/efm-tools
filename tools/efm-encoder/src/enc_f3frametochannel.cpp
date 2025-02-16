@@ -26,23 +26,23 @@
 
 // F3FrameToChannel class implementation
 F3FrameToChannel::F3FrameToChannel()
-    : dsv(0)
-    , dsvDirection(true)
-    , totalTValues(0)
-    , totalSections(0)
-    , validChannelFramesCount(0)
-    , corruptF3Sync(false)
-    , corruptF3SyncFrequency(0)
-    , corruptSubcodeSync(false)
-    , corruptSubcodeSyncFrequency(0)
-    , subcodeCorruptionType(0)
+    : m_dsv(0)
+    , m_dsvDirection(true)
+    , m_totalTValues(0)
+    , m_totalSections(0)
+    , m_validChannelFramesCount(0)
+    , m_corruptF3Sync(false)
+    , m_corruptF3SyncFrequency(0)
+    , m_corruptSubcodeSync(false)
+    , m_corruptSubcodeSyncFrequency(0)
+    , m_subcodeCorruptionType(0)
 {
-    previousChannelFrame.clear();
+    m_previousChannelFrame.clear();
 }
 
 void F3FrameToChannel::pushFrame(F3Frame f3Frame)
 {
-    inputBuffer.enqueue(f3Frame);
+    m_inputBuffer.enqueue(f3Frame);
     processQueue();
 }
 
@@ -51,7 +51,7 @@ QVector<quint8> F3FrameToChannel::popFrame()
     if (!isReady()) {
         qFatal("F3FrameToChannel::popFrame(): No bytes are available.");
     }
-    return outputBuffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
 void F3FrameToChannel::processQueue()
@@ -60,9 +60,9 @@ void F3FrameToChannel::processQueue()
     QRandomGenerator randomGenerator(
             static_cast<quint32>(QTime::currentTime().msecsSinceStartOfDay()));
 
-    while (!inputBuffer.isEmpty()) {
+    while (!m_inputBuffer.isEmpty()) {
         // Pop the F3 frame data from the processing queue
-        F3Frame f3Frame = inputBuffer.dequeue();
+        F3Frame f3Frame = m_inputBuffer.dequeue();
         QVector<quint8> f3FrameData = f3Frame.data();
 
         // Ensure the F3 frame data is 32 bytes long
@@ -74,8 +74,8 @@ void F3FrameToChannel::processQueue()
         QString mergingBits = "xxx";
 
         // F3 Sync header
-        if (corruptF3Sync) {
-            if (validChannelFramesCount % corruptF3SyncFrequency == 0) {
+        if (m_corruptF3Sync) {
+            if (m_validChannelFramesCount % m_corruptF3SyncFrequency == 0) {
                 // Generate a random sync header
                 // Must be 24 bits long and have a minimum of 2 and a maximum of 10 zeros between
                 // each 1
@@ -83,10 +83,10 @@ void F3FrameToChannel::processQueue()
                 qDebug() << "F3FrameToChannel::processQueue(): Corrupting F3 sync header:"
                          << channelFrame;
             } else {
-                channelFrame += syncHeader;
+                channelFrame += m_syncHeader;
             }
         } else {
-            channelFrame += syncHeader;
+            channelFrame += m_syncHeader;
         }
         channelFrame += mergingBits;
 
@@ -94,28 +94,28 @@ void F3FrameToChannel::processQueue()
 
         // Subcode sync0 and sync1 headers (based on the F3 frame type)
         if (f3Frame.f3FrameType() == F3Frame::F3FrameType::Subcode) {
-            subcodeValue = efm.eightToFourteen(f3Frame.subcodeByte());
+            subcodeValue = m_efm.eightToFourteen(f3Frame.subcodeByte());
         } else if (f3Frame.f3FrameType() == F3Frame::F3FrameType::Sync0) {
-            subcodeValue += efm.eightToFourteen(256);
-            totalSections++;
+            subcodeValue += m_efm.eightToFourteen(256);
+            m_totalSections++;
 
             // Note: This is 0-8 because we want it to be unlikely that both sync0 and sync1 are
             // corrupted at the same time.  So 0 = corrupt both, 1-4 = corrupt sync0 and 5-8 =
             // corrupt sync1
-            subcodeCorruptionType = randomGenerator.bounded(9); // 0-8
+            m_subcodeCorruptionType = randomGenerator.bounded(9); // 0-8
         } else {
             // SYNC1
-            subcodeValue += efm.eightToFourteen(257);
+            subcodeValue += m_efm.eightToFourteen(257);
         }
 
         // Corrupt the subcode sync0 and sync1 patterns?
-        if (corruptSubcodeSync) {
-            if (totalSections % corruptSubcodeSyncFrequency == 0) {
+        if (m_corruptSubcodeSync) {
+            if (m_totalSections % m_corruptSubcodeSyncFrequency == 0) {
                 if (f3Frame.f3FrameType() == F3Frame::F3FrameType::Sync0) {
-                    if (subcodeCorruptionType == 0
-                        || (subcodeCorruptionType >= 1 && subcodeCorruptionType <= 4)) {
+                    if (m_subcodeCorruptionType == 0
+                        || (m_subcodeCorruptionType >= 1 && m_subcodeCorruptionType <= 4)) {
                         // Corrupt the sync0 pattern
-                        subcodeValue = efm.eightToFourteen(randomGenerator.bounded(256));
+                        subcodeValue = m_efm.eightToFourteen(randomGenerator.bounded(256));
                         qDebug() << "F3FrameToChannel::processQueue(): Corrupting subcode sync0 "
                                     "value:"
                                  << subcodeValue;
@@ -123,10 +123,10 @@ void F3FrameToChannel::processQueue()
                 }
 
                 if (f3Frame.f3FrameType() == F3Frame::F3FrameType::Sync1) {
-                    if (subcodeCorruptionType == 0
-                        || (subcodeCorruptionType >= 5 && subcodeCorruptionType <= 8)) {
+                    if (m_subcodeCorruptionType == 0
+                        || (m_subcodeCorruptionType >= 5 && m_subcodeCorruptionType <= 8)) {
                         // Corrupt the sync1 pattern
-                        subcodeValue = efm.eightToFourteen(randomGenerator.bounded(256));
+                        subcodeValue = m_efm.eightToFourteen(randomGenerator.bounded(256));
                         qDebug() << "F3FrameToChannel::processQueue(): Corrupting subcode sync1 "
                                     "value:"
                                  << subcodeValue;
@@ -140,7 +140,7 @@ void F3FrameToChannel::processQueue()
 
         // Now we output the actual F3 frame data
         for (quint32 index = 0; index < f3FrameData.size(); index++) {
-            channelFrame += efm.eightToFourteen(f3FrameData[index]);
+            channelFrame += m_efm.eightToFourteen(f3FrameData[index]);
             channelFrame += mergingBits;
         }
 
@@ -157,20 +157,20 @@ void F3FrameToChannel::processQueue()
 
         // Sanity check - The frame should only contain one sync header (unless we are corrupting
         // it)
-        if (channelFrame.count(syncHeader) != 1 && !corruptF3Sync) {
+        if (channelFrame.count(m_syncHeader) != 1 && !m_corruptF3Sync) {
             qDebug() << "F3FrameToChannel::processQueue(): Channel frame:" << channelFrame;
             qFatal("F3FrameToChannel::processQueue(): BUG - Channel frame contains %d sync "
                    "headers.",
-                   channelFrame.count(syncHeader));
+                   channelFrame.count(m_syncHeader));
         }
 
         // Sanity check - This and the previous frame combined should contain only two sync headers
         // (edge case detection)
-        if (!previousChannelFrame.isEmpty()) {
-            QString combinedFrames = previousChannelFrame + channelFrame;
-            if (combinedFrames.count(syncHeader) != 2) {
+        if (!m_previousChannelFrame.isEmpty()) {
+            QString combinedFrames = m_previousChannelFrame + channelFrame;
+            if (combinedFrames.count(m_syncHeader) != 2) {
                 qDebug() << "F3FrameToChannel::processQueue(): Previous frame:"
-                         << previousChannelFrame;
+                         << m_previousChannelFrame;
                 qDebug() << "F3FrameToChannel::processQueue():  Current frame:" << channelFrame;
                 qFatal("F3FrameToChannel::processQueue(): BUG - Previous and current channel "
                        "frames combined contains more than two sync headers.");
@@ -178,7 +178,7 @@ void F3FrameToChannel::processQueue()
         }
 
         // Flush the output data to the output buffer
-        validChannelFramesCount++;
+        m_validChannelFramesCount++;
         writeFrame(channelFrame);
     }
 }
@@ -218,19 +218,19 @@ void F3FrameToChannel::writeFrame(QString channelFrame)
 
             // Append the T-value to the output bytes (the number of zeros plus 1)
             outputBytes.append(zeroCount + 1);
-            totalTValues++;
+            m_totalTValues++;
         } else {
             // First bit is zero... input data is invalid!
             qFatal("F3FrameToChannel::writeFrame(): First bit should not be zero!");
         }
     }
 
-    outputBuffer.enqueue(outputBytes);
+    m_outputBuffer.enqueue(outputBytes);
 }
 
 bool F3FrameToChannel::isReady() const
 {
-    return !outputBuffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }
 
 QString F3FrameToChannel::addMergingBits(QString channelFrame)
@@ -242,7 +242,7 @@ QString F3FrameToChannel::addMergingBits(QString channelFrame)
 
     // We need to add another sync header to the channel frame
     // to make sure the last merging bit is correct
-    QString mergedFrame = channelFrame + syncHeader;
+    QString mergedFrame = channelFrame + m_syncHeader;
 
     // The merging bits are represented by "xxx".  Each merging bit is preceded by and
     // followed by an EFM symbol.  Firstly we have to extract the preceeding and following
@@ -258,7 +258,7 @@ QString F3FrameToChannel::addMergingBits(QString channelFrame)
         quint32 start = 0;
         if (i == 0) {
             // The first EFM symbol is a sync header
-            currentEfm = syncHeader;
+            currentEfm = m_syncHeader;
             start = 24;
         } else {
             start = 24 + i * 17;
@@ -271,7 +271,7 @@ QString F3FrameToChannel::addMergingBits(QString channelFrame)
         if (i == 33) {
             // If it's the last set of merging bits, the next EFM symbol is the sync header of the
             // next frame
-            nextEfm = syncHeader;
+            nextEfm = m_syncHeader;
         } else {
             nextEfm = mergedFrame.mid(start + 3, 14);
         }
@@ -291,13 +291,13 @@ QString F3FrameToChannel::addMergingBits(QString channelFrame)
             QString tempFrame = mergedFrame;
 
             // Count the current number of sync headers (might be 0 due to corruption settings)
-            int syncHeaderCount = tempFrame.count(syncHeader);
+            int syncHeaderCount = tempFrame.count(m_syncHeader);
 
             // Add our possible pattern to the frame
             tempFrame.replace(start, 3, pattern);
 
             // Any spurious sync headers generated?
-            if (tempFrame.count(syncHeader) == syncHeaderCount) {
+            if (tempFrame.count(m_syncHeader) == syncHeaderCount) {
                 mergingBits = pattern;
                 break;
             }
@@ -321,7 +321,7 @@ QString F3FrameToChannel::addMergingBits(QString channelFrame)
     }
 
     // Remove the last sync header
-    mergedFrame.chop(syncHeader.size());
+    mergedFrame.chop(m_syncHeader.size());
 
     // Verify the merged frame is 588 bits long
     if (mergedFrame.size() != 588) {
@@ -435,19 +435,19 @@ qint32 F3FrameToChannel::calculateDsvDelta(const QString data)
 
     for (int i = 0; i < data.size(); ++i) {
         if (data[i] == '1') {
-            dsvDirection = !dsvDirection;
+            m_dsvDirection = !m_dsvDirection;
         } else {
             int zeroCount = 0;
             while (i < data.size() && data[i] == '0') {
                 zeroCount++;
                 i++;
             }
-            if (dsvDirection) {
+            if (m_dsvDirection) {
                 dsvDelta += zeroCount;
             } else {
                 dsvDelta -= zeroCount;
             }
-            dsvDirection = !dsvDirection;
+            m_dsvDirection = !m_dsvDirection;
         }
     }
 
@@ -456,17 +456,17 @@ qint32 F3FrameToChannel::calculateDsvDelta(const QString data)
 
 qint32 F3FrameToChannel::getTotalTValues() const
 {
-    return totalTValues;
+    return m_totalTValues;
 }
 
 void F3FrameToChannel::setCorruption(bool _corruptF3Sync, quint32 _corruptF3SyncFrequency,
                                      bool _corruptSubcodeSync,
                                      quint32 _corruptSubcodeSyncFrequency)
 {
-    corruptF3Sync = _corruptF3Sync;
-    corruptF3SyncFrequency = _corruptF3SyncFrequency;
-    corruptSubcodeSync = _corruptSubcodeSync;
-    corruptSubcodeSyncFrequency = _corruptSubcodeSyncFrequency;
+    m_corruptF3Sync = _corruptF3Sync;
+    m_corruptF3SyncFrequency = _corruptF3SyncFrequency;
+    m_corruptSubcodeSync = _corruptSubcodeSync;
+    m_corruptSubcodeSyncFrequency = _corruptSubcodeSyncFrequency;
 }
 
 // Function to generate a "random" 24-bit sync

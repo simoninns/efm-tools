@@ -39,24 +39,24 @@ public:
     void pushSection(F1Section f1Section);
     F2Section popSection();
     bool isReady() const;
-    quint32 validOutputSectionsCount() const override { return validF2SectionsCount; };
+    quint32 validOutputSectionsCount() const override { return m_validF2SectionsCount; };
 
 private:
     void processQueue();
 
-    QQueue<F1Section> inputBuffer;
-    QQueue<F2Section> outputBuffer;
+    QQueue<F1Section> m_inputBuffer;
+    QQueue<F2Section> m_outputBuffer;
 
-    ReedSolomon mCirc;
+    ReedSolomon m_circ;
 
-    DelayLines delayLine1;
-    DelayLines delayLine2;
-    DelayLines delayLineM;
+    DelayLines m_delayLine1;
+    DelayLines m_delayLine2;
+    DelayLines m_delayLineM;
 
-    Interleave interleave;
-    Inverter inverter;
+    Interleave m_interleave;
+    Inverter m_inverter;
 
-    quint32 validF2SectionsCount;
+    quint32 m_validF2SectionsCount;
 };
 
 #endif // ENC_F1SECTIONTOF2SECTION_H

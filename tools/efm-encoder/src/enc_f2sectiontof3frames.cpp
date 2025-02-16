@@ -26,13 +26,13 @@
 
 // F2SectionToF3Frames class implementation
 F2SectionToF3Frames::F2SectionToF3Frames() :
-    validF3FramesCount(0)
+    m_validF3FramesCount(0)
 {
 }
 
 void F2SectionToF3Frames::pushSection(F2Section f2Section)
 {
-    inputBuffer.enqueue(f2Section);
+    m_inputBuffer.enqueue(f2Section);
     processQueue();
 }
 
@@ -41,13 +41,13 @@ QVector<F3Frame> F2SectionToF3Frames::popFrames()
     if (!isReady()) {
         qFatal("F2SectionToF3Frames::popFrames(): No F3 frames are available.");
     }
-    return outputBuffer.dequeue();
+    return m_outputBuffer.dequeue();
 }
 
 void F2SectionToF3Frames::processQueue()
 {
-    while (inputBuffer.size() >= 1) {
-        F2Section f2Section = inputBuffer.dequeue();
+    while (m_inputBuffer.size() >= 1) {
+        F2Section f2Section = m_inputBuffer.dequeue();
         QVector<F3Frame> f3Frames;
 
         // Take the metadata information from the first F2 frame in the section
@@ -69,15 +69,15 @@ void F2SectionToF3Frames::processQueue()
 
             f3Frame.setData(f2Frame.data());
 
-            validF3FramesCount++;
+            m_validF3FramesCount++;
             f3Frames.append(f3Frame);
         }
 
-        outputBuffer.enqueue(f3Frames);
+        m_outputBuffer.enqueue(f3Frames);
     }
 }
 
 bool F2SectionToF3Frames::isReady() const
 {
-    return !outputBuffer.isEmpty();
+    return !m_outputBuffer.isEmpty();
 }
