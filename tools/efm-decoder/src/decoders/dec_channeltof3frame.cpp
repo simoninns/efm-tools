@@ -159,43 +159,34 @@ F3Frame ChannelToF3Frame::createF3Frame(const QByteArray &tValues)
 
 QByteArray ChannelToF3Frame::tvaluesToData(const QByteArray &tValues)
 {
+    // Pre-allocate output buffer (each T-value generates at least 1 bit)
     QByteArray outputData;
-    quint8 currentByte = 0; // Will accumulate bits until we have 8.
-    quint32 bitsFilled = 0; // How many bits are currently in currentByte.
+    outputData.reserve((tValues.size() + 7) / 8);
+    
+    quint32 bitBuffer = 0;  // Use 32-bit buffer to avoid frequent byte writes
+    int bitsInBuffer = 0;
 
-    // Iterate through each T-value in the input.
-    for (quint8 c : tValues) {
-        // Convert char to int (assuming the T-value is in the range 3..11)
-        int tValue = static_cast<quint8>(c);
-        if (tValue < 3 || tValue > 11) {
+    for (quint8 tValue : tValues) {
+        // Validate T-value
+        if (Q_UNLIKELY(tValue < 3 || tValue > 11)) {
             qFatal("ChannelToF3Frame::tvaluesToData(): T-value must be in the range 3 to 11.");
         }
 
-        // First, append the leading 1 bit.
-        currentByte = (currentByte << 1) | 1;
-        ++bitsFilled;
-        if (bitsFilled == 8) {
-            outputData.append(currentByte);
-            currentByte = 0;
-            bitsFilled = 0;
-        }
+        // Shift in 1 followed by (tValue-1) zeros
+        bitBuffer = (bitBuffer << tValue) | (1U << (tValue - 1));
+        bitsInBuffer += tValue;
 
-        // Then, append (t_value - 1) zeros.
-        for (int i = 1; i < tValue; ++i) {
-            currentByte = (currentByte << 1); // Append a 0 bit.
-            ++bitsFilled;
-            if (bitsFilled == 8) {
-                outputData.append(currentByte);
-                currentByte = 0;
-                bitsFilled = 0;
-            }
+        // Write complete bytes when we have 8 or more bits
+        while (bitsInBuffer >= 8) {
+            outputData.append(static_cast<char>(bitBuffer >> (bitsInBuffer - 8)));
+            bitsInBuffer -= 8;
         }
     }
 
-    // If there are remaining bits, pad the final byte with zeros on the right.
-    if (bitsFilled > 0) {
-        currentByte <<= (8 - bitsFilled);
-        outputData.append(currentByte);
+    // Handle remaining bits
+    if (bitsInBuffer > 0) {
+        bitBuffer <<= (8 - bitsInBuffer);
+        outputData.append(static_cast<char>(bitBuffer));
     }
 
     return outputData;
@@ -203,34 +194,44 @@ QByteArray ChannelToF3Frame::tvaluesToData(const QByteArray &tValues)
 
 quint16 ChannelToF3Frame::getBits(const QByteArray &data, int startBit, int endBit)
 {
-    quint16 value = 0;
-
-    // Make sure start and end bits are within a 588 bit range
-    if (startBit < 0 || startBit > 587) {
-        qFatal("ChannelToF3Frame::getBits(): Start bit must be in the range 0 to 587 - start bit was %d.", startBit);
+    // Validate input
+    if (Q_UNLIKELY(startBit < 0 || startBit > 587 || endBit < 0 || endBit > 587 || startBit > endBit)) {
+        qFatal("ChannelToF3Frame::getBits(): Invalid bit range (%d, %d)", startBit, endBit);
     }
 
-    if (endBit < 0 || endBit > 587) {
-        qFatal("ChannelToF3Frame::getBits(): End bit must be in the range 0 to 587 - end bit was %d.", endBit);
+    int startByte = startBit / 8;
+    int endByte = endBit / 8;
+    
+    if (Q_UNLIKELY(endByte >= data.size())) {
+        qFatal("ChannelToF3Frame::getBits(): Byte index %d exceeds data size %d", endByte, data.size());
     }
 
-    if (startBit > endBit) {
-        qFatal("ChannelToF3Frame::getBits(): Start bit must be less than or equal to the end bit.");
+    // Fast path for bits within a single byte
+    if (startByte == endByte) {
+        quint8 mask = (0xFF >> (startBit % 8)) & (0xFF << (7 - (endBit % 8)));
+        return (data[startByte] & mask) >> (7 - (endBit % 8));
     }
 
-    // Extract the bits from the data
-    for (int bit = startBit; bit <= endBit; ++bit) {
-        int byteIndex = bit / 8;
-        if (byteIndex >= data.size()) {
-            qFatal("ChannelToF3Frame::getBits(): Byte index of %d exceeds data size of %d.", byteIndex, data.size());
-        }
-        int bitIndex = bit % 8;
-        if (data[byteIndex] & (1 << (7 - bitIndex))) {
-            value |= (1 << (endBit - bit));
-        }
+    // Handle multi-byte case
+    quint16 result = 0;
+    int bitsRemaining = endBit - startBit + 1;
+    
+    // Handle first byte
+    int firstByteBits = 8 - (startBit % 8);
+    quint8 mask = 0xFF >> (startBit % 8);
+    result = (data[startByte] & mask) << (bitsRemaining - firstByteBits);
+    
+    // Handle middle bytes
+    for (int i = startByte + 1; i < endByte; i++) {
+        result |= (data[i] & 0xFF) << (bitsRemaining - firstByteBits - 8 * (i - startByte));
     }
+    
+    // Handle last byte
+    int lastByteBits = (endBit % 8) + 1;
+    mask = 0xFF << (8 - lastByteBits);
+    result |= (data[endByte] & mask) >> (8 - lastByteBits);
 
-    return value;
+    return result;
 }
 
 void ChannelToF3Frame::showStatistics()

@@ -26,6 +26,7 @@
 
 DelayLines::DelayLines(QVector<quint32> delayLengths)
 {
+    m_delayLines.reserve(delayLengths.size());
     for (qint32 i = 0; i < delayLengths.size(); ++i) {
         m_delayLines.append(DelayLine(delayLengths[i]));
     }
@@ -38,6 +39,7 @@ QVector<quint8> DelayLines::push(QVector<quint8> inputData)
     }
 
     QVector<quint8> outputData;
+    outputData.reserve(m_delayLines.size());
     for (qint32 i = 0; i < m_delayLines.size(); ++i) {
         outputData.append(m_delayLines[i].push(inputData[i]));
     }
