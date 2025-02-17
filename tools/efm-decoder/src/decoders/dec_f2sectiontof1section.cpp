@@ -209,23 +209,35 @@ void F2SectionToF1Section::processQueue()
 void F2SectionToF1Section::showData(const QString &description, qint32 index, const QString &timeString,
                                     QVector<quint8> &data, QVector<quint8> &dataError)
 {
-    QString dataString;
+    // Early return if no errors to avoid string processing
     bool hasError = false;
+    for (const quint8 error : dataError) {
+        if (error != 0) {
+            hasError = true;
+            break;
+        }
+    }
+    if (!hasError) return;
+
+    // Pre-allocate string with approximate size needed
+    QString dataString;
+    dataString.reserve(data.size() * 3);
+
+    // Process data only if we know we need to display it
     for (int i = 0; i < data.size(); ++i) {
         if (dataError[i] == 0) {
-            dataString.append(QString("%1 ").arg(data[i], 2, 16, QChar('0')));
+            // Faster than QString::arg for hex conversion
+            if (data[i] < 0x10) dataString.append('0');
+            dataString.append(QString::number(data[i], 16));
+            dataString.append(' ');
         } else {
-            dataString.append(QString("XX "));
-            hasError = true;
+            dataString.append(QStringLiteral("XX "));
         }
     }
 
-    // Display the data if there are errors
-    if (hasError) {
-        qDebug().nospace().noquote() << "F2SectionToF1Section - " << description << "["
-                                     << QString("%1").arg(index, 2, 10, QChar('0')) << "]: ("
-                                     << timeString << ") " << dataString << "XX=ERROR";
-    }
+    qDebug().nospace().noquote() << "F2SectionToF1Section - " << description << "["
+                                 << QString::number(index).rightJustified(2, '0') << "]: ("
+                                 << timeString << ") " << dataString << "XX=ERROR";
 }
 
 void F2SectionToF1Section::showStatistics()
