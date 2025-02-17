@@ -11,7 +11,8 @@
         "rsvalidate.C": "cpp",
         "rscompare.C": "cpp",
         "rskey.C": "cpp",
-        "rspwd_test.C": "cpp"
+        "rspwd_test.C": "cpp",
+        "rs_base": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "none"
 }

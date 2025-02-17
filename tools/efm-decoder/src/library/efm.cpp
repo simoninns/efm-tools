@@ -1,6 +1,6 @@
 /************************************************************************
 
-    efm.h
+    efm.cpp
 
     EFM-library - EFM Frame type classes
     Copyright (C) 2025 Simon Inns

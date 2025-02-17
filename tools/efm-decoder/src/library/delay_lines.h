@@ -1,13 +1,13 @@
 /************************************************************************
 
-    enc_data24sectiontof1section.h
+    delay_lines.h
 
-    ld-efm-encoder - EFM data encoder
+    EFM-library - Delay line functions
     Copyright (C) 2025 Simon Inns
 
-    This file is part of ld-decode-tools.
+    This file is part of EFM-Tools.
 
-    ld-efm-encoder is free software: you can redistribute it and/or
+    This is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,29 +22,39 @@
 
 ************************************************************************/
 
-#ifndef ENC_DATA24SECTIONTOF1SECTION_H
-#define ENC_DATA24SECTIONTOF1SECTION_H
+#ifndef DELAY_LINES_H
+#define DELAY_LINES_H
 
-#include "encoders.h"
-#include "section.h"
+#include <QVector>
+#include <QQueue>
+#include <QtGlobal>
+#include <QDebug>
 
-class Data24SectionToF1Section : Encoder
+class DelayLine
 {
 public:
-    Data24SectionToF1Section();
-    void pushSection(Data24Section data);
-    F1Section popSection();
-    bool isReady() const;
-
-    quint32 validOutputSectionsCount() const override { return m_validF1SectionsCount; }
+    DelayLine(int32_t _delayLength);
+    uint8_t push(uint8_t inputDatum);
+    bool isReady();
+    void flush();
 
 private:
-    void processQueue();
-
-    QQueue<Data24Section> m_inputBuffer;
-    QQueue<F1Section> m_outputBuffer;
-
-    quint32 m_validF1SectionsCount;
+    uint8_t *m_buffer;
+    bool m_ready;
+    int32_t m_pushCount;
+    int32_t m_delayLength;
 };
 
-#endif // ENC_DATA24SECTIONTOF1SECTION_H
+class DelayLines
+{
+public:
+    DelayLines(QVector<uint32_t> _delayLengths);
+    QVector<uint8_t> push(QVector<uint8_t> inputData);
+    bool isReady();
+    void flush();
+
+private:
+    QVector<DelayLine> m_delayLines;
+};
+
+#endif // DELAY_LINES_H

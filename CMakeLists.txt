@@ -24,6 +24,5 @@ add_compile_definitions(APP_BRANCH=\"${GIT_BRANCH}\")
 add_compile_definitions(APP_COMMIT=\"${GIT_COMMIT_HASH}\")
 
 # Add subdirectories
-add_subdirectory(libs/efm)
-add_subdirectory(tools/efm-encoder)
 add_subdirectory(tools/efm-decoder)
+#add_subdirectory(tools/efm-sector-decoder)

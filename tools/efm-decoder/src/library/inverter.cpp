@@ -1,8 +1,8 @@
 /************************************************************************
 
-    delay_lines.h
+    inverter.cpp
 
-    EFM-library - Delay line functions
+    EFM-library - Parity inversion functions
     Copyright (C) 2025 Simon Inns
 
     This file is part of EFM-Tools.
@@ -22,36 +22,22 @@
 
 ************************************************************************/
 
-#ifndef DELAY_LINES_H
-#define DELAY_LINES_H
+#include "inverter.h"
 
-#include <QVector>
+Inverter::Inverter() { }
 
-class DelayLine
+// Invert the P and Q parity bytes in accordance with
+// ECMA-130 issue 2 page 35/36
+void Inverter::invertParity(QVector<quint8> &inputData)
 {
-public:
-    DelayLine(int32_t _delayLength);
-    uint8_t push(uint8_t inputDatum);
-    bool isReady();
-    void flush();
+    if (inputData.size() != 32) {
+        qFatal("Inverter::invertParity(): Data must be a QVector of 32 integers.");
+    }
 
-private:
-    uint8_t *m_buffer;
-    bool m_ready;
-    int32_t m_pushCount;
-    int32_t m_delayLength;
-};
-
-class DelayLines
-{
-public:
-    DelayLines(QVector<uint32_t> _delayLengths);
-    QVector<uint8_t> push(QVector<uint8_t> inputData);
-    bool isReady();
-    void flush();
-
-private:
-    QVector<DelayLine> m_delayLines;
-};
-
-#endif // DELAY_LINES_H
+    for (int i = 12; i < 16; ++i) {
+        inputData[i] = ~inputData[i] & 0xFF;
+    }
+    for (int i = 28; i < 32; ++i) {
+        inputData[i] = ~inputData[i] & 0xFF;
+    }
+}

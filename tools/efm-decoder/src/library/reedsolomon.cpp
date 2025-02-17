@@ -22,7 +22,6 @@
 
 ************************************************************************/
 
-#include <QDebug>
 #include "ezpwd/rs_base"
 #include "ezpwd/rs"
 #include "reedsolomon.h"

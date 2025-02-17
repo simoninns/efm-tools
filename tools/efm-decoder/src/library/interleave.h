@@ -1,13 +1,13 @@
 /************************************************************************
 
-    encoders.h
+    interleave.h
 
-    ld-efm-encoder - EFM data encoder
+    EFM-library - Data interleaving functions
     Copyright (C) 2025 Simon Inns
 
-    This file is part of ld-decode-tools.
+    This file is part of EFM-Tools.
 
-    ld-efm-encoder is free software: you can redistribute it and/or
+    This is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,20 +22,18 @@
 
 ************************************************************************/
 
-#ifndef ENCODERS_H
-#define ENCODERS_H
+#ifndef INTERLEAVE_H
+#define INTERLEAVE_H
 
-#include <QtGlobal>
-#include <QDebug>
-#include <QQueue>
 #include <QVector>
-#include <QString>
-#include "frame.h"
+#include <QDebug>
 
-class Encoder
+class Interleave
 {
 public:
-    virtual uint32_t validOutputSectionsCount() const = 0;
+    Interleave();
+    QVector<quint8> interleave(const QVector<quint8> &inputData);
+    QVector<quint8> deinterleave(const QVector<quint8> &inputData);
 };
 
-#endif // ENCODERS_H
+#endif // INTERLEAVE_H

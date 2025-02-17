@@ -22,12 +22,6 @@
 
 ************************************************************************/
 
-#include <QVector>
-#include <QQueue>
-#include <QtGlobal>
-#include <QDebug>
-#include <iostream>
-
 #include "delay_lines.h"
 
 DelayLines::DelayLines(QVector<quint32> delayLengths)

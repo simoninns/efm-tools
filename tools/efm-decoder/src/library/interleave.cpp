@@ -22,8 +22,6 @@
 
 ************************************************************************/
 
-#include <QVector>
-#include <QDebug>
 #include "interleave.h"
 
 Interleave::Interleave() { }

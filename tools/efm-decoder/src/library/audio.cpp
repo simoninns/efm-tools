@@ -1,6 +1,6 @@
 /************************************************************************
 
-    audio.h
+    audio.cpp
 
     EFM-library - Audio frame type class
     Copyright (C) 2025 Simon Inns
