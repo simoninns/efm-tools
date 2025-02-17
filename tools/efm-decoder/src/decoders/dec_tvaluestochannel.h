@@ -66,6 +66,7 @@ private:
     QQueue<QByteArray> m_outputBuffer;
 
     Tvalues m_tvalues;
+    quint32 m_tvalueDiscardCount;
 
     State expectingInitialSync();
     State expectingSync();

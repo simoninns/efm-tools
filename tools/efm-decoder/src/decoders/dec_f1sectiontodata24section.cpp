@@ -113,12 +113,34 @@ void F1SectionToData24Section::showStatistics()
     qInfo() << "    Valid F1 frames:" << m_validF1FramesCount;
     qInfo() << "    Invalid F1 frames:" << m_invalidF1FramesCount;
 
-    qInfo() << "  Bytes:";
+    qInfo() << "  Data:";
     quint32 validBytes = (m_validF1FramesCount + m_invalidF1FramesCount) * 24;
-    qInfo().nospace() << "    Total bytes: " << validBytes + m_corruptBytesCount;
-    qInfo().nospace() << "    Valid bytes: " << validBytes;
-    qInfo().nospace() << "    Corrupt bytes: " << m_corruptBytesCount;
+    double totalSize = validBytes + m_corruptBytesCount;
+
+    if (totalSize < 1024) {
+        // Show in bytes if less than 1KB
+        qInfo().nospace().noquote() << "    Total bytes: " << validBytes + m_corruptBytesCount;
+        qInfo().nospace().noquote() << "    Valid bytes: " << validBytes;
+        qInfo().nospace().noquote() << "    Corrupt bytes: " << m_corruptBytesCount;
+    } else if (totalSize < 1024 * 1024) {
+        // Show in KB if less than 1MB
+        double validKBytes = static_cast<double>(validBytes + m_corruptBytesCount) / 1024.0;
+        double validOnlyKBytes = static_cast<double>(validBytes) / 1024.0;
+        double corruptKBytes = static_cast<double>(m_corruptBytesCount) / 1024.0;
+        qInfo().nospace().noquote() << "    Total KBytes: " << QString::number(validKBytes, 'f', 2);
+        qInfo().nospace().noquote() << "    Valid KBytes: " << QString::number(validOnlyKBytes, 'f', 2);
+        qInfo().nospace().noquote() << "    Corrupt KBytes: " << QString::number(corruptKBytes, 'f', 2);
+    } else {
+        // Show in MB if 1MB or larger
+        double validMBytes = static_cast<double>(validBytes + m_corruptBytesCount) / (1024.0 * 1024.0);
+        double validOnlyMBytes = static_cast<double>(validBytes) / (1024.0 * 1024.0);
+        double corruptMBytes = static_cast<double>(m_corruptBytesCount) / (1024.0 * 1024.0);
+        qInfo().nospace().noquote() << "    Total MBytes: " << QString::number(validMBytes, 'f', 2);
+        qInfo().nospace().noquote() << "    Valid MBytes: " << QString::number(validOnlyMBytes, 'f', 2);
+        qInfo().nospace().noquote() << "    Corrupt MBytes: " << QString::number(corruptMBytes, 'f', 2);
+    }
+
     qInfo().nospace().noquote() << "    Data loss: "
-                                << QString::number((m_corruptBytesCount * 100.0) / validBytes, 'f', 3)
-                                << "%";
+                               << QString::number((m_corruptBytesCount * 100.0) / validBytes, 'f', 3)
+                               << "%";
 }

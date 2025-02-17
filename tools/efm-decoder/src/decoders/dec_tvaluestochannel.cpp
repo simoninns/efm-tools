@@ -41,6 +41,8 @@ TvaluesToChannel::TvaluesToChannel()
 
     // Set the initial state
     m_currentState = ExpectingInitialSync;
+
+    m_tvalueDiscardCount = 0;
 }
 
 void TvaluesToChannel::pushFrame(const QByteArray &data)
@@ -107,13 +109,18 @@ TvaluesToChannel::State TvaluesToChannel::expectingInitialSync()
     int initialSyncIndex = m_internalBuffer.indexOf(t11_t11);
 
     if (initialSyncIndex != -1) {
-        if (m_showDebug)
-            qDebug() << "TvaluesToChannel::expectingInitialSync() - Initial sync header found at index:" << initialSyncIndex;
+        if (m_showDebug) {
+            if (m_tvalueDiscardCount > 0)
+                qDebug() << "TvaluesToChannel::expectingInitialSync() - Initial sync header found after" << m_tvalueDiscardCount << "discarded T-values";
+            else
+                qDebug() << "TvaluesToChannel::expectingInitialSync() - Initial sync header found";
+        }
+
+        m_tvalueDiscardCount = 0;
         nextState = ExpectingSync;
     } else {
-        if (m_showDebug)
-            qDebug() << "TvaluesToChannel::expectingInitialSync() - Initial sync header not found, dropping" << m_internalBuffer.size() - 1 << "T-values";
         // Drop all but the last T-value in the buffer
+        m_tvalueDiscardCount += m_internalBuffer.size() - 1;
         m_discardedTValues += m_internalBuffer.size() - 1;
         m_internalBuffer = m_internalBuffer.right(1);
     }

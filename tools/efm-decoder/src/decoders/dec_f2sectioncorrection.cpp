@@ -30,7 +30,7 @@
 F2SectionCorrection::F2SectionCorrection()
     : m_leadinComplete(false),
       m_maximumGapSize(3),
-      m_maximumInternalBufferSize(375),
+      m_maximumInternalBufferSize(75),
       m_totalSections(0),
       m_correctedSections(0),
       m_uncorrectableSections(0),

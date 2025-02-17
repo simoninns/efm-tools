@@ -78,8 +78,8 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     if (erasures.size() > 2) {
         // If there are more than 2 erasures, then we can't correct the data - copy the input data
         // to the output data and flag it with errors
-        if (m_showDebug)
-            qDebug() << "ReedSolomon::c1Decode - Too many erasures to correct";
+        // if (m_showDebug)
+        //     qDebug() << "ReedSolomon::c1Decode - Too many erasures to correct";
         inputData = QVector<quint8>(tmpData.begin(), tmpData.end() - 4);
         errorData.resize(inputData.size());
         errorData.fill(1);
@@ -143,8 +143,8 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     if (erasures.size() > 4) {
         // If there are more than 4 erasures, then we can't correct the data - copy the input data
         // to the output data and flag it with errors
-        if (m_showDebug)
-            qDebug().noquote() << "ReedSolomon::c2Decode - Too many erasures to correct";
+        // if (m_showDebug)
+        //     qDebug().noquote() << "ReedSolomon::c2Decode - Too many erasures to correct";
         inputData = QVector<quint8>(tmpData.begin(), tmpData.begin() + 12)
                 + QVector<quint8>(tmpData.begin() + 16, tmpData.end());
         errorData.resize(inputData.size());
@@ -156,8 +156,8 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     // Decode the data
     int result = c2rs.decode(tmpData, erasures, &position);
     if (result > 3) {
-        if (m_showDebug)
-            qDebug().noquote() << "ReedSolomon::c2Decode - Too many errors to correct" << result;
+        // if (m_showDebug)
+        //     qDebug().noquote() << "ReedSolomon::c2Decode - Too many errors to correct" << result;
         result = -1;
     }
 
@@ -178,9 +178,9 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     }
 
     // If result < 0, then the Reed-Solomon decode failed and the data should be flagged as corrupt
-    if (m_showDebug)
-        qDebug().noquote() << "ReedSolomon::c2Decode - C2 corrupt and could not be fixed"
-                           << result;
+    // if (m_showDebug)
+    //     qDebug().noquote() << "ReedSolomon::c2Decode - C2 corrupt and could not be fixed"
+    //                        << result;
     errorData.fill(1);
     ++m_errorC2s;
     return;
