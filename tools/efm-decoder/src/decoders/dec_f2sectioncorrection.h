@@ -70,6 +70,7 @@ private:
     quint32 m_uncorrectableSections;
     quint32 m_preLeadinSections;
     quint32 m_missingSections;
+    quint32 m_outOfOrderSections;
 
     // Time statistics
     SectionTime m_absoluteStartTime;

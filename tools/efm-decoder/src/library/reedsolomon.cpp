@@ -54,31 +54,6 @@ ReedSolomon::ReedSolomon()
     m_errorC2s = 0;
 }
 
-// Perform a C1 Reed-Solomon encoding operation on the input data
-// This is a (32,28) Reed-Solomon encode - 28 bytes in, 32 bytes out
-void ReedSolomon::c1Encode(QVector<quint8> &inputData)
-{
-    // Ensure input data is 28 bytes long
-    if (inputData.size() != 28) {
-        qFatal("ReedSolomon::c1Encode - Input data must be 28 bytes long");
-    }
-
-    // Check for potential overflow
-    if (static_cast<quint64>(inputData.size())
-        > static_cast<quint64>(std::numeric_limits<size_t>::max())) {
-        qFatal("ReedSolomon::c1Encode - Input data size exceeds maximum allowable size.  Input "
-               "data size: %d",
-               inputData.size());
-    }
-
-    // Convert the QVector to a std::vector for the ezpwd library
-    std::vector<quint8> tmpData(inputData.begin(), inputData.end());
-
-    c1rs.encode(tmpData);
-
-    inputData = QVector<quint8>(tmpData.begin(), tmpData.end());
-}
-
 // Perform a C1 Reed-Solomon decoding operation on the input data
 // This is a (32,28) Reed-Solomon encode - 32 bytes in, 28 bytes out
 void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorData,
@@ -136,37 +111,6 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     errorData.fill(1);
     ++m_errorC1s;
     return;
-}
-
-// Perform a C2 Reed-Solomon encoding operation on the input data
-// This is a (28,24) Reed-Solomon encode - 24 bytes in, 28 bytes out
-void ReedSolomon::c2Encode(QVector<quint8> &inputData)
-{
-    // Ensure input data is 24 bytes long
-    if (inputData.size() != 24) {
-        qFatal("ReedSolomon::c2Encode - Input data must be 24 bytes long");
-    }
-
-    // Convert the QVector to a std::vector for the ezpwd library
-    std::vector<quint8> tmpData;
-
-    // Copy the first 12 bytes of the input data
-    tmpData.insert(tmpData.end(), inputData.begin(), inputData.begin() + 12);
-
-    // Insert 4 zeros for the parity bytes
-    tmpData.insert(tmpData.end(), 4, 0);
-
-    // Copy the last 12 bytes of the input data
-    tmpData.insert(tmpData.end(), inputData.end() - 12, inputData.end());
-
-    // Mark the parity byte positions as erasures (12-15)
-    std::vector<int> erasures = { 12, 13, 14, 15 }; // 0-based indices of "missing" bytes
-
-    // Decode and correct erasures (i.e. insert the missing parity bytes in the middle)
-    c2rs.decode(tmpData, erasures);
-
-    // Copy the data back to a QVector
-    inputData = QVector<quint8>(tmpData.begin(), tmpData.end());
 }
 
 // Perform a C2 Reed-Solomon decoding operation on the input data

@@ -37,7 +37,8 @@ F2SectionCorrection::F2SectionCorrection()
       m_preLeadinSections(0),
       m_missingSections(0),
       m_absoluteStartTime(59, 59, 74),
-      m_absoluteEndTime(0, 0, 0)
+      m_absoluteEndTime(0, 0, 0),
+      m_outOfOrderSections(0)
 {}
 
 void F2SectionCorrection::pushSection(const F2Section &data)
@@ -147,6 +148,8 @@ void F2SectionCorrection::waitForInputToSettle(F2Section &f2Section)
 
 void F2SectionCorrection::waitingForSection(F2Section &f2Section)
 {
+    bool outputSection = true;
+
     // Check that this isn't the first section in the internal buffer (as we can't calculate
     // the expected time for the first section)
     if (m_internalBuffer.isEmpty()) {
@@ -182,49 +185,98 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
         }
     }
 
-    // Check for a missing section...
+    // Does the current section have the expected absolute time?
     if (f2Section.metadata.isValid()
         && f2Section.metadata.absoluteSectionTime() != expectedAbsoluteTime) {
-        // We have a missing section
-        m_missingSections++;
-        if (m_showDebug)
-            qWarning() << "F2SectionCorrection::waitingForSection(): Missing section detected, "
+
+        // The current section is not the expected section
+        if (f2Section.metadata.absoluteSectionTime() > expectedAbsoluteTime) {
+            // The current section is ahead of the expected section in time, so we have 
+            // one or more missing sections
+
+            // Note: This will kick up the number of C1/C2 errors in the output. However, some
+            // LaserDiscs (like Domesday AIV) have gaps in the EFM data, so there is no actual
+            // data loss.  TODO: This could be improved by handling it better in the statistics
+            // output.
+
+            // How many sections are missing?
+            qint32 missingSections = f2Section.metadata.absoluteSectionTime().frames()
+                    - expectedAbsoluteTime.frames();
+
+            if (missingSections > 5) {
+                // The gap is large - warn the user
+                qWarning() << "F2SectionCorrection::waitingForSection(): Missing section gap of" << missingSections << "is larger than 5,"
+                        << "expected absolute time is"
+                        << expectedAbsoluteTime.toString() << "actual absolute time is"
+                        << f2Section.metadata.absoluteSectionTime().toString();
+                qWarning() << "F2SectionCorrection::waitingForSection(): It's possible that there is a gap in the EFM data,"
+                        << "this will show up as C1/C2 errors in the output but will not actually result in real data loss.";
+            }
+
+            if (m_showDebug && missingSections == 1)
+                qWarning() << "F2SectionCorrection::waitingForSection(): Missing section detected, "
+                            "expected absolute time is"
+                        << expectedAbsoluteTime.toString() << "actual absolute time is"
+                        << f2Section.metadata.absoluteSectionTime().toString();
+
+            if (m_showDebug && missingSections > 1)
+                qWarning() << "F2SectionCorrection::waitingForSection():" << missingSections << "missing sections detected, "
+                            "expected absolute time is"
+                        << expectedAbsoluteTime.toString() << "actual absolute time is"
+                        << f2Section.metadata.absoluteSectionTime().toString();
+
+            for (int i = 0; i < missingSections; ++i) {
+                // We have to insert a dummy section into the internal buffer or this
+                // will throw off the correction process due to the delay lines
+                m_missingSections++;
+
+                // It's important that all the metadata is correct otherwise track numbers and so on
+                // will be incorrect
+                F2Section missingSection;
+
+                // Copy the metadata from the next section as a good default
+                missingSection.metadata = f2Section.metadata;
+
+                missingSection.metadata.setAbsoluteSectionTime(expectedAbsoluteTime + i);
+                missingSection.metadata.setValid(true);
+
+                // To-do: Perhaps this could be improved if spanning a track boundary?
+                // might not be required though...
+                missingSection.metadata.setSectionType(f2Section.metadata.sectionType());
+                missingSection.metadata.setTrackNumber(f2Section.metadata.trackNumber());
+                missingSection.metadata.setSectionTime(f2Section.metadata.sectionTime() - (i + 1));
+
+                // Push 98 error frames in to the missing section
+                for (int i = 0; i < 98; ++i) {
+                    F2Frame errorFrame;
+                    errorFrame.setData(QVector<quint8>(32, 0x00));
+                    errorFrame.setErrorData(QVector<quint8>(32, 0x01)); // Flag as error
+                    missingSection.pushFrame(errorFrame);
+                }
+
+                // Push it into the internal buffer
+                m_internalBuffer.enqueue(missingSection);
+
+                if (m_showDebug)
+                    qDebug() << "F2SectionCorrection::waitingForSection(): Inserted missing section "
+                                "into internal buffer with absolute time"
+                             << missingSection.metadata.absoluteSectionTime().toString();
+            }
+        } else {
+            // The current section is behind the expected section in time, so we have a section
+            // that is out of order
+            qWarning() << "F2SectionCorrection::waitingForSection(): Section out of order detected, "
                           "expected absolute time is"
-                       << expectedAbsoluteTime.toString() << "actual absolute time is"
-                       << f2Section.metadata.absoluteSectionTime().toString();
+                      << expectedAbsoluteTime.toString() << "actual absolute time is"
+                      << f2Section.metadata.absoluteSectionTime().toString();
 
-        // We have to insert a dummy section into the internal buffer or this
-        // will throw off the correction process due to the delay lines
-        //
-        // It's important that all the metadata is correct otherwise track numbers and so on
-        // will be incorrect
-        F2Section missingSection;
-
-        // Copy the metadata from the next section as a good default
-        missingSection.metadata = f2Section.metadata;
-
-        missingSection.metadata.setAbsoluteSectionTime(expectedAbsoluteTime);
-        missingSection.metadata.setValid(true);
-
-        // To-do: Perhaps this could be improved if spanning a track boundary?
-        // might not be required though...
-        missingSection.metadata.setSectionType(f2Section.metadata.sectionType());
-        missingSection.metadata.setTrackNumber(f2Section.metadata.trackNumber());
-        missingSection.metadata.setSectionTime(f2Section.metadata.sectionTime() - 1);
-
-        // Push 98 error frames in to the missing section
-        for (int i = 0; i < 98; ++i) {
-            F2Frame errorFrame;
-            errorFrame.setData(QVector<quint8>(32, 0x00));
-            errorFrame.setErrorData(QVector<quint8>(32, 0x01));
-            missingSection.pushFrame(errorFrame);
+            // TODO: This is not a good way to deal with this...
+            outputSection = false;
+            m_outOfOrderSections++;
         }
-
-        // Push it into the internal buffer
-        m_internalBuffer.enqueue(missingSection);
     }
 
-    m_internalBuffer.enqueue(f2Section);
+    if (outputSection) m_internalBuffer.enqueue(f2Section);
     correctInternalBuffer();
     if (m_internalBuffer.size() > m_maximumInternalBufferSize)
         outputSections();
@@ -417,70 +469,74 @@ void F2SectionCorrection::correctInternalBuffer()
 // This function queues up the processed output sections and keeps track of the statistics
 void F2SectionCorrection::outputSections()
 {
-    // Pop
-    F2Section section = m_internalBuffer.dequeue();
+    // TODO: There should probably be some checks here to ensure the internal buffer
+    // is in a good state before outputting the sections
+    while (m_internalBuffer.size() > m_maximumInternalBufferSize) {
+        // Pop
+        F2Section section = m_internalBuffer.dequeue();
 
-    // Push
-    m_totalSections++;
-    m_outputBuffer.enqueue(section);
+        // Push
+        m_totalSections++;
+        m_outputBuffer.enqueue(section);
 
-    // Statistics generation...
-    quint8 trackNumber = section.metadata.trackNumber();
-    SectionTime sectionTime = section.metadata.sectionTime();
-    SectionTime absoluteTime = section.metadata.absoluteSectionTime();
+        // Statistics generation...
+        quint8 trackNumber = section.metadata.trackNumber();
+        SectionTime sectionTime = section.metadata.sectionTime();
+        SectionTime absoluteTime = section.metadata.absoluteSectionTime();
 
-    // Set the absolute start and end times
-    if (absoluteTime <= m_absoluteStartTime)
-        m_absoluteStartTime = absoluteTime;
-    if (absoluteTime > m_absoluteEndTime)
-        m_absoluteEndTime = absoluteTime;
+        // Set the absolute start and end times
+        if (absoluteTime <= m_absoluteStartTime)
+            m_absoluteStartTime = absoluteTime;
+        if (absoluteTime > m_absoluteEndTime)
+            m_absoluteEndTime = absoluteTime;
 
-    // Do we have a new track?
-    if (!m_trackNumbers.contains(trackNumber)) {
-        // Append the new track to the statistics
-        m_trackNumbers.append(trackNumber);
-        m_trackStartTimes.append(sectionTime);
-        m_trackEndTimes.append(sectionTime);
+        // Do we have a new track?
+        if (!m_trackNumbers.contains(trackNumber)) {
+            // Append the new track to the statistics
+            m_trackNumbers.append(trackNumber);
+            m_trackStartTimes.append(sectionTime);
+            m_trackEndTimes.append(sectionTime);
 
-        if (m_showDebug)
-            qDebug() << "F2SectionCorrection::outputSections(): New track" << trackNumber
-                     << "detected with start time" << sectionTime.toString();
-        if (trackNumber == 0) {
-            if (section.metadata.sectionType().type() == SectionType::LeadIn) {
-                // This is a lead-in track
-                if (m_showDebug)
-                    qDebug() << "F2SectionCorrection::outputSections(): LeadIn track detected "
-                                "with start time"
-                             << sectionTime.toString();
-            } else if (section.metadata.sectionType().type() == SectionType::LeadOut) {
-                // This is a lead-out track
-                if (m_showDebug)
-                    qDebug() << "F2SectionCorrection::outputSections(): LeadOut track detected "
-                                "with start time"
-                             << sectionTime.toString();
-            } else if (section.metadata.sectionType().type() == SectionType::UserData) {
-                // This is a user data track
-                if (m_showDebug)
-                    qDebug() << "F2SectionCorrection::outputSections(): UserData track detected "
-                                "with start time"
-                             << sectionTime.toString();
-            } else {
-                // This is an unknown track
-                if (m_showDebug)
-                    qDebug() << "F2SectionCorrection::outputSections(): UNKNOWN track detected "
-                                "with start time"
-                             << sectionTime.toString();
+            if (m_showDebug)
+                qDebug() << "F2SectionCorrection::outputSections(): New track" << trackNumber
+                        << "detected with start time" << sectionTime.toString();
+            if (trackNumber == 0) {
+                if (section.metadata.sectionType().type() == SectionType::LeadIn) {
+                    // This is a lead-in track
+                    if (m_showDebug)
+                        qDebug() << "F2SectionCorrection::outputSections(): LeadIn track detected "
+                                    "with start time"
+                                << sectionTime.toString();
+                } else if (section.metadata.sectionType().type() == SectionType::LeadOut) {
+                    // This is a lead-out track
+                    if (m_showDebug)
+                        qDebug() << "F2SectionCorrection::outputSections(): LeadOut track detected "
+                                    "with start time"
+                                << sectionTime.toString();
+                } else if (section.metadata.sectionType().type() == SectionType::UserData) {
+                    // This is a user data track
+                    if (m_showDebug)
+                        qDebug() << "F2SectionCorrection::outputSections(): UserData track detected "
+                                    "with start time"
+                                << sectionTime.toString();
+                } else {
+                    // This is an unknown track
+                    if (m_showDebug)
+                        qDebug() << "F2SectionCorrection::outputSections(): UNKNOWN track detected "
+                                    "with start time"
+                                << sectionTime.toString();
+                }
+                qFatal("F2SectionCorrection::outputSections(): Exiting due to track 0 detected in "
+                    "output sections.");
             }
-            qFatal("F2SectionCorrection::outputSections(): Exiting due to track 0 detected in "
-                   "output sections.");
+        } else {
+            // Update the end time for the existing track
+            int index = m_trackNumbers.indexOf(trackNumber);
+            if (sectionTime < m_trackStartTimes[index])
+                m_trackStartTimes[index] = sectionTime;
+            if (sectionTime >= m_trackEndTimes[index])
+                m_trackEndTimes[index] = sectionTime;
         }
-    } else {
-        // Update the end time for the existing track
-        int index = m_trackNumbers.indexOf(trackNumber);
-        if (sectionTime < m_trackStartTimes[index])
-            m_trackStartTimes[index] = sectionTime;
-        if (sectionTime >= m_trackEndTimes[index])
-            m_trackEndTimes[index] = sectionTime;
     }
 }
 
@@ -504,6 +560,7 @@ void F2SectionCorrection::showStatistics() const
     qInfo() << "    Uncorrectable:" << m_uncorrectableSections;
     qInfo() << "    Pre-Leadin:" << m_preLeadinSections;
     qInfo() << "    Missing:" << m_missingSections;
+    qInfo() << "    Out of order:" << m_outOfOrderSections;
 
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << m_absoluteStartTime.toString();
