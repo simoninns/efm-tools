@@ -278,7 +278,7 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
 
     if (outputSection) m_internalBuffer.enqueue(f2Section);
     correctInternalBuffer();
-    if (m_internalBuffer.size() > m_maximumInternalBufferSize)
+    while (m_internalBuffer.size() > m_maximumInternalBufferSize)
         outputSections();
 }
 
@@ -471,72 +471,71 @@ void F2SectionCorrection::outputSections()
 {
     // TODO: There should probably be some checks here to ensure the internal buffer
     // is in a good state before outputting the sections
-    while (m_internalBuffer.size() > m_maximumInternalBufferSize) {
-        // Pop
-        F2Section section = m_internalBuffer.dequeue();
 
-        // Push
-        m_totalSections++;
-        m_outputBuffer.enqueue(section);
+    // Pop
+    F2Section section = m_internalBuffer.dequeue();
 
-        // Statistics generation...
-        quint8 trackNumber = section.metadata.trackNumber();
-        SectionTime sectionTime = section.metadata.sectionTime();
-        SectionTime absoluteTime = section.metadata.absoluteSectionTime();
+    // Push
+    m_totalSections++;
+    m_outputBuffer.enqueue(section);
 
-        // Set the absolute start and end times
-        if (absoluteTime <= m_absoluteStartTime)
-            m_absoluteStartTime = absoluteTime;
-        if (absoluteTime > m_absoluteEndTime)
-            m_absoluteEndTime = absoluteTime;
+    // Statistics generation...
+    quint8 trackNumber = section.metadata.trackNumber();
+    SectionTime sectionTime = section.metadata.sectionTime();
+    SectionTime absoluteTime = section.metadata.absoluteSectionTime();
 
-        // Do we have a new track?
-        if (!m_trackNumbers.contains(trackNumber)) {
-            // Append the new track to the statistics
-            m_trackNumbers.append(trackNumber);
-            m_trackStartTimes.append(sectionTime);
-            m_trackEndTimes.append(sectionTime);
+    // Set the absolute start and end times
+    if (absoluteTime <= m_absoluteStartTime)
+        m_absoluteStartTime = absoluteTime;
+    if (absoluteTime > m_absoluteEndTime)
+        m_absoluteEndTime = absoluteTime;
 
-            if (m_showDebug)
-                qDebug() << "F2SectionCorrection::outputSections(): New track" << trackNumber
-                        << "detected with start time" << sectionTime.toString();
-            if (trackNumber == 0) {
-                if (section.metadata.sectionType().type() == SectionType::LeadIn) {
-                    // This is a lead-in track
-                    if (m_showDebug)
-                        qDebug() << "F2SectionCorrection::outputSections(): LeadIn track detected "
-                                    "with start time"
-                                << sectionTime.toString();
-                } else if (section.metadata.sectionType().type() == SectionType::LeadOut) {
-                    // This is a lead-out track
-                    if (m_showDebug)
-                        qDebug() << "F2SectionCorrection::outputSections(): LeadOut track detected "
-                                    "with start time"
-                                << sectionTime.toString();
-                } else if (section.metadata.sectionType().type() == SectionType::UserData) {
-                    // This is a user data track
-                    if (m_showDebug)
-                        qDebug() << "F2SectionCorrection::outputSections(): UserData track detected "
-                                    "with start time"
-                                << sectionTime.toString();
-                } else {
-                    // This is an unknown track
-                    if (m_showDebug)
-                        qDebug() << "F2SectionCorrection::outputSections(): UNKNOWN track detected "
-                                    "with start time"
-                                << sectionTime.toString();
-                }
-                qFatal("F2SectionCorrection::outputSections(): Exiting due to track 0 detected in "
-                    "output sections.");
+    // Do we have a new track?
+    if (!m_trackNumbers.contains(trackNumber)) {
+        // Append the new track to the statistics
+        m_trackNumbers.append(trackNumber);
+        m_trackStartTimes.append(sectionTime);
+        m_trackEndTimes.append(sectionTime);
+
+        if (m_showDebug)
+            qDebug() << "F2SectionCorrection::outputSections(): New track" << trackNumber
+                    << "detected with start time" << sectionTime.toString();
+        if (trackNumber == 0) {
+            if (section.metadata.sectionType().type() == SectionType::LeadIn) {
+                // This is a lead-in track
+                if (m_showDebug)
+                    qDebug() << "F2SectionCorrection::outputSections(): LeadIn track detected "
+                                "with start time"
+                            << sectionTime.toString();
+            } else if (section.metadata.sectionType().type() == SectionType::LeadOut) {
+                // This is a lead-out track
+                if (m_showDebug)
+                    qDebug() << "F2SectionCorrection::outputSections(): LeadOut track detected "
+                                "with start time"
+                            << sectionTime.toString();
+            } else if (section.metadata.sectionType().type() == SectionType::UserData) {
+                // This is a user data track
+                if (m_showDebug)
+                    qDebug() << "F2SectionCorrection::outputSections(): UserData track detected "
+                                "with start time"
+                            << sectionTime.toString();
+            } else {
+                // This is an unknown track
+                if (m_showDebug)
+                    qDebug() << "F2SectionCorrection::outputSections(): UNKNOWN track detected "
+                                "with start time"
+                            << sectionTime.toString();
             }
-        } else {
-            // Update the end time for the existing track
-            int index = m_trackNumbers.indexOf(trackNumber);
-            if (sectionTime < m_trackStartTimes[index])
-                m_trackStartTimes[index] = sectionTime;
-            if (sectionTime >= m_trackEndTimes[index])
-                m_trackEndTimes[index] = sectionTime;
+            qFatal("F2SectionCorrection::outputSections(): Exiting due to track 0 detected in "
+                "output sections.");
         }
+    } else {
+        // Update the end time for the existing track
+        int index = m_trackNumbers.indexOf(trackNumber);
+        if (sectionTime < m_trackStartTimes[index])
+            m_trackStartTimes[index] = sectionTime;
+        if (sectionTime >= m_trackEndTimes[index])
+            m_trackEndTimes[index] = sectionTime;
     }
 }
 

@@ -85,6 +85,8 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     // We are out of data flush the pipeline and process it one last time
     qInfo() << "Flushing decoding pipelines";
     m_f2SectionCorrection.flush();
+
+    qInfo() << "Processing final pipeline data";
     processPipeline();
 
     // Show summary
