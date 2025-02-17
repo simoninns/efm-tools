@@ -28,6 +28,7 @@
 #include <QString>
 #include <QDebug>
 #include <QFile>
+#include <QElapsedTimer>
 
 #include "decoders.h"
 #include "dec_tvaluestochannel.h"
@@ -56,6 +57,7 @@ public:
     void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
                   bool audioCorrection);
+    void showStatistics() const;
 
 private:
     bool m_showAudio;
@@ -84,6 +86,20 @@ private:
     WriterData m_writerData;
     WriterWav m_writerWav;
     WriterWavMetadata m_writerWavMetadata;
+
+    // Processing statistics
+    struct Statistics {
+        qint64 tValuesToChannelTime{0};
+        qint64 channelToF3Time{0};
+        qint64 f3ToF2Time{0};
+        qint64 f2CorrectionTime{0};
+        qint64 f2ToF1Time{0};
+        qint64 f1ToData24Time{0};
+        qint64 data24ToAudioTime{0};
+        qint64 audioCorrectionTime{0};
+    } m_stats;
+
+    void showStatistics();
 };
 
 #endif // EFM_PROCESSOR_H

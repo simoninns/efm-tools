@@ -113,6 +113,8 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         qInfo() << "";
     }
 
+    showStatistics();
+
     // Close the input file
     m_readerData.close();
 
@@ -130,105 +132,131 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
 
 void EfmProcessor::processPipeline()
 {
-    // Are there any T-values ready?
+    QElapsedTimer timer;
+
+    // T-values to Channel processing
+    timer.start();
     while (m_tValuesToChannel.isReady()) {
         QByteArray channelData = m_tValuesToChannel.popFrame();
         m_channelToF3.pushFrame(channelData);
     }
+    m_stats.tValuesToChannelTime += timer.nsecsElapsed();
 
-    // Are there any F3 frames ready?
+    // Channel to F3 processing
+    timer.restart();
     while (m_channelToF3.isReady()) {
         F3Frame f3Frame = m_channelToF3.popFrame();
         if (m_showF3)
             f3Frame.showData();
         m_f3FrameToF2Section.pushFrame(f3Frame);
     }
+    m_stats.channelToF3Time += timer.nsecsElapsed();
 
-    // Note: Once we have F2 frames, we have to group them into 98 frame
-    // sections due to the Q-channel metadata which is spread over 98 frames
-    // otherwise we can't keep track of the metadata as we decode the data...
-
-    // Are there any F2 sections ready?
+    // F3 to F2 section processing
+    timer.restart();
     while (m_f3FrameToF2Section.isReady()) {
         F2Section section = m_f3FrameToF2Section.popSection();
         m_f2SectionCorrection.pushSection(section);
     }
+    m_stats.f3ToF2Time += timer.nsecsElapsed();
 
-    // Are there any corrected F2 sections ready?
+    // F2 correction processing
+    timer.restart();
     while (m_f2SectionCorrection.isReady()) {
         F2Section f2Section = m_f2SectionCorrection.popSection();
-
         if (m_showF2)
             f2Section.showData();
         m_f2SectionToF1Section.pushSection(f2Section);
     }
+    m_stats.f2CorrectionTime += timer.nsecsElapsed();
 
-    // Are there any F1 sections ready?
+    // F2 to F1 processing
+    timer.restart();
     while (m_f2SectionToF1Section.isReady()) {
         F1Section f1Section = m_f2SectionToF1Section.popSection();
         if (m_showF1)
             f1Section.showData();
         m_f1SectionToData24Section.pushSection(f1Section);
     }
+    m_stats.f2ToF1Time += timer.nsecsElapsed();
 
+    timer.restart();
     if (!m_isOutputDataWav) {
-        // Output is data, so we write the Data24 sections directly to the output file
-
-        // Are there any data24 frames ready?
+        // Data24 output processing
+        timer.restart();
         while (m_f1SectionToData24Section.isReady()) {
             Data24Section data24Section = m_f1SectionToData24Section.popSection();
-
-            // Write the Data24 frames to the output file as raw data
             m_writerData.write(data24Section);
-
             if (m_showData24) {
                 data24Section.showData();
             }
         }
+        m_stats.f1ToData24Time += timer.nsecsElapsed();
     } else {
-        // Output is audio, so we convert the Data24 sections to audio sections
-
-        // Are there any data24 frames ready?
+        // Audio processing
+        timer.restart();
         while (m_f1SectionToData24Section.isReady()) {
             Data24Section data24Section = m_f1SectionToData24Section.popSection();
             m_data24ToAudio.pushSection(data24Section);
-
             if (m_showData24) {
                 data24Section.showData();
             }
         }
+        m_stats.f1ToData24Time += timer.nsecsElapsed();
 
         if (m_noWavCorrection) {
-            // Are there any audio frames ready?
-            // If so we write them to the output file
+            timer.restart();
             while (m_data24ToAudio.isReady()) {
                 AudioSection audioSection = m_data24ToAudio.popSection();
-
-                // Write the Audio frames to the output file as wav data
                 m_writerWav.write(audioSection);
                 if (m_outputWavMetadata)
                     m_writerWavMetadata.write(audioSection);
             }
+            m_stats.data24ToAudioTime += timer.nsecsElapsed();
         } else {
-            // Are there any audio frames ready?
-            // If so, attempt to correct them
+            timer.restart();
             while (m_data24ToAudio.isReady()) {
                 AudioSection audioSection = m_data24ToAudio.popSection();
                 m_audioCorrection.pushSection(audioSection);
             }
+            m_stats.data24ToAudioTime += timer.nsecsElapsed();
 
-            // Are there any corrected audio frames ready?
-            // If so we write them to the output file
+            timer.restart();
             while (m_audioCorrection.isReady()) {
                 AudioSection audioSection = m_audioCorrection.popSection();
-
-                // Write the Audio frames to the output file as wav data
                 m_writerWav.write(audioSection);
                 if (m_outputWavMetadata)
                     m_writerWavMetadata.write(audioSection);
             }
+            m_stats.audioCorrectionTime += timer.nsecsElapsed();
         }
     }
+}
+
+void EfmProcessor::showStatistics()
+{
+    qInfo() << "Decoder processing summary:";
+    qInfo() << "  T-values to Channel processing time:" << m_stats.tValuesToChannelTime / 1000000
+            << "ms";
+    qInfo() << "  Channel to F3 processing time:" << m_stats.channelToF3Time / 1000000 << "ms";
+    qInfo() << "  F3 to F2 section processing time:" << m_stats.f3ToF2Time / 1000000 << "ms";
+    qInfo() << "  F2 correction processing time:" << m_stats.f2CorrectionTime / 1000000 << "ms";
+    qInfo() << "  F2 to F1 processing time:" << m_stats.f2ToF1Time / 1000000 << "ms";
+    qInfo() << "  F1 to Data24 processing time:" << m_stats.f1ToData24Time / 1000000 << "ms";
+    if (m_isOutputDataWav) {
+        qInfo() << "  Data24 to Audio processing time:" << m_stats.data24ToAudioTime / 1000000 << "ms";
+        qInfo() << "  Audio correction processing time:" << m_stats.audioCorrectionTime / 1000000
+                << "ms";
+    }
+    qInfo() << "";
+
+    qint64 totalProcessingTime = m_stats.tValuesToChannelTime + m_stats.channelToF3Time +
+                                 m_stats.f3ToF2Time + m_stats.f2CorrectionTime + m_stats.f2ToF1Time +
+                                 m_stats.f1ToData24Time + m_stats.data24ToAudioTime +
+                                 m_stats.audioCorrectionTime;
+    float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
+    qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
+            << Qt::fixed << qSetRealNumberPrecision(2) << totalProcessingTimeSeconds << " seconds)";
 }
 
 void EfmProcessor::setShowData(bool showAudio, bool showData24, bool showF1, bool showF2,
