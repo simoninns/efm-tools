@@ -38,7 +38,8 @@ F2SectionCorrection::F2SectionCorrection()
       m_missingSections(0),
       m_absoluteStartTime(59, 59, 74),
       m_absoluteEndTime(0, 0, 0),
-      m_outOfOrderSections(0)
+      m_outOfOrderSections(0),
+      m_preCertTimeErrors(0)
 {}
 
 void F2SectionCorrection::pushSection(const F2Section &data)
@@ -185,6 +186,44 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
         }
     }
 
+    // Pre-cert LaserDiscs like Domesday have repeating lead-in sections within the 
+    // user data track.  The IEC-60908 standard doesn't seem to have a way to handle this.
+    // So, if we see one, we will correct the absolute time and track number and treat it
+    // as a user data section.
+    //
+    // They are easy to spot as they have the current frame number but the minutes and seconds
+    // are zero (and the track number is 0).
+    if (f2Section.metadata.isValid()
+        && f2Section.metadata.absoluteSectionTime().minutes() == 0
+        && f2Section.metadata.absoluteSectionTime().seconds() == 0
+        && f2Section.metadata.trackNumber() == 0) {
+
+        // Check for false-positive
+        if (expectedAbsoluteTime.minutes() == 0 && expectedAbsoluteTime.seconds() == 0) {
+            // This is a false positive, so we can ignore it
+            if (m_showDebug)
+                qDebug() << "F2SectionCorrection::waitingForSection(): False positive detected, "
+                            "ignoring section with absolute time"
+                         << f2Section.metadata.absoluteSectionTime().toString();
+        } else {
+            // This is a pre-cert lead-in section
+
+            // We keep the original frame number because it's always possible that the frame number was out of sync due to a missing section
+            // even if this is a pre-cert lead-in section.
+            SectionTime correctedAbsoluteTime = expectedAbsoluteTime;
+            correctedAbsoluteTime.setTime(expectedAbsoluteTime.minutes(), expectedAbsoluteTime.seconds(), f2Section.metadata.absoluteSectionTime().frameNumber());
+
+            f2Section.metadata.setAbsoluteSectionTime(correctedAbsoluteTime);
+            f2Section.metadata.setSectionType(SectionType(SectionType::UserData));
+            f2Section.metadata.setTrackNumber(1); // TODO: Could be smarter about this
+
+            qDebug() << "F2SectionCorrection::waitingForSection(): Pre-cert lead-in section"
+            << "detected, correcting absolute time to" << correctedAbsoluteTime.toString();
+
+            m_preCertTimeErrors++;
+        }
+    }
+
     // Does the current section have the expected absolute time?
     if (f2Section.metadata.isValid()
         && f2Section.metadata.absoluteSectionTime() != expectedAbsoluteTime) {
@@ -244,7 +283,15 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                 // might not be required though...
                 missingSection.metadata.setSectionType(f2Section.metadata.sectionType());
                 missingSection.metadata.setTrackNumber(f2Section.metadata.trackNumber());
-                missingSection.metadata.setSectionTime(f2Section.metadata.sectionTime() - (i + 1));
+
+                // Ensure we don't end up with negative time...
+                if (f2Section.metadata.sectionTime().frames() - (i + 1) >= 0) {
+                    missingSection.metadata.setSectionTime(f2Section.metadata.sectionTime() - (i + 1));
+                } else {
+                    missingSection.metadata.setSectionTime(SectionTime(0, 0, 0));
+                    qDebug() << "F2SectionCorrection::waitingForSection(): Negative section time detected, "
+                                "setting section time to 00:00:00";
+                }
 
                 // Push 98 error frames in to the missing section
                 for (int i = 0; i < 98; ++i) {
@@ -266,9 +313,9 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
             // The current section is behind the expected section in time, so we have a section
             // that is out of order
             qWarning() << "F2SectionCorrection::waitingForSection(): Section out of order detected, "
-                          "expected absolute time is"
-                      << expectedAbsoluteTime.toString() << "actual absolute time is"
-                      << f2Section.metadata.absoluteSectionTime().toString();
+                << "expected absolute time is"
+                << expectedAbsoluteTime.toString() << "actual absolute time is"
+                << f2Section.metadata.absoluteSectionTime().toString();
 
             // TODO: This is not a good way to deal with this...
             outputSection = false;
@@ -560,6 +607,7 @@ void F2SectionCorrection::showStatistics() const
     qInfo() << "    Pre-Leadin:" << m_preLeadinSections;
     qInfo() << "    Missing:" << m_missingSections;
     qInfo() << "    Out of order:" << m_outOfOrderSections;
+    qInfo() << "    Pre-cert time errors:" << m_preCertTimeErrors;
 
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << m_absoluteStartTime.toString();

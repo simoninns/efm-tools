@@ -70,6 +70,8 @@ int main(int argc, char *argv[])
         QCommandLineOption(
                 "no-wav-correction",
                 QCoreApplication::translate("main", "Do not correct the output WAV data")),
+        QCommandLineOption("output-data",
+                QCoreApplication::translate("main", "Output ECMA-130 decoded data")),
     };
     parser.addOptions(outputTypeOptions);
 
@@ -107,8 +109,10 @@ int main(int argc, char *argv[])
                 QCoreApplication::translate("main", "Show Data24 to audio decoding debug")),
         QCommandLineOption("show-audio-correction-debug",
                            QCoreApplication::translate("main", "Show Audio correction debug")),
-        QCommandLineOption("show-all-debug",
-                           QCoreApplication::translate("main", "Show all decoding debug")),
+        QCommandLineOption("show-all-iec-debug",
+                           QCoreApplication::translate("main", "Show all IEC spec (Audio-CD) decoding debug")),
+        QCommandLineOption("show-all-ecma-debug",
+                QCoreApplication::translate("main", "Show all ECMA spec (CD-ROM) decoding debug")),
     };
     parser.addOptions(advancedDebugOptions);
 
@@ -128,6 +132,7 @@ int main(int argc, char *argv[])
     bool outputWav = parser.isSet("output-wav");
     bool outputWavMetadata = parser.isSet("output-wav-metadata");
     bool noWavCorrection = parser.isSet("no-wav-correction");
+    bool outputData = parser.isSet("output-data");
 
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
@@ -145,9 +150,10 @@ int main(int argc, char *argv[])
     bool showF1Debug = parser.isSet("show-f1-debug");
     bool showAudioDebug = parser.isSet("show-audio-debug");
     bool showAudioCorrectionDebug = parser.isSet("show-audio-correction-debug");
-    bool showAllDebug = parser.isSet("show-all-debug");
+    bool showAllIecDebug = parser.isSet("show-all-iec-debug");
+    bool showAllEcmaDebug = parser.isSet("show-all-ecma-debug");
 
-    if (showAllDebug) {
+    if (showAllIecDebug) {
         showTValuesDebug = true;
         showChannelDebug = true;
         showF3Debug = true;
@@ -156,6 +162,10 @@ int main(int argc, char *argv[])
         showF1Debug = true;
         showAudioDebug = true;
         showAudioCorrectionDebug = true;
+    }
+
+    if (showAllEcmaDebug) {
+        // TODO
     }
 
     // Get the filename arguments from the parser
@@ -175,7 +185,7 @@ int main(int argc, char *argv[])
     EfmProcessor efmProcessor;
 
     efmProcessor.setShowData(showAudio, showData24, showF1, showF2, showF3);
-    efmProcessor.setOutputType(outputWav, outputWavMetadata, noWavCorrection);
+    efmProcessor.setOutputType(outputWav, outputWavMetadata, noWavCorrection, outputData);
     efmProcessor.setDebug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
                           showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug);
 

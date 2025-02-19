@@ -47,14 +47,14 @@ SectionTime::SectionTime() : m_frames(0)
     // There are 75 frames per second, 60 seconds per minute, and 60 minutes per hour
     // so the maximum number of frames is 75 * 60 * 60 = 270000
     if (m_frames < 0 || m_frames >= 270000) {
-        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", m_frames);
+        qFatal("SectionTime::SectionTime(): Invalid frame value of %d", m_frames);
     }
 }
 
 SectionTime::SectionTime(qint32 frames) : m_frames(frames)
 {
     if (m_frames < 0 || m_frames >= 270000) {
-        qFatal("SectionTime::SectionTime(): Invalid frame count of %d", m_frames);
+        qFatal("SectionTime::SectionTime(): Invalid frame value of %d", m_frames);
     }
 }
 
@@ -66,7 +66,7 @@ SectionTime::SectionTime(quint8 minutes, quint8 seconds, quint8 frames)
 void SectionTime::setFrames(qint32 frames)
 {
     if (frames < 0 || frames >= 270000) {
-        qFatal("SectionTime::setFrames(): Invalid frame count of %d", frames);
+        qFatal("SectionTime::setFrames(): Invalid frame value of %d", frames);
     }
 
     m_frames = frames;

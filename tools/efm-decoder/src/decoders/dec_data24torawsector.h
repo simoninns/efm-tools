@@ -1,6 +1,6 @@
 /************************************************************************
 
-    dec_data24toaudio.h
+    dec_data24torawsector.h
 
     ld-efm-decoder - EFM data decoder
     Copyright (C) 2025 Simon Inns
@@ -22,36 +22,53 @@
 
 ************************************************************************/
 
-#ifndef DEC_DATA24TOAUDIO_H
-#define DEC_DATA24TOAUDIO_H
+#ifndef DEC_DATA24TORAWSECTOR_H
+#define DEC_DATA24TORAWSECTOR_H
 
 #include "decoders.h"
-#include "section.h"
+#include "sector.h"
 
-class Data24ToAudio : public Decoder
+class Data24ToRawSector : public Decoder
 {
 public:
-    Data24ToAudio();
+Data24ToRawSector();
     void pushSection(const Data24Section &data24Section);
-    AudioSection popSection();
+    RawSector popSector();
     bool isReady() const;
 
     void showStatistics();
 
 private:
-    void processQueue();
+    void processStateMachine();
 
     QQueue<Data24Section> m_inputBuffer;
-    QQueue<AudioSection> m_outputBuffer;
+    QQueue<RawSector> m_outputBuffer;
+
+    // State machine states
+    enum State { WaitingForSync, InSync, LostSync };
+
+    State m_currentState;
+
+    // 12 byte sync pattern
+    const QByteArray m_syncPattern = QByteArray::fromHex("00FFFFFFFFFFFFFFFFFFFF00");
+
+    // Sector data buffer
+    QByteArray m_sectorData;
+
+    // State machine state processing functions
+    State waitingForSync();
+    State inSync();
+    State lostSync();
+
+    quint32 m_missedSyncPatternCount;
+    quint32 m_goodSyncPatternCount;
+    quint32 m_badSyncPatternCount;
 
     // Statistics
-    quint32 m_invalidData24FramesCount;
-    quint32 m_validData24FramesCount;
-    quint32 m_invalidSamplesCount;
-    quint32 m_validSamplesCount;
-
-    SectionTime m_startTime;
-    SectionTime m_endTime;
+    quint32 m_invalidSectorCount;
+    quint32 m_validSectorCount;
+    quint32 m_discardedBytes;
+    quint32 m_syncLostCount;
 };
 
-#endif // DEC_DATA24TOAUDIO_H
+#endif // DEC_DATA24TORAWSECTOR_H

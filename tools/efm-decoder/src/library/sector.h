@@ -1,13 +1,13 @@
 /************************************************************************
 
-    sector_processor.cpp
+    sector.h
 
-    ld-efm-sector-decoder - EFM sector decoder
+    EFM-library - EFM Section classes
     Copyright (C) 2025 Simon Inns
 
-    This file is part of ld-decode-tools.
+    This file is part of EFM-Tools.
 
-    ld-efm-sector-decoder is free software: you can redistribute it and/or
+    This is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,14 +22,25 @@
 
 ************************************************************************/
 
-#include "sector_processor.h"
+#ifndef SECTOR_H
+#define SECTOR_H
 
-SectorProcessor::SectorProcessor() { }
+#include <QDebug>
+#include <QByteArray>
 
-bool SectorProcessor::process(const QString &inputFilename, const QString &outputFilename)
+class RawSector
 {
-    qDebug() << "SectorProcessor::process(): Decoding data from file:" << inputFilename
-             << "to file:" << outputFilename;
+public:
+    RawSector();
+    void pushData(const QByteArray &inData);
+    QByteArray data() const;
+    quint32 size() const;
+    void showData();
 
-    return true;
-}
+    //SectorMetadata metadata;
+
+private:
+    QByteArray m_data;
+};
+
+#endif // SECTOR_H

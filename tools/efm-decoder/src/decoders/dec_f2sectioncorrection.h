@@ -71,6 +71,7 @@ private:
     quint32 m_preLeadinSections;
     quint32 m_missingSections;
     quint32 m_outOfOrderSections;
+    quint32 m_preCertTimeErrors;
 
     // Time statistics
     SectionTime m_absoluteStartTime;

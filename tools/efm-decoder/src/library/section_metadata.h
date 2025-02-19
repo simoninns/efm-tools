@@ -42,6 +42,10 @@ public:
     void setFrames(qint32 frames);
     void setTime(quint8 minutes, quint8 seconds, quint8 frames);
 
+    qint32 minutes() const { return m_frames / (75 * 60); }
+    qint32 seconds() const { return (m_frames / 75) % 60; }
+    qint32 frameNumber() const { return m_frames % 75; }
+
     QString toString() const;
     QByteArray toBcd() const;
 

@@ -40,6 +40,8 @@
 #include "dec_data24toaudio.h"
 #include "dec_audiocorrection.h"
 
+#include "dec_data24torawsector.h"
+
 #include "writer_data.h"
 #include "writer_wav.h"
 #include "writer_wav_metadata.h"
@@ -52,9 +54,8 @@ public:
     EfmProcessor();
 
     bool process(const QString &inputFilename, const QString &outputFilename);
-    void processPipeline();
     void setShowData(bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
-    void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection);
+    void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection, bool outputData);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
                   bool audioCorrection);
     void showStatistics() const;
@@ -68,8 +69,9 @@ private:
     bool m_isOutputDataWav;
     bool m_noWavCorrection;
     bool m_outputWavMetadata;
+    bool m_outputData;
 
-    // Decoders
+    // IEC 60909-1999 Decoders
     TvaluesToChannel m_tValuesToChannel;
     ChannelToF3Frame m_channelToF3;
     F3FrameToF2Section m_f3FrameToF2Section;
@@ -78,6 +80,9 @@ private:
     F1SectionToData24Section m_f1SectionToData24Section;
     Data24ToAudio m_data24ToAudio;
     AudioCorrection m_audioCorrection;
+
+    // ECMA-130 Decoders
+    Data24ToRawSector m_data24ToRawSector;
 
     // Input file readers
     ReaderData m_readerData;
@@ -88,18 +93,31 @@ private:
     WriterWavMetadata m_writerWavMetadata;
 
     // Processing statistics
-    struct Statistics {
+    struct GeneralPipelineStatistics {
         qint64 tValuesToChannelTime{0};
         qint64 channelToF3Time{0};
         qint64 f3ToF2Time{0};
         qint64 f2CorrectionTime{0};
         qint64 f2ToF1Time{0};
         qint64 f1ToData24Time{0};
+    } m_generalPipelineStats;
+
+    struct AudioPipelineStatistics {
         qint64 data24ToAudioTime{0};
         qint64 audioCorrectionTime{0};
-    } m_stats;
+    } m_audioPipelineStats;
 
-    void showStatistics();
+    struct DataPipelineStatistics {
+        qint64 data24ToRawSectorTime{0};
+    } m_dataPipelineStats;
+
+    void processGeneralPipeline();
+    void processAudioPipeline(bool withCorrection, bool withMetadata);
+    void processDataPipeline();
+
+    void showGeneralPipelineStatistics();
+    void showAudioPipelineStatistics();
+    void showDataPipelineStatistics();
 };
 
 #endif // EFM_PROCESSOR_H
