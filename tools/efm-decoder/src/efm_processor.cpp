@@ -115,6 +115,8 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     if (m_outputData) {
         m_data24ToRawSector.showStatistics();
         qInfo() << "";
+        m_rawSectorToSector.showStatistics();
+        qInfo() << "";
     }
 
     showGeneralPipelineStatistics();
@@ -285,7 +287,6 @@ void EfmProcessor::showGeneralPipelineStatistics()
     qInfo() << "  F2 correction processing time:" << m_generalPipelineStats.f2CorrectionTime / 1000000 << "ms";
     qInfo() << "  F2 to F1 processing time:" << m_generalPipelineStats.f2ToF1Time / 1000000 << "ms";
     qInfo() << "  F1 to Data24 processing time:" << m_generalPipelineStats.f1ToData24Time / 1000000 << "ms";
-    qInfo() << "";
 
     qint64 totalProcessingTime = m_generalPipelineStats.tValuesToChannelTime + m_generalPipelineStats.channelToF3Time +
                                  m_generalPipelineStats.f3ToF2Time + m_generalPipelineStats.f2CorrectionTime + m_generalPipelineStats.f2ToF1Time +
@@ -293,6 +294,8 @@ void EfmProcessor::showGeneralPipelineStatistics()
     float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
     qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
             << Qt::fixed << qSetRealNumberPrecision(2) << totalProcessingTimeSeconds << " seconds)";
+
+    qInfo() << "";
 }
 
 void EfmProcessor::showAudioPipelineStatistics()
@@ -317,6 +320,8 @@ void EfmProcessor::showDataPipelineStatistics()
     float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
     qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
             << Qt::fixed << qSetRealNumberPrecision(2) << totalProcessingTimeSeconds << " seconds)";
+
+    qInfo() << "";
 }
 
 void EfmProcessor::setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2,

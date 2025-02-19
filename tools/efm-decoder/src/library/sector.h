@@ -132,8 +132,8 @@ public:
     void setMode(qint32 mode);
     qint32 mode() const;
 
-    void metadataValid(bool isValid) { m_valid = isValid; }
-    bool isValid() const { return m_valid; }
+    void metadataValid(bool isValid) { m_validMetadata = isValid; }
+    bool isMetadataValid() const { return m_validMetadata; }
 
 
 private:
@@ -142,7 +142,7 @@ private:
 
     SectorAddress m_address;
     qint32 m_mode;
-    bool m_valid;
+    bool m_validMetadata;
 };
 
 #endif // SECTOR_H

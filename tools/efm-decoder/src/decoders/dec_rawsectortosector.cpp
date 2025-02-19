@@ -25,6 +25,13 @@
 #include "dec_rawsectortosector.h"
 
 RawSectorToSector::RawSectorToSector()
+    : m_have_last_known_good(false),
+    m_last_known_good_address(0, 0, 0),
+    m_last_known_good_mode(0),
+    m_validSectorAddresses(0),
+    m_invalidSectorAddresses(0),
+    m_validSectorModes(0),
+    m_invalidSectorModes(0)
 {}
 
 void RawSectorToSector::pushSector(const RawSector &rawSector)
@@ -54,41 +61,85 @@ void RawSectorToSector::processQueue()
         // Get the first item in the input buffer
         RawSector rawSector = m_inputBuffer.dequeue();
 
-        // Can we trust the address data?
-        bool addressDataError = false;
-        if (static_cast<quint8>(rawSector.errorData()[12]) != 0 ||
-            static_cast<quint8>(rawSector.errorData()[13]) != 0 ||
-            static_cast<quint8>(rawSector.errorData()[14]) != 0) {
-            addressDataError = true;
-        }
+        // Note: This is very simplistic metadata correction but we are
+        // relying on the previous decoding stages to give us the sectors
+        // in the correct order.
 
-        // Can we trust the mode data?
-        bool modeDataError = false;
-        if (static_cast<quint8>(rawSector.errorData()[15]) != 0) {
-            modeDataError = true;
-        }
-
-        // Extract the header data
+        // Extract the sector address data
         qint32 min = bcdToInt(rawSector.data()[12]);
         qint32 sec = bcdToInt(rawSector.data()[13]);
         qint32 frame = bcdToInt(rawSector.data()[14]);
-
         SectorAddress address(min, sec, frame);
 
+        // Extract the sector mode data
         qint32 mode = 0;
         if (static_cast<quint8>(rawSector.data()[15]) == 0) mode = 0;
         else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
         else if (static_cast<quint8>(rawSector.data()[15]) == 2) mode = 2;
         else mode = -1;
 
+        // Can we trust the address data?
+        if (static_cast<quint8>(rawSector.errorData()[12]) != 0 ||
+            static_cast<quint8>(rawSector.errorData()[13]) != 0 ||
+            static_cast<quint8>(rawSector.errorData()[14]) != 0) {
+            // Address data cannot be trusted
+            if (m_have_last_known_good) {
+                // Use the last known good address + 1
+                SectorAddress expectedAddress = m_last_known_good_address + 1;
+                if (m_showDebug) {
+                    qDebug() << "RawSectorToSector::processQueue(): Address error. Got:" << address.toString() << "replacing with expected:" << expectedAddress.toString();
+                }
+                address = expectedAddress;
+            } else {
+                // Use a default address
+                SectorAddress defaultAddress(0, 0, 0);
+                if (m_showDebug) {
+                    qDebug() << "RawSectorToSector::processQueue(): Address error. Got:" << address.toString() << "replacing with default:" << defaultAddress.toString();
+                }
+                address = defaultAddress;
+            }
+            m_invalidSectorAddresses++;
+        } else {
+            // Address data is good
+            m_have_last_known_good = true;
+            m_last_known_good_address = address;
+            m_last_known_good_mode = 1; // Just in case...
+
+            m_validSectorAddresses++;
+        }
+
+        // Can we trust the mode data?
+        if (static_cast<quint8>(rawSector.errorData()[15]) != 0) {
+            // Mode cannot be trusted
+            if (m_have_last_known_good) {
+                // Use the last known good mode
+                mode = m_last_known_good_mode;
+                if (m_showDebug) {
+                    qDebug() << "RawSectorToSector::processQueue(): Mode error. Got:" << mode << "replacing with last known good:" << m_last_known_good_mode;
+                }
+            } else {
+                // Use a default mode
+                mode = 1;
+                if (m_showDebug) {
+                    qDebug() << "RawSectorToSector::processQueue(): Mode error. Got:" << mode << "replacing with default:" << 1;
+                }
+            }
+            m_invalidSectorModes++;
+        } else {
+            // Mode data is good
+            m_have_last_known_good = true;
+            m_last_known_good_mode = mode;
+
+            m_validSectorModes++;
+        }
+
         // Create a new sector
         Sector sector;
-        if (addressDataError || modeDataError) sector.metadataValid(false);
-        else sector.metadataValid(true);
+        sector.metadataValid(true);
         sector.setAddress(address);
         sector.setMode(mode);
 
-        if (m_showDebug && (addressDataError || modeDataError)) qDebug().noquote() << "RawSectorToSector::processQueue(): Metadata error... Address:" << sector.address().toString() << "Mode:" << sector.mode();
+        //if (m_showDebug) qDebug().noquote() << "RawSectorToSector::processQueue(): Metadata Address:" << sector.address().toString() << "Mode:" << sector.mode();
 
         // // Add the sector to the output buffer
         // m_outputBuffer.enqueue(sector);
@@ -103,4 +154,8 @@ quint8 RawSectorToSector::bcdToInt(quint8 bcd)
 void RawSectorToSector::showStatistics()
 {
     qInfo() << "Raw sector to sector statistics:";
+    qInfo() << "  Valid sector addresses:" << m_validSectorAddresses;
+    qInfo() << "  Invalid sector addresses:" << m_invalidSectorAddresses;
+    qInfo() << "  Valid sector modes:" << m_validSectorModes;
+    qInfo() << "  Invalid sector modes:" << m_invalidSectorModes;
 }

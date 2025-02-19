@@ -44,6 +44,16 @@ private:
 
     QQueue<RawSector> m_inputBuffer;
     QQueue<Sector> m_outputBuffer;
+
+    bool m_have_last_known_good;
+    SectorAddress m_last_known_good_address;
+    quint8 m_last_known_good_mode;
+
+    // Statistics
+    quint32 m_validSectorAddresses;
+    quint32 m_invalidSectorAddresses;
+    quint32 m_validSectorModes;
+    quint32 m_invalidSectorModes;
 };
 
 #endif // DEC_RAWSECTORTOSECTOR_H
