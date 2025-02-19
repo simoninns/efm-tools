@@ -28,6 +28,78 @@
 #include <QDebug>
 #include <QByteArray>
 
+// Sector Address class - stores ECMA-130 sector address in minutes, seconds, and frames
+// (1/75th of a second)
+class SectorAddress 
+{
+public:
+SectorAddress();
+    explicit SectorAddress(qint32 frames);
+    SectorAddress(quint8 minutes, quint8 seconds, quint8 frames);
+
+    qint32 address() const { return m_address; }
+    void setAddress(qint32 frames);
+    void setTime(quint8 minutes, quint8 seconds, quint8 frames);
+
+    qint32 minutes() const { return m_address / (75 * 60); }
+    qint32 seconds() const { return (m_address / 75) % 60; }
+    qint32 frameNumber() const { return m_address % 75; }
+
+    QString toString() const;
+    QByteArray toBcd() const;
+
+    bool operator==(const SectorAddress &other) const { return m_address == other.m_address; }
+    bool operator!=(const SectorAddress &other) const { return m_address != other.m_address; }
+    bool operator<(const SectorAddress &other) const { return m_address < other.m_address; }
+    bool operator>(const SectorAddress &other) const { return m_address > other.m_address; }
+    bool operator<=(const SectorAddress &other) const { return !(*this > other); }
+    bool operator>=(const SectorAddress &other) const { return !(*this < other); }
+    SectorAddress operator+(const SectorAddress &other) const
+    {
+        return SectorAddress(m_address + other.m_address);
+    }
+    SectorAddress operator-(const SectorAddress &other) const
+    {
+        return SectorAddress(m_address - other.m_address);
+    }
+    SectorAddress &operator++()
+    {
+        ++m_address;
+        return *this;
+    }
+    SectorAddress operator++(int)
+    {
+        SectorAddress tmp(*this);
+        m_address++;
+        return tmp;
+    }
+    SectorAddress &operator--()
+    {
+        --m_address;
+        return *this;
+    }
+    SectorAddress operator--(int)
+    {
+        SectorAddress tmp(*this);
+        m_address--;
+        return tmp;
+    }
+
+    SectorAddress operator+(int frames) const
+    {
+        return SectorAddress(m_address + frames);
+    }
+
+    SectorAddress operator-(int frames) const
+    {
+        return SectorAddress(m_address - frames);
+    }
+
+private:
+    qint32 m_address;
+    static quint8 intToBcd(quint32 value);
+};
+
 class RawSector
 {
 public:
@@ -39,11 +111,38 @@ public:
     quint32 size() const;
     void showData();
 
-    //SectorMetadata metadata;
+private:
+    QByteArray m_data;
+    QByteArray m_errorData;
+};
+
+class Sector
+{
+public:
+    Sector();
+    void pushData(const QByteArray &inData);
+    void pushErrorData(const QByteArray &inData);
+    QByteArray data() const;
+    QByteArray errorData() const;
+    quint32 size() const;
+    void showData();
+
+    void setAddress(SectorAddress address);
+    SectorAddress address() const;
+    void setMode(qint32 mode);
+    qint32 mode() const;
+
+    void metadataValid(bool isValid) { m_valid = isValid; }
+    bool isValid() const { return m_valid; }
+
 
 private:
     QByteArray m_data;
     QByteArray m_errorData;
+
+    SectorAddress m_address;
+    qint32 m_mode;
+    bool m_valid;
 };
 
 #endif // SECTOR_H

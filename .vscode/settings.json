@@ -15,7 +15,22 @@
         "rs_base": "cpp",
         "string": "cpp",
         "*.tcc": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "pid": "cpp",
+        "units": "cpp",
+        "optional": "cpp",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "variant": "cpp",
+        "charconv": "cpp",
+        "format": "cpp",
+        "bchsimple.C": "cpp",
+        "ezcod_test.C": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "none"
 }

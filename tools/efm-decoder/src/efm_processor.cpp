@@ -258,8 +258,21 @@ void EfmProcessor::processDataPipeline()
     while (m_f1SectionToData24Section.isReady()) {
         Data24Section data24Section = m_f1SectionToData24Section.popSection();
         m_data24ToRawSector.pushSection(data24Section);
+        if (m_showData24) {
+            data24Section.showData();
+        }
     }
     m_dataPipelineStats.data24ToRawSectorTime += dataPipelineTimer.nsecsElapsed();
+
+    // Raw sector to sector processing
+    dataPipelineTimer.restart();
+    while (m_data24ToRawSector.isReady()) {
+        RawSector rawSector = m_data24ToRawSector.popSector();
+        m_rawSectorToSector.pushSector(rawSector);
+        if (m_showRawSector)
+            rawSector.showData();
+    }
+    m_dataPipelineStats.rawSectorToSectorTime += dataPipelineTimer.nsecsElapsed();
 }
 
 void EfmProcessor::showGeneralPipelineStatistics()
@@ -297,11 +310,19 @@ void EfmProcessor::showAudioPipelineStatistics()
 void EfmProcessor::showDataPipelineStatistics()
 {
     qInfo() << "Decoder processing summary (data):";
+    qInfo() << "  Data24 to Raw Sector processing time:" << m_dataPipelineStats.data24ToRawSectorTime / 1000000 << "ms";
+    qInfo() << "  Raw Sector to Sector processing time:" << m_dataPipelineStats.rawSectorToSectorTime / 1000000 << "ms";
+
+    qint64 totalProcessingTime = m_dataPipelineStats.data24ToRawSectorTime + m_dataPipelineStats.rawSectorToSectorTime;
+    float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
+    qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
+            << Qt::fixed << qSetRealNumberPrecision(2) << totalProcessingTimeSeconds << " seconds)";
 }
 
-void EfmProcessor::setShowData(bool showAudio, bool showData24, bool showF1, bool showF2,
+void EfmProcessor::setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2,
                                bool showF3)
 {
+    m_showRawSector = showRawSector;
     m_showAudio = showAudio;
     m_showData24 = showData24;
     m_showF1 = showF1;
@@ -319,7 +340,7 @@ void EfmProcessor::setOutputType(bool wavOutput, bool outputWavMetadata, bool no
 }
 
 void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,
-                            bool audio, bool audioCorrection, bool rawSector)
+                            bool audio, bool audioCorrection, bool rawSector, bool sector)
 {
     // Set the debug flags
     m_tValuesToChannel.setShowDebug(tvalue);
@@ -331,4 +352,5 @@ void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1
     m_data24ToAudio.setShowDebug(audio);
     m_audioCorrection.setShowDebug(audioCorrection);
     m_data24ToRawSector.setShowDebug(rawSector);
+    m_rawSectorToSector.setShowDebug(sector);
 }

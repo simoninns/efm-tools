@@ -164,18 +164,15 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
         // Unscramble the sector
         QByteArray rawDataIn = m_sectorData.left(2352);
         QByteArray rawDataOut = QByteArray(2352, 0);
-        QByteArray rawErrorDataIn = m_sectorErrorData.left(2352);
-        QByteArray rawErrorDataOut = QByteArray(2352, 0);
 
         for (qint32 i = 0; i < 2352; i++) {
             rawDataOut[i] = rawDataIn[i] ^ m_unscrambleTable[i];
-            rawErrorDataOut[i] = rawErrorDataIn[i] ^ m_unscrambleTable[i];
         }
 
         // Create a new sector
         RawSector rawSector;
         rawSector.pushData(rawDataOut);
-        rawSector.pushErrorData(rawErrorDataOut);
+        rawSector.pushErrorData(m_sectorErrorData.left(2352));
 
         m_outputBuffer.enqueue(rawSector);
         m_validSectorCount++;

@@ -84,6 +84,8 @@ int main(int argc, char *argv[])
                            QCoreApplication::translate("main", "Show Data24 frame data")),
         QCommandLineOption("show-audio",
                            QCoreApplication::translate("main", "Show Audio frame data")),
+        QCommandLineOption("show-rawsector",
+                           QCoreApplication::translate("main", "Show Raw Sector frame data")),
     };
     parser.addOptions(displayFrameDataOptions);
 
@@ -113,6 +115,8 @@ int main(int argc, char *argv[])
                            QCoreApplication::translate("main", "Show all IEC spec (Audio-CD) decoding debug")),
         QCommandLineOption("show-rawsector-debug",
                 QCoreApplication::translate("main", "Show Data24 to raw sector decoding debug")),
+        QCommandLineOption("show-sector-debug",
+                QCoreApplication::translate("main", "Show raw sector to sector decoding debug")),
         QCommandLineOption("show-all-ecma-debug",
                 QCoreApplication::translate("main", "Show all ECMA spec (CD-ROM) decoding debug")),
     };
@@ -142,6 +146,7 @@ int main(int argc, char *argv[])
     bool showF3 = parser.isSet("show-f3");
     bool showData24 = parser.isSet("show-data24");
     bool showAudio = parser.isSet("show-audio");
+    bool showRawSector = parser.isSet("show-rawsector");
 
     // Check for advanced debug options
     bool showTValuesDebug = parser.isSet("show-tvalues-debug");
@@ -154,6 +159,7 @@ int main(int argc, char *argv[])
     bool showAudioCorrectionDebug = parser.isSet("show-audio-correction-debug");
     bool showAllIecDebug = parser.isSet("show-all-iec-debug");
     bool showRawSectorDebug = parser.isSet("show-rawsector-debug");
+    bool showSectorDebug = parser.isSet("show-sector-debug");
     bool showAllEcmaDebug = parser.isSet("show-all-ecma-debug");
 
     if (showAllIecDebug) {
@@ -169,6 +175,7 @@ int main(int argc, char *argv[])
 
     if (showAllEcmaDebug) {
         showRawSectorDebug = true;
+        showSectorDebug = true;
     }
 
     // Get the filename arguments from the parser
@@ -187,10 +194,11 @@ int main(int argc, char *argv[])
     qInfo() << "Beginning EFM decoding of" << inputFilename;
     EfmProcessor efmProcessor;
 
-    efmProcessor.setShowData(showAudio, showData24, showF1, showF2, showF3);
+    efmProcessor.setShowData(showRawSector, showAudio, showData24, showF1, showF2, showF3);
     efmProcessor.setOutputType(outputWav, outputWavMetadata, noWavCorrection, outputData);
     efmProcessor.setDebug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
-                          showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug, showRawSectorDebug);
+                          showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug,
+                          showRawSectorDebug, showSectorDebug);
 
     if (!efmProcessor.process(inputFilename, outputFilename)) {
         return 1;

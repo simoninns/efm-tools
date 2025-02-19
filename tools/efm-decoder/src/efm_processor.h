@@ -41,6 +41,7 @@
 #include "dec_audiocorrection.h"
 
 #include "dec_data24torawsector.h"
+#include "dec_rawsectortosector.h"
 
 #include "writer_data.h"
 #include "writer_wav.h"
@@ -54,13 +55,14 @@ public:
     EfmProcessor();
 
     bool process(const QString &inputFilename, const QString &outputFilename);
-    void setShowData(bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
+    void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
     void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection, bool outputData);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
-                  bool audioCorrection, bool rawSector);
+                  bool audioCorrection, bool rawSector, bool sector);
     void showStatistics() const;
 
 private:
+    bool m_showRawSector;
     bool m_showAudio;
     bool m_showData24;
     bool m_showF1;
@@ -83,6 +85,7 @@ private:
 
     // ECMA-130 Decoders
     Data24ToRawSector m_data24ToRawSector;
+    RawSectorToSector m_rawSectorToSector;
 
     // Input file readers
     ReaderData m_readerData;
@@ -109,6 +112,7 @@ private:
 
     struct DataPipelineStatistics {
         qint64 data24ToRawSectorTime{0};
+        qint64 rawSectorToSectorTime{0};
     } m_dataPipelineStats;
 
     void processGeneralPipeline();
