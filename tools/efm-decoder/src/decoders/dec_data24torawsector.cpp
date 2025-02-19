@@ -161,12 +161,16 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
             m_missedSyncPatternCount = 0;
         }
 
-        // Unscramble the sector
+        // Unscramble the sector (bytes 12 to 2351)
         QByteArray rawDataIn = m_sectorData.left(2352);
         QByteArray rawDataOut = QByteArray(2352, 0);
 
         for (qint32 i = 0; i < 2352; i++) {
-            rawDataOut[i] = rawDataIn[i] ^ m_unscrambleTable[i];
+            if (i < 12) {
+                rawDataOut[i] = rawDataIn[i];
+            } else {
+                rawDataOut[i] = rawDataIn[i] ^ m_unscrambleTable[i];
+            }
         }
 
         // Create a new sector

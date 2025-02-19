@@ -46,7 +46,6 @@ SectorAddress();
     qint32 frameNumber() const { return m_address % 75; }
 
     QString toString() const;
-    QByteArray toBcd() const;
 
     bool operator==(const SectorAddress &other) const { return m_address == other.m_address; }
     bool operator!=(const SectorAddress &other) const { return m_address != other.m_address; }
@@ -114,6 +113,8 @@ public:
 private:
     QByteArray m_data;
     QByteArray m_errorData;
+
+    quint8 bcdToInt(quint8 bcd);
 };
 
 class Sector

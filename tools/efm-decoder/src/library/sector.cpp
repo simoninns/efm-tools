@@ -89,22 +89,6 @@ QString SectorAddress::toString() const
             .arg(m_address % 75, 2, 10, QChar('0'));
 }
 
-QByteArray SectorAddress::toBcd() const
-{
-    // Return 3 bytes of BCD data representing the time as MM:SS:FF
-    QByteArray bcd;
-
-    quint32 mins = m_address / (75 * 60);
-    quint32 secs = (m_address / 75) % 60;
-    quint32 frms = m_address % 75;
-
-    bcd.append(intToBcd(mins));
-    bcd.append(intToBcd(secs));
-    bcd.append(intToBcd(frms));
-
-    return bcd;
-}
-
 quint8 SectorAddress::intToBcd(quint32 value)
 {
     if (value > 99) {
@@ -127,8 +111,8 @@ quint8 SectorAddress::intToBcd(quint32 value)
 // Raw sector class
 // The raw sector is 2352 bytes (unscrambled) and contains user data and error correction data
 RawSector::RawSector()
-    : m_data(QByteArray(2340, 0)), // 2352 bytes - 12 byte sync pattern
-      m_errorData(QByteArray(2340, 0))
+    : m_data(QByteArray(2352, 0)),
+      m_errorData(QByteArray(2352, 0))
 {}
 
 void RawSector::pushData(const QByteArray &inData)
@@ -161,11 +145,17 @@ void RawSector::showData()
     const int bytesPerLine = 48;
     bool hasError = false;
 
+    // Extract the sector address data (note: this is not verified as correct)
+    qint32 min = bcdToInt(m_data.data()[12]);
+    qint32 sec = bcdToInt(m_data.data()[13]);
+    qint32 frame = bcdToInt(m_data.data()[14]);
+    SectorAddress address(min, sec, frame);
+
     for (int offset = 0; offset < m_data.size(); offset += bytesPerLine) {
         // Print offset
         QString line;
-        
-        line = "RawSector::showData() - " + QString("%1: ").arg(offset, 6, 16, QChar('0'));
+        line = "RawSector::showData() - [" + address.toString() + "] ";
+        line += QString("%1: ").arg(offset, 6, 16, QChar('0'));
         
         // Print hex values
         for (int i = 0; i < bytesPerLine && (offset + i) < m_data.size(); ++i) {
@@ -183,6 +173,11 @@ void RawSector::showData()
     if (hasError) {
         qInfo().noquote() << "RawSector contains errors";
     }
+}
+
+quint8 RawSector::bcdToInt(quint8 bcd)
+{
+    return (bcd >> 4) * 10 + (bcd & 0x0F);
 }
 
 // Sector class

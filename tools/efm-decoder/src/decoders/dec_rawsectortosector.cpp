@@ -61,6 +61,65 @@ void RawSectorToSector::processQueue()
         // Get the first item in the input buffer
         RawSector rawSector = m_inputBuffer.dequeue();
 
+        // Note: The EDC is a CRC applied to bytes 0 to 2063 (sync to user data)
+        // The intermediate field is 8 bytes of zero
+        // The P and Q parity is applied to bytes 12 to 2075 (not sync and not parity bytes)
+
+        // So we check the EDC and if it's not correct we error correct the sector
+
+
+
+
+        // Perform CRC - since ECC is expensive on processing, we only
+        // error correct sector data if the CRC fails
+
+        // Get the 32-bit EDC word from the F1 data
+        quint32 originalEdcWord =
+            ((static_cast<quint32>(rawSector.data()[2064])) <<  0) |
+            ((static_cast<quint32>(rawSector.data()[2065])) <<  8) |
+            ((static_cast<quint32>(rawSector.data()[2066])) << 16) |
+            ((static_cast<quint32>(rawSector.data()[2067])) << 24);
+
+        // Perform a CRC32 on bytes 0 to 2063 of the F1 frame
+        if (originalEdcWord != crc32(rawSector.data().left(2064))) {
+            if (m_showDebug) {
+                qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data is corrupt";
+            }
+
+            // Attempt Q and P parity error correction on the sector data
+            // Bytes 12 to 2075 are input into the RSPC encoder, Q the P
+            Rspc rspc;
+
+            // Make a local copy of the sector data
+            QByteArray correctedData = rawSector.data();
+            QByteArray correctedErrorData = rawSector.errorData();
+
+            rspc.qParityEcc(correctedData, correctedErrorData, m_showDebug);
+            rspc.pParityEcc(correctedData, correctedErrorData, m_showDebug);
+
+            // Copy the corrected data back
+            rawSector.pushData(correctedData);
+            rawSector.pushErrorData(correctedErrorData);
+
+            // Check CRC again for the corrected data
+            quint32 correctedEdcWord =
+                ((static_cast<quint32>(rawSector.data()[2064])) <<  0) |
+                ((static_cast<quint32>(rawSector.data()[2065])) <<  8) |
+                ((static_cast<quint32>(rawSector.data()[2066])) << 16) |
+                ((static_cast<quint32>(rawSector.data()[2067])) << 24);
+
+            // Perform a CRC32 on bytes 0 to 2063 of the F1 frame
+            if (correctedEdcWord != crc32(rawSector.data().left(2064))) {
+                if (m_showDebug) {
+                    qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data is corrupt and cannot be recovered";
+                    qFatal("RawSectorToSector::processQueue(): CRC32 error - sector data is corrupt and cannot be recovered");
+                }
+            }
+        }
+
+        
+
+
         // Note: This is very simplistic metadata correction but we are
         // relying on the previous decoding stages to give us the sectors
         // in the correct order.
@@ -146,9 +205,25 @@ void RawSectorToSector::processQueue()
     }
 }
 
+// Convert 1 byte BCD to integer
 quint8 RawSectorToSector::bcdToInt(quint8 bcd)
 {
     return (bcd >> 4) * 10 + (bcd & 0x0F);
+}
+
+// CRC code adapted and used under GPLv3 from:
+// https://github.com/claunia/edccchk/blob/master/edccchk.c
+quint32 RawSectorToSector::crc32(const QByteArray& src)
+{
+    quint32 crc = 0;
+    qint32 size = src.size();
+    const char* data = src.constData();
+
+    while(size--) {
+        crc = (crc >> 8) ^ m_crc32Lut[(crc ^ (*data++)) & 0xFF];
+    }
+
+    return crc;
 }
 
 void RawSectorToSector::showStatistics()
