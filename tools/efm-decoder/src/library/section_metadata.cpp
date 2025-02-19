@@ -78,19 +78,19 @@ void SectionTime::setTime(quint8 minutes, quint8 seconds, quint8 frames)
 
     // Ensure the time is sane
     if (minutes >= 60) {
-        minutes = 59;
         qDebug().nospace() << "SectionTime::setTime(): Invalid minutes value " << minutes
-                           << ", setting to 59";
+            << ", setting to 59";
+        minutes = 59;
     }
     if (seconds >= 60) {
-        seconds = 59;
         qDebug().nospace() << "SectionTime::setTime(): Invalid seconds value " << seconds
-                           << ", setting to 59";
+            << ", setting to 59";
+        seconds = 59;
     }
     if (frames >= 75) {
-        frames = 74;
         qDebug().nospace() << "SectionTime::setTime(): Invalid frames value " << frames
-                           << ", setting to 74";
+            << ", setting to 74";
+        frames = 74;
     }
 
     m_frames = (minutes * 60 + seconds) * 75 + frames;

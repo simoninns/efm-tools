@@ -200,8 +200,19 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
                      << QString::number(getQChannelCrc(qChannelData), 16)
                      << "calculated:" << QString::number(calculateQChannelCrc16(qChannelData), 16);
 
-        SectionTime badAbsTime = SectionTime(bcd2ToInt(qChannelData[7]), bcd2ToInt(qChannelData[8]),
-                                               bcd2ToInt(qChannelData[9]));
+        // Range check the absolute time - as it is potentially corrupt and could be out of range
+        qint32 minutes = bcd2ToInt(qChannelData[7]);
+        qint32 seconds = bcd2ToInt(qChannelData[8]);
+        qint32 frames = bcd2ToInt(qChannelData[9]);
+
+        if (minutes < 0) minutes = 0;
+        if (minutes > 59) minutes = 59;
+        if (seconds < 0) seconds = 0;
+        if (seconds > 59) seconds = 59;
+        if (frames < 0) frames = 0;
+        if (frames > 74) frames = 74;
+
+        SectionTime badAbsTime = SectionTime(minutes, seconds, frames);
         if (m_showDebug)
             qDebug().noquote() << "Subcode::fromData(): Q channel data is:" << qChannelData.toHex()
                                << "potentially corrupt absolute time is:"

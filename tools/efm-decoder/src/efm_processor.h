@@ -57,7 +57,7 @@ public:
     void setShowData(bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
     void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection, bool outputData);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
-                  bool audioCorrection);
+                  bool audioCorrection, bool rawSector);
     void showStatistics() const;
 
 private:

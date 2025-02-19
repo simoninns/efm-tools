@@ -319,7 +319,7 @@ void EfmProcessor::setOutputType(bool wavOutput, bool outputWavMetadata, bool no
 }
 
 void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,
-                            bool audio, bool audioCorrection)
+                            bool audio, bool audioCorrection, bool rawSector)
 {
     // Set the debug flags
     m_tValuesToChannel.setShowDebug(tvalue);
@@ -330,4 +330,5 @@ void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1
     m_f1SectionToData24Section.setShowDebug(data24);
     m_data24ToAudio.setShowDebug(audio);
     m_audioCorrection.setShowDebug(audioCorrection);
+    m_data24ToRawSector.setShowDebug(rawSector);
 }

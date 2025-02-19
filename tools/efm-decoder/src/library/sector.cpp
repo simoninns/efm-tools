@@ -25,7 +25,8 @@
 #include "sector.h"
 
 RawSector::RawSector()
-    : m_data(QByteArray(2340, 0)) // 2352 bytes - 12 byte sync pattern
+    : m_data(QByteArray(2340, 0)), // 2352 bytes - 12 byte sync pattern
+      m_errorData(QByteArray(2340, 0))
 {}
 
 void RawSector::pushData(const QByteArray &inData)
@@ -33,9 +34,19 @@ void RawSector::pushData(const QByteArray &inData)
     m_data = inData;
 }
 
+void RawSector::pushErrorData(const QByteArray &inData)
+{
+    m_errorData = inData;
+}
+
 QByteArray RawSector::data() const
 {
     return m_data;
+}
+
+QByteArray RawSector::errorData() const
+{
+    return m_errorData;
 }
 
 quint32 RawSector::size() const

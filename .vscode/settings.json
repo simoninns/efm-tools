@@ -13,7 +13,9 @@
         "rskey.C": "cpp",
         "rspwd_test.C": "cpp",
         "rs_base": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "*.tcc": "cpp",
+        "vector": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "none"
 }

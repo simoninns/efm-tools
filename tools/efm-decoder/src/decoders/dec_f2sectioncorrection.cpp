@@ -198,7 +198,7 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
         && f2Section.metadata.absoluteSectionTime().seconds() == 0
         && f2Section.metadata.trackNumber() == 0) {
 
-        // Check for false-positive
+        // Check for false-positive (i.e. we were actually expecting a section with absolute time 00:00:xx)
         if (expectedAbsoluteTime.minutes() == 0 && expectedAbsoluteTime.seconds() == 0) {
             // This is a false positive, so we can ignore it
             if (m_showDebug)
@@ -217,8 +217,8 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
             f2Section.metadata.setSectionType(SectionType(SectionType::UserData));
             f2Section.metadata.setTrackNumber(1); // TODO: Could be smarter about this
 
-            qDebug() << "F2SectionCorrection::waitingForSection(): Pre-cert lead-in section"
-            << "detected, correcting absolute time to" << correctedAbsoluteTime.toString();
+            if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Pre-cert lead-in section"
+                << "detected, correcting absolute time to" << correctedAbsoluteTime.toString();
 
             m_preCertTimeErrors++;
         }
@@ -289,8 +289,8 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                     missingSection.metadata.setSectionTime(f2Section.metadata.sectionTime() - (i + 1));
                 } else {
                     missingSection.metadata.setSectionTime(SectionTime(0, 0, 0));
-                    qDebug() << "F2SectionCorrection::waitingForSection(): Negative section time detected, "
-                                "setting section time to 00:00:00";
+                    if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Negative section time detected, "
+                        "setting section time to 00:00:00";
                 }
 
                 // Push 98 error frames in to the missing section

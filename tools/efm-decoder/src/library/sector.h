@@ -33,7 +33,9 @@ class RawSector
 public:
     RawSector();
     void pushData(const QByteArray &inData);
+    void pushErrorData(const QByteArray &inData);
     QByteArray data() const;
+    QByteArray errorData() const;
     quint32 size() const;
     void showData();
 
@@ -41,6 +43,7 @@ public:
 
 private:
     QByteArray m_data;
+    QByteArray m_errorData;
 };
 
 #endif // SECTOR_H
