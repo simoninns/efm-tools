@@ -46,6 +46,7 @@
 #include "writer_data.h"
 #include "writer_wav.h"
 #include "writer_wav_metadata.h"
+#include "writer_sector.h"
 
 #include "reader_data.h"
 
@@ -56,7 +57,7 @@ public:
 
     bool process(const QString &inputFilename, const QString &outputFilename);
     void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
-    void setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection, bool outputData);
+    void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
                   bool audioCorrection, bool rawSector, bool sector);
     void showStatistics() const;
@@ -68,9 +69,12 @@ private:
     bool m_showF1;
     bool m_showF2;
     bool m_showF3;
-    bool m_isOutputDataWav;
-    bool m_noWavCorrection;
+
+    // Output options
+    bool m_outputRawAudio;
+    bool m_outputWav;
     bool m_outputWavMetadata;
+    bool m_noAudioConcealment;
     bool m_outputData;
 
     // IEC 60909-1999 Decoders
@@ -94,6 +98,7 @@ private:
     WriterData m_writerData;
     WriterWav m_writerWav;
     WriterWavMetadata m_writerWavMetadata;
+    WriterSector m_writerSector;
 
     // Processing statistics
     struct GeneralPipelineStatistics {
@@ -116,7 +121,7 @@ private:
     } m_dataPipelineStats;
 
     void processGeneralPipeline();
-    void processAudioPipeline(bool withCorrection, bool withMetadata);
+    void processAudioPipeline();
     void processDataPipeline();
 
     void showGeneralPipelineStatistics();

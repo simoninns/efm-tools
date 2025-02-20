@@ -41,6 +41,7 @@ public:
     void write(const Data24Section &data24Section);
     void close();
     qint64 size() const;
+    bool isOpen() const { return m_file.isOpen(); };
 
 private:
     QFile m_file;

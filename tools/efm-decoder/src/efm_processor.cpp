@@ -24,7 +24,17 @@
 
 #include "efm_processor.h"
 
-EfmProcessor::EfmProcessor() { }
+EfmProcessor::EfmProcessor() : 
+    m_showAudio(false),
+    m_showData24(false),
+    m_showF1(false),
+    m_showF2(false),
+    m_showF3(false),
+    m_outputData(false),
+    m_outputWav(false),
+    m_outputWavMetadata(false),
+    m_noAudioConcealment(false)
+{}
 
 bool EfmProcessor::process(const QString &inputFilename, const QString &outputFilename)
 {
@@ -38,22 +48,18 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     }
 
     // Prepare the output files...
-    if (!m_isOutputDataWav)
-        m_writerData.open(outputFilename);
-    else
-        m_writerWav.open(outputFilename);
-
-    if (m_outputWavMetadata && m_isOutputDataWav) {
-        // Prepare the metadata output file
+    if (m_outputRawAudio) m_writerData.open(outputFilename);
+    if (m_outputWav) m_writerWav.open(outputFilename);
+    if (m_outputWavMetadata) {
         QString metadataFilename = outputFilename;
         if (metadataFilename.endsWith(".wav")) {
             metadataFilename.replace(".wav", ".metadata");
         } else {
             metadataFilename.append(".metadata");
         }
-
         m_writerWavMetadata.open(metadataFilename);
     }
+    if (m_outputData) m_writerSector.open(outputFilename);
 
     // Get the total size of the input file for progress reporting
     qint64 totalSize = m_readerData.size();
@@ -104,14 +110,15 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     qInfo() << "";
     m_f1SectionToData24Section.showStatistics();
     qInfo() << "";
-    if (m_isOutputDataWav) {
+    if (m_outputRawAudio || m_outputWav) {
         m_data24ToAudio.showStatistics();
         qInfo() << "";
     }
-    if (m_isOutputDataWav && !m_noWavCorrection) {
+    if ((m_outputRawAudio || m_outputWav) && !m_noAudioConcealment) {
         m_audioCorrection.showStatistics();
         qInfo() << "";
     }
+
     if (m_outputData) {
         m_data24ToRawSector.showStatistics();
         qInfo() << "";
@@ -120,9 +127,11 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     }
 
     showGeneralPipelineStatistics();
-    if (m_isOutputDataWav) {
+    if (m_outputRawAudio || m_outputWav) {
         showAudioPipelineStatistics();
-    } else {
+    }
+
+    if (m_outputData) {
         showDataPipelineStatistics();
     }
 
@@ -130,12 +139,10 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     m_readerData.close();
 
     // Close the output files
-    if (!m_isOutputDataWav)
-        m_writerData.close();
-    else
-        m_writerWav.close();
-    if (m_outputWavMetadata && m_isOutputDataWav)
-        m_writerWavMetadata.close();
+    if (m_writerData.isOpen()) m_writerData.close();
+    if (m_writerWav.isOpen()) m_writerWav.close();
+    if (m_writerWavMetadata.isOpen()) m_writerWavMetadata.close();
+    if (m_writerSector.isOpen()) m_writerSector.close();
 
     qInfo() << "Encoding complete";
     return true;
@@ -192,10 +199,10 @@ void EfmProcessor::processGeneralPipeline()
     m_generalPipelineStats.f2ToF1Time += pipelineTimer.nsecsElapsed();
 
     // Is output audio or data?
-    if (m_isOutputDataWav) processAudioPipeline(!m_noWavCorrection, m_outputWavMetadata);
+    if (m_outputWav) processAudioPipeline();
     else if (m_outputData) processDataPipeline();
     else {
-        // Data24 output processing
+        // Data24 output processing (Raw audio output)
         pipelineTimer.restart();
         while (m_f1SectionToData24Section.isReady()) {
             Data24Section data24Section = m_f1SectionToData24Section.popSection();
@@ -208,7 +215,7 @@ void EfmProcessor::processGeneralPipeline()
     }
 }
 
-void EfmProcessor::processAudioPipeline(bool withCorrection, bool withMetadata)
+void EfmProcessor::processAudioPipeline()
 {
     QElapsedTimer audioPipelineTimer;
 
@@ -223,12 +230,12 @@ void EfmProcessor::processAudioPipeline(bool withCorrection, bool withMetadata)
     }
     m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
 
-    if (!withCorrection) {
+    if (m_noAudioConcealment) {
         audioPipelineTimer.restart();
         while (m_data24ToAudio.isReady()) {
             AudioSection audioSection = m_data24ToAudio.popSection();
             m_writerWav.write(audioSection);
-            if (withMetadata)
+            if (m_outputWavMetadata)
                 m_writerWavMetadata.write(audioSection);
         }
         m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
@@ -275,6 +282,14 @@ void EfmProcessor::processDataPipeline()
             rawSector.showData();
     }
     m_dataPipelineStats.rawSectorToSectorTime += dataPipelineTimer.nsecsElapsed();
+
+    // Write out the sector data
+    //dataPipelineTimer.restart();
+    while (m_rawSectorToSector.isReady()) {
+        Sector sector = m_rawSectorToSector.popSector();
+        m_writerSector.write(sector);
+    }
+    //m_dataPipelineStats.rawSectorToSectorTime += dataPipelineTimer.nsecsElapsed();
 }
 
 void EfmProcessor::showGeneralPipelineStatistics()
@@ -336,11 +351,12 @@ void EfmProcessor::setShowData(bool showRawSector, bool showAudio, bool showData
 }
 
 // Set the output data type (true for WAV, false for raw)
-void EfmProcessor::setOutputType(bool wavOutput, bool outputWavMetadata, bool noWavCorrection, bool outputData)
+void EfmProcessor::setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData)
 {
-    m_isOutputDataWav = wavOutput;
-    m_noWavCorrection = noWavCorrection;
+    m_outputRawAudio = outputRawAudio;
+    m_outputWav = outputWav;
     m_outputWavMetadata = outputWavMetadata;
+    m_noAudioConcealment = noAudioConcealment;
     m_outputData = outputData;
 }
 

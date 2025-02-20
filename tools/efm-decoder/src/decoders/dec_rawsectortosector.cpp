@@ -54,6 +54,8 @@ bool RawSectorToSector::isReady() const
     return !m_outputBuffer.isEmpty();
 }
 
+// Note: Mode 0 and Mode 2 support missing
+// Note: Does not fill missing sectors
 void RawSectorToSector::processQueue()
 {
     while (!m_inputBuffer.isEmpty()) {
@@ -181,7 +183,7 @@ void RawSectorToSector::processQueue()
         sector.pushErrorData(rawSector.errorData().mid(16, 2048));
 
         // Add the sector to the output buffer
-        //m_outputBuffer.enqueue(sector);
+        m_outputBuffer.enqueue(sector);
     }
 }
 

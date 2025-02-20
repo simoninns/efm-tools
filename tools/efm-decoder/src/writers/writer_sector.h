@@ -1,6 +1,6 @@
 /************************************************************************
 
-    writer_wav_metadata.h
+    writer_sector.h
 
     ld-efm-decoder - EFM data encoder
     Copyright (C) 2025 Simon Inns
@@ -22,23 +22,23 @@
 
 ************************************************************************/
 
-#ifndef WRITER_WAV_METADATA_H
-#define WRITER_WAV_METADATA_H
+#ifndef WRITER_SECTOR_H
+#define WRITER_SECTOR_H
 
 #include <QString>
 #include <QDebug>
 #include <QFile>
 
-#include "section.h"
+#include "sector.h"
 
-class WriterWavMetadata
+class WriterSector
 {
 public:
-    WriterWavMetadata();
-    ~WriterWavMetadata();
+    WriterSector();
+    ~WriterSector();
 
     bool open(const QString &filename);
-    void write(const AudioSection &audioSection);
+    void write(const Sector &sector);
     void close();
     qint64 size() const;
     bool isOpen() const { return m_file.isOpen(); };
@@ -47,4 +47,4 @@ private:
     QFile m_file;
 };
 
-#endif // WRITER_WAV_METADATA_H
+#endif // WRITER_SECTOR_H

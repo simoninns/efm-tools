@@ -62,16 +62,18 @@ int main(int argc, char *argv[])
 
     // Group of options for specifying output data file type
     QList<QCommandLineOption> outputTypeOptions = {
+        QCommandLineOption("output-raw-audio",
+                QCoreApplication::translate("main", "Output audio decoding data as raw data")),
         QCommandLineOption("output-wav",
-                           QCoreApplication::translate("main", "Output data as a WAV file")),
+                           QCoreApplication::translate("main", "Output audio decoding data as a WAV file")),
         QCommandLineOption(
                 "output-wav-metadata",
-                QCoreApplication::translate("main", "Output data as a WAV file with metadata")),
+                QCoreApplication::translate("main", "Output audio decoding data as a WAV file with metadata")),
         QCommandLineOption(
-                "no-wav-correction",
-                QCoreApplication::translate("main", "Do not correct the output WAV data")),
+                "no-audio-concealment",
+                QCoreApplication::translate("main", "Do not conceal errors in the audio data")),
         QCommandLineOption("output-data",
-                QCoreApplication::translate("main", "Output ECMA-130 decoded data")),
+                QCoreApplication::translate("main", "Output ECMA-130 sector data")),
     };
     parser.addOptions(outputTypeOptions);
 
@@ -135,9 +137,11 @@ int main(int argc, char *argv[])
     processStandardDebugOptions(parser);
 
     // Check for output data type options
+    // TODO: Add rules here to prevent multiple output types being selected
+    bool outputRawAudio = parser.isSet("output-raw-audio");
     bool outputWav = parser.isSet("output-wav");
     bool outputWavMetadata = parser.isSet("output-wav-metadata");
-    bool noWavCorrection = parser.isSet("no-wav-correction");
+    bool noAudioConcealment = parser.isSet("no-audio-concealment");
     bool outputData = parser.isSet("output-data");
 
     // Check for frame data options
@@ -195,7 +199,7 @@ int main(int argc, char *argv[])
     EfmProcessor efmProcessor;
 
     efmProcessor.setShowData(showRawSector, showAudio, showData24, showF1, showF2, showF3);
-    efmProcessor.setOutputType(outputWav, outputWavMetadata, noWavCorrection, outputData);
+    efmProcessor.setOutputType(outputRawAudio, outputWav, outputWavMetadata, noAudioConcealment, outputData);
     efmProcessor.setDebug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
                           showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug,
                           showRawSectorDebug, showSectorDebug);
