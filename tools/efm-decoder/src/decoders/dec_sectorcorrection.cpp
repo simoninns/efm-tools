@@ -61,14 +61,18 @@ void SectorCorrection::processQueue()
             if (sector.address().frameNumber() != 0) {
                 // Fill the missing leading sectors from address 0 to the first decoded sector address
                 if (m_showDebug) {
-                    qDebug().nospace().noquote() << "SectorCorrection::processQueue(): First received frame address is " << sector.address().address() << " (" << sector.address().toString() << ")";
-                    qDebug() << "SectorCorrection::processQueue(): Filling missing leading sectors with" << sector.address().address() << "sectors";
+                    qDebug().nospace().noquote() << "SectorCorrection::processQueue(): First received frame address is "
+                        << sector.address().address() << " (" << sector.address().toString() << ")";
+                    qDebug() << "SectorCorrection::processQueue(): Filling missing leading sectors with"
+                        << sector.address().address() << "sectors";
                 }
                 for (int i = 0; i < sector.address().address(); i++) {
                     Sector missingSector;
+                    missingSector.dataValid(false);
                     missingSector.setAddress(SectorAddress(i));
                     missingSector.setMode(1);
-                    missingSector.dataValid(false);
+                    missingSector.pushData(QByteArray(2048, 0));
+                    missingSector.pushErrorData(QByteArray(2048, 1));
                     m_outputBuffer.enqueue(missingSector);
                     m_missingLeadingSectors++;
                 }
@@ -96,7 +100,7 @@ void SectorCorrection::processQueue()
                     missingSector.setAddress(m_lastSectorAddress + 1 + i);
                     missingSector.setMode(1);
                     missingSector.pushData(QByteArray(2048, 0));
-                    missingSector.pushErrorData(QByteArray(2048, 0));
+                    missingSector.pushErrorData(QByteArray(2048, 1));
                     m_outputBuffer.enqueue(missingSector);
                     m_missingSectors++;
                 }
