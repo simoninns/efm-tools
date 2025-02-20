@@ -214,20 +214,30 @@ quint32 Sector::size() const
 
 void Sector::showData()
 {
-    QString dataString;
+    const int bytesPerLine = 2048/64;
     bool hasError = false;
-    for (int i = 0; i < m_data.size(); ++i) {
-        if (static_cast<quint8>(m_errorData[i]) == 0) {
-            dataString.append(QString("%1 ").arg(m_data[i], 2, 16, QChar('0')));
-        } else {
-            dataString.append(QString("XX "));
-            hasError = true;
+
+    for (int offset = 0; offset < m_data.size(); offset += bytesPerLine) {
+        // Print offset
+        QString line;
+        line = "Sector::showData() - [" + m_address.toString() + "] ";
+        line += QString("%1: ").arg(offset, 6, 16, QChar('0'));
+        
+        // Print hex values
+        for (int i = 0; i < bytesPerLine && (offset + i) < m_data.size(); ++i) {
+            if (static_cast<quint8>(m_errorData[offset + i]) == 0) {
+                line.append(QString("%1 ").arg(static_cast<quint8>(m_data[offset + i]), 2, 16, QChar('0')));
+            } else {
+                line.append("XX ");
+                hasError = true;
+            }
         }
+
+        qInfo().noquote() << line.trimmed();
     }
+
     if (hasError) {
-        qInfo().noquote() << "Sector:" << dataString.trimmed() << "ERROR";
-    } else {
-        qInfo().noquote() << "Sector:" << dataString.trimmed();
+        qInfo().noquote() << "Sector contains errors";
     }
 }
 

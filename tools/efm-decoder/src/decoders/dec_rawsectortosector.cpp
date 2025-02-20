@@ -28,10 +28,6 @@ RawSectorToSector::RawSectorToSector()
     : m_have_last_known_good(false),
     m_last_known_good_address(0, 0, 0),
     m_last_known_good_mode(0),
-    m_validSectorAddresses(0),
-    m_invalidSectorAddresses(0),
-    m_validSectorModes(0),
-    m_invalidSectorModes(0),
     m_validSectors(0),
     m_invalidSectors(0),
     m_correctedSectors(0)
@@ -63,6 +59,7 @@ void RawSectorToSector::processQueue()
     while (!m_inputBuffer.isEmpty()) {
         // Get the first item in the input buffer
         RawSector rawSector = m_inputBuffer.dequeue();
+        bool rawSectorValid = false;
 
         // Verify the sector data size
         if (rawSector.data().size() != 2352) {
@@ -72,16 +69,7 @@ void RawSectorToSector::processQueue()
             }
         }
 
-        // Note: The EDC is a CRC applied to bytes 0 to 2063 (sync to user data)
-        // The intermediate field is 8 bytes of zero
-        // The P and Q parity is applied to bytes 12 to 2075 (not sync and not parity bytes)
-
-        // So we check the EDC and if it's not correct we error correct the sector
-
-        // Perform CRC - since ECC is expensive on processing, we only
-        // error correct sector data if the CRC fails
-
-        // Get the 32-bit EDC word from the F1 data
+        // Compute the CRC32 of the sector data based on the EDC word
         quint32 originalEdcWord =
             ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
             ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
@@ -90,7 +78,7 @@ void RawSectorToSector::processQueue()
 
         quint32 edcWord = crc32(rawSector.data(), 2064);
 
-        // Perform a CRC32 on bytes 0 to 2063 of the F1 frame
+        // If the CRC32 of the sector data is incorrect, attempt to correct it using Q and P parity
         if (originalEdcWord != edcWord) {
             if (m_showDebug) {
                 qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data is corrupt. EDC:" << originalEdcWord << "Calculated:" << edcWord << "attempting to correct";
@@ -110,7 +98,7 @@ void RawSectorToSector::processQueue()
             rawSector.pushData(correctedData);
             rawSector.pushErrorData(correctedErrorData);
 
-            // Check CRC again for the corrected data
+            // Computer CRC32 again for the corrected data
             quint32 correctedEdcWord =
                 ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
                 ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
@@ -119,101 +107,81 @@ void RawSectorToSector::processQueue()
 
             edcWord = crc32(rawSector.data(), 2064);
 
-            // Perform a CRC32 on bytes 0 to 2063 of the F1 frame
+            // Is the CRC now correct?
             if (correctedEdcWord != edcWord) {
+                // Error correction failed - sector is invalid and there's nothing more we can do
                 if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data cannot be recovered. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "post correction";
                 m_invalidSectors++;
+                rawSectorValid = false;
             } else {
+                // Sector was invalid, but now corrected
                 if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data corrected. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "";
                 m_correctedSectors++;
+                rawSectorValid = true;
             }
         } else {
-            //if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data is correct.";
-             m_validSectors++;
+            // Original sector data is valid
+            m_validSectors++;
+            rawSectorValid = true;
         }
 
-        // Note: This is very simplistic metadata correction but we are
-        // relying on the previous decoding stages to give us the sectors
-        // in the correct order.
-
-        // Extract the sector address data
-        qint32 min = bcdToInt(rawSector.data()[12]);
-        qint32 sec = bcdToInt(rawSector.data()[13]);
-        qint32 frame = bcdToInt(rawSector.data()[14]);
-        SectorAddress address(min, sec, frame);
-
-        // Extract the sector mode data
+        // Determine the sector's metadata
+        SectorAddress sectorAddress(0, 0, 0);
         qint32 mode = 0;
-        if (static_cast<quint8>(rawSector.data()[15]) == 0) mode = 0;
-        else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
-        else if (static_cast<quint8>(rawSector.data()[15]) == 2) mode = 2;
-        else mode = -1;
 
-        // Can we trust the address data?
-        if (static_cast<quint8>(rawSector.errorData()[12]) != 0 ||
-            static_cast<quint8>(rawSector.errorData()[13]) != 0 ||
-            static_cast<quint8>(rawSector.errorData()[14]) != 0) {
-            // Address data cannot be trusted
+        // If the sector data is valid, we can simply extract the metadata
+        if (rawSectorValid) {
+            // Extract the sector address data
+            qint32 min = bcdToInt(rawSector.data()[12]);
+            qint32 sec = bcdToInt(rawSector.data()[13]);
+            qint32 frame = bcdToInt(rawSector.data()[14]);
+            sectorAddress = SectorAddress(min, sec, frame);
+
+            // Extract the sector mode data
+            if (static_cast<quint8>(rawSector.data()[15]) == 0) mode = 0;
+            else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
+            else if (static_cast<quint8>(rawSector.data()[15]) == 2) mode = 2;
+            else mode = -1;
+
+            // Metadata is valid
+            m_have_last_known_good = true;
+            m_last_known_good_address = sectorAddress;
+            m_last_known_good_mode = mode;
+        } else {
+            // Sector data is invalid, we need to correct the metadata even
+            // though the sector data is invalid to keep the output correctly
+            // spaced
             if (m_have_last_known_good) {
                 // Use the last known good address + 1
-                SectorAddress expectedAddress = m_last_known_good_address + 1;
-                if (m_showDebug) {
-                    qDebug() << "RawSectorToSector::processQueue(): Address error. Got:" << address.toString() << "replacing with expected:" << expectedAddress.toString();
-                }
-                address = expectedAddress;
-            } else {
-                // Use a default address
-                SectorAddress defaultAddress(0, 0, 0);
-                if (m_showDebug) {
-                    qDebug() << "RawSectorToSector::processQueue(): Address error. Got:" << address.toString() << "replacing with default:" << defaultAddress.toString();
-                }
-                address = defaultAddress;
-            }
-            m_invalidSectorAddresses++;
-        } else {
-            // Address data is good
-            m_have_last_known_good = true;
-            m_last_known_good_address = address;
-            m_last_known_good_mode = 1; // Just in case...
+                m_last_known_good_address++;
 
-            m_validSectorAddresses++;
-        }
-
-        // Can we trust the mode data?
-        if (static_cast<quint8>(rawSector.errorData()[15]) != 0) {
-            // Mode cannot be trusted
-            if (m_have_last_known_good) {
-                // Use the last known good mode
+                sectorAddress = m_last_known_good_address;
                 mode = m_last_known_good_mode;
                 if (m_showDebug) {
-                    qDebug() << "RawSectorToSector::processQueue(): Mode error. Got:" << mode << "replacing with last known good:" << m_last_known_good_mode;
+                    qDebug() << "RawSectorToSector::processQueue(): Sector metadata is invalid. Replacing with last known good Address:" << sectorAddress.toString() << "Mode:" << mode;
                 }
             } else {
-                // Use a default mode
+                // Use a default address
+                sectorAddress = SectorAddress(0, 0, 0);
                 mode = 1;
                 if (m_showDebug) {
-                    qDebug() << "RawSectorToSector::processQueue(): Mode error. Got:" << mode << "replacing with default:" << 1;
+                    qDebug() << "RawSectorToSector::processQueue(): Sector metadata is invalid. Replacing with default Address:" << sectorAddress.toString() << "Mode:" << mode;
                 }
             }
-            m_invalidSectorModes++;
-        } else {
-            // Mode data is good
-            m_have_last_known_good = true;
-            m_last_known_good_mode = mode;
-
-            m_validSectorModes++;
         }
 
-        // Create a new sector
+        // Create an output sector
         Sector sector;
-        sector.metadataValid(true);
-        sector.setAddress(address);
+        sector.dataValid(rawSectorValid);
+        sector.setAddress(sectorAddress);
         sector.setMode(mode);
+        
+        // Push only the user data to the output sector (bytes 16 to 2063 = 2KBytes data)
+        sector.pushData(rawSector.data().mid(16, 2048));
+        sector.pushErrorData(rawSector.errorData().mid(16, 2048));
 
-        //if (m_showDebug) qDebug().noquote() << "RawSectorToSector::processQueue(): Metadata Address:" << sector.address().toString() << "Mode:" << sector.mode();
-
-        // // Add the sector to the output buffer
-        // m_outputBuffer.enqueue(sector);
+        // Add the sector to the output buffer
+        //m_outputBuffer.enqueue(sector);
     }
 }
 
@@ -239,14 +207,9 @@ quint32 RawSectorToSector::crc32(const QByteArray &src, qint32 size)
 
 void RawSectorToSector::showStatistics()
 {
-    qInfo() << "Raw sector to sector statistics:";
-    qInfo() << "  Valid sector addresses:" << m_validSectorAddresses;
-    qInfo() << "  Invalid sector addresses:" << m_invalidSectorAddresses;
-    qInfo() << "  Valid sector modes:" << m_validSectorModes;
-    qInfo() << "  Invalid sector modes:" << m_invalidSectorModes;
-    qInfo() << "Error correction statistics:";
+    qInfo() << "Raw Sector to Sector (RSPC error-correction):";
     qInfo() << "  Valid sectors:" << m_validSectors;
     qInfo() << "  Corrected sectors:" << m_correctedSectors;
     qInfo() << "  Invalid sectors:" << m_invalidSectors;
-
+    qInfo() << "  Total sectors:" << m_validSectors + m_invalidSectors + m_correctedSectors;
 }

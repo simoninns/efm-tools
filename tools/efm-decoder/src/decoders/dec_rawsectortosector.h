@@ -52,11 +52,6 @@ private:
     quint8 m_last_known_good_mode;
 
     // Statistics
-    quint32 m_validSectorAddresses;
-    quint32 m_invalidSectorAddresses;
-    quint32 m_validSectorModes;
-    quint32 m_invalidSectorModes;
-
     quint32 m_validSectors;
     quint32 m_invalidSectors;
     quint32 m_correctedSectors;

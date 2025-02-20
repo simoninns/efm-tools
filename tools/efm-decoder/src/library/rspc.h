@@ -33,9 +33,6 @@ public:
     Rspc();
     void qParityEcc(QByteArray &inputData, QByteArray &errorData, bool m_showDebug);
     void pParityEcc(QByteArray &inputData, QByteArray &errorData, bool m_showDebug);
-
-private:
-
 };
 
 #endif // RSPC_H
