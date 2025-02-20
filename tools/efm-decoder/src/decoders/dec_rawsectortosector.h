@@ -42,7 +42,7 @@ public:
 private:
     void processQueue();
     quint8 bcdToInt(quint8 bcd);
-    quint32 crc32(const QByteArray& src);
+    quint32 crc32(uchar *src, qint32 size);
 
     QQueue<RawSector> m_inputBuffer;
     QQueue<Sector> m_outputBuffer;
@@ -56,6 +56,10 @@ private:
     quint32 m_invalidSectorAddresses;
     quint32 m_validSectorModes;
     quint32 m_invalidSectorModes;
+
+    quint32 m_validSectors;
+    quint32 m_invalidSectors;
+    quint32 m_correctedSectors;
 
     // This table is the CRC32 look-up for the EDC data
     const quint32 m_crc32Lut[256] = {
