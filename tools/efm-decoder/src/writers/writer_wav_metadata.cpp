@@ -24,10 +24,11 @@
 
 #include "writer_wav_metadata.h"
 
-// This writer class writes metadata about audio data to a file in WAV format
+// This writer class writes metadata about audio data to a file
 // This is used when the output is stereo audio data
 
-WriterWavMetadata::WriterWavMetadata() { }
+WriterWavMetadata::WriterWavMetadata()
+{}
 
 WriterWavMetadata::~WriterWavMetadata()
 {

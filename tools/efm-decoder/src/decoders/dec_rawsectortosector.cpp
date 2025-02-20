@@ -30,7 +30,9 @@ RawSectorToSector::RawSectorToSector()
     m_last_known_good_mode(0),
     m_validSectors(0),
     m_invalidSectors(0),
-    m_correctedSectors(0)
+    m_correctedSectors(0),
+    m_haveLastSectorAddress(false),
+    m_missingSectors(0)
 {}
 
 void RawSectorToSector::pushSector(const RawSector &rawSector)
@@ -172,6 +174,41 @@ void RawSectorToSector::processQueue()
             }
         }
 
+        // Sanity check to ensure the sector doesn't repeat
+        if (sectorAddress == m_lastSectorAddress) {
+            if (m_showDebug) {
+                qWarning() << "RawSectorToSector::processQueue(): Sector is a repeat of the last sector. Address:" << sectorAddress.toString();
+                qFatal("RawSectorToSector::processQueue(): Sector is a repeat of the last sector - this is a bug");
+            }
+        }
+
+        // Is the sector in the correct sequential output position?
+        if ((sectorAddress != m_lastSectorAddress + 1) && m_haveLastSectorAddress) {
+            // The sector is not in the correct position
+            quint32 gap = sectorAddress.address() - m_lastSectorAddress.address() - 1;
+
+            if (m_showDebug) {
+                qWarning() << "RawSectorToSector::processQueue(): Sector is not in the correct position. Last good sector address:"
+                    << m_lastSectorAddress.address() << m_lastSectorAddress.toString()
+                    << "Current sector address:" << sectorAddress.address() << sectorAddress.toString() << "Gap:" << gap;
+            }
+
+            // Add missing sectors
+            for (int i = 0; i < gap; ++i) {
+                Sector missingSector;
+                missingSector.dataValid(false);
+                missingSector.setAddress(m_lastSectorAddress + 1 + i);
+                missingSector.setMode(1);
+                missingSector.pushData(QByteArray(2048, 0));
+                missingSector.pushErrorData(QByteArray(2048, 0));
+                m_outputBuffer.enqueue(missingSector);
+            }
+
+            m_missingSectors += gap;
+        }
+        m_lastSectorAddress = sectorAddress;
+        m_haveLastSectorAddress = true;
+
         // Create an output sector
         Sector sector;
         sector.dataValid(rawSectorValid);
@@ -183,6 +220,7 @@ void RawSectorToSector::processQueue()
         sector.pushErrorData(rawSector.errorData().mid(16, 2048));
 
         // Add the sector to the output buffer
+        qDebug() << "RawSectorToSector::processQueue(): Pushing sector to output buffer. Address:" << sector.address().toString() << "Mode:" << sector.mode();
         m_outputBuffer.enqueue(sector);
     }
 }
@@ -213,5 +251,6 @@ void RawSectorToSector::showStatistics()
     qInfo() << "  Valid sectors:" << m_validSectors;
     qInfo() << "  Corrected sectors:" << m_correctedSectors;
     qInfo() << "  Invalid sectors:" << m_invalidSectors;
+    qInfo() << "  Missing sectors:" << m_missingSectors;
     qInfo() << "  Total sectors:" << m_validSectors + m_invalidSectors + m_correctedSectors;
 }

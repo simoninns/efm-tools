@@ -60,6 +60,15 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         m_writerWavMetadata.open(metadataFilename);
     }
     if (m_outputData) m_writerSector.open(outputFilename);
+    if (m_outputDataMetadata) {
+        QString metadataFilename = outputFilename;
+        if (metadataFilename.endsWith(".dat")) {
+            metadataFilename.replace(".dat", ".metadata");
+        } else {
+            metadataFilename.append(".metadata");
+        }
+        m_writerSectorMetadata.open(metadataFilename);
+    }
 
     // Get the total size of the input file for progress reporting
     qint64 totalSize = m_readerData.size();
@@ -158,7 +167,7 @@ void EfmProcessor::processGeneralPipeline()
         QByteArray channelData = m_tValuesToChannel.popFrame();
         m_channelToF3.pushFrame(channelData);
     }
-    m_generalPipelineStats.tValuesToChannelTime += pipelineTimer.nsecsElapsed();
+    m_generalPipelineStats.channelToF3Time += pipelineTimer.nsecsElapsed();
 
     // Channel to F3 processing
     pipelineTimer.restart();
@@ -168,7 +177,7 @@ void EfmProcessor::processGeneralPipeline()
             f3Frame.showData();
         m_f3FrameToF2Section.pushFrame(f3Frame);
     }
-    m_generalPipelineStats.channelToF3Time += pipelineTimer.nsecsElapsed();
+    m_generalPipelineStats.f3ToF2Time += pipelineTimer.nsecsElapsed();
 
     // F3 to F2 section processing
     pipelineTimer.restart();
@@ -176,7 +185,7 @@ void EfmProcessor::processGeneralPipeline()
         F2Section section = m_f3FrameToF2Section.popSection();
         m_f2SectionCorrection.pushSection(section);
     }
-    m_generalPipelineStats.f3ToF2Time += pipelineTimer.nsecsElapsed();
+    m_generalPipelineStats.f2CorrectionTime += pipelineTimer.nsecsElapsed();
 
     // F2 correction processing
     pipelineTimer.restart();
@@ -186,7 +195,7 @@ void EfmProcessor::processGeneralPipeline()
             f2Section.showData();
         m_f2SectionToF1Section.pushSection(f2Section);
     }
-    m_generalPipelineStats.f2CorrectionTime += pipelineTimer.nsecsElapsed();
+    m_generalPipelineStats.f2SectionToF1SectionTime += pipelineTimer.nsecsElapsed();
 
     // F2 to F1 processing
     pipelineTimer.restart();
@@ -196,14 +205,13 @@ void EfmProcessor::processGeneralPipeline()
             f1Section.showData();
         m_f1SectionToData24Section.pushSection(f1Section);
     }
-    m_generalPipelineStats.f2ToF1Time += pipelineTimer.nsecsElapsed();
+    m_generalPipelineStats.f1ToData24Time += pipelineTimer.nsecsElapsed();
 
     // Is output audio or data?
     if (m_outputWav) processAudioPipeline();
     else if (m_outputData) processDataPipeline();
     else {
         // Data24 output processing (Raw audio output)
-        pipelineTimer.restart();
         while (m_f1SectionToData24Section.isReady()) {
             Data24Section data24Section = m_f1SectionToData24Section.popSection();
             m_writerData.write(data24Section);
@@ -211,7 +219,6 @@ void EfmProcessor::processGeneralPipeline()
                 data24Section.showData();
             }
         }
-        m_generalPipelineStats.f1ToData24Time += pipelineTimer.nsecsElapsed();
     }
 }
 
@@ -231,30 +238,26 @@ void EfmProcessor::processAudioPipeline()
     m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
 
     if (m_noAudioConcealment) {
-        audioPipelineTimer.restart();
         while (m_data24ToAudio.isReady()) {
             AudioSection audioSection = m_data24ToAudio.popSection();
             m_writerWav.write(audioSection);
             if (m_outputWavMetadata)
                 m_writerWavMetadata.write(audioSection);
         }
-        m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
     } else {
         audioPipelineTimer.restart();
         while (m_data24ToAudio.isReady()) {
             AudioSection audioSection = m_data24ToAudio.popSection();
             m_audioCorrection.pushSection(audioSection);
         }
-        m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
+        m_audioPipelineStats.audioCorrectionTime += audioPipelineTimer.nsecsElapsed();
 
-        audioPipelineTimer.restart();
         while (m_audioCorrection.isReady()) {
             AudioSection audioSection = m_audioCorrection.popSection();
             m_writerWav.write(audioSection);
             if (m_outputWavMetadata)
                 m_writerWavMetadata.write(audioSection);
         }
-        m_audioPipelineStats.audioCorrectionTime += audioPipelineTimer.nsecsElapsed();
     }
 }
 
@@ -284,27 +287,27 @@ void EfmProcessor::processDataPipeline()
     m_dataPipelineStats.rawSectorToSectorTime += dataPipelineTimer.nsecsElapsed();
 
     // Write out the sector data
-    //dataPipelineTimer.restart();
     while (m_rawSectorToSector.isReady()) {
         Sector sector = m_rawSectorToSector.popSector();
         m_writerSector.write(sector);
+        if (m_outputDataMetadata)
+            m_writerSectorMetadata.write(sector);
     }
-    //m_dataPipelineStats.rawSectorToSectorTime += dataPipelineTimer.nsecsElapsed();
 }
 
 void EfmProcessor::showGeneralPipelineStatistics()
 {
     qInfo() << "Decoder processing summary (general):";
-    qInfo() << "  T-values to Channel processing time:" << m_generalPipelineStats.tValuesToChannelTime / 1000000
-            << "ms";
+
     qInfo() << "  Channel to F3 processing time:" << m_generalPipelineStats.channelToF3Time / 1000000 << "ms";
     qInfo() << "  F3 to F2 section processing time:" << m_generalPipelineStats.f3ToF2Time / 1000000 << "ms";
     qInfo() << "  F2 correction processing time:" << m_generalPipelineStats.f2CorrectionTime / 1000000 << "ms";
-    qInfo() << "  F2 to F1 processing time:" << m_generalPipelineStats.f2ToF1Time / 1000000 << "ms";
+    qInfo() << "  F2 to F1 processing time:" << m_generalPipelineStats.f2SectionToF1SectionTime / 1000000 << "ms";
     qInfo() << "  F1 to Data24 processing time:" << m_generalPipelineStats.f1ToData24Time / 1000000 << "ms";
 
-    qint64 totalProcessingTime = m_generalPipelineStats.tValuesToChannelTime + m_generalPipelineStats.channelToF3Time +
-                                 m_generalPipelineStats.f3ToF2Time + m_generalPipelineStats.f2CorrectionTime + m_generalPipelineStats.f2ToF1Time +
+    qint64 totalProcessingTime = m_generalPipelineStats.channelToF3Time +
+                                 m_generalPipelineStats.f3ToF2Time + m_generalPipelineStats.f2CorrectionTime +
+                                 m_generalPipelineStats.f2SectionToF1SectionTime +
                                  m_generalPipelineStats.f1ToData24Time;
     float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
     qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
@@ -351,13 +354,19 @@ void EfmProcessor::setShowData(bool showRawSector, bool showAudio, bool showData
 }
 
 // Set the output data type (true for WAV, false for raw)
-void EfmProcessor::setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData)
+void EfmProcessor::setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData, bool outputDataMetadata)
 {
     m_outputRawAudio = outputRawAudio;
     m_outputWav = outputWav;
     m_outputWavMetadata = outputWavMetadata;
     m_noAudioConcealment = noAudioConcealment;
     m_outputData = outputData;
+    m_outputDataMetadata = outputDataMetadata;
+
+    if (!outputRawAudio && !outputWav && !outputData) {
+        qWarning() << "No output type specified, defaulting to wav audio output with no metadata";
+        m_outputWav = true;
+    }
 }
 
 void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,

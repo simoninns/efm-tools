@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
                 QCoreApplication::translate("main", "Do not conceal errors in the audio data")),
         QCommandLineOption("output-data",
                 QCoreApplication::translate("main", "Output ECMA-130 sector data")),
+        QCommandLineOption("output-data-metadata",
+                QCoreApplication::translate("main", "Output ECMA-130 sector metadata")),
     };
     parser.addOptions(outputTypeOptions);
 
@@ -137,12 +139,38 @@ int main(int argc, char *argv[])
     processStandardDebugOptions(parser);
 
     // Check for output data type options
-    // TODO: Add rules here to prevent multiple output types being selected
     bool outputRawAudio = parser.isSet("output-raw-audio");
     bool outputWav = parser.isSet("output-wav");
     bool outputWavMetadata = parser.isSet("output-wav-metadata");
     bool noAudioConcealment = parser.isSet("no-audio-concealment");
     bool outputData = parser.isSet("output-data");
+    bool outputDataMetadata = parser.isSet("output-data-metadata");
+
+    // Output data type options are mutually exclusive
+    if (outputWavMetadata && (!outputWav || !outputRawAudio)) {
+        qWarning() << "You must specify --output-wav or --output-raw-audio with --output-wav-metadata";
+        return 1;
+    }
+
+    if (outputData && (outputWav || outputWavMetadata || outputRawAudio)) {
+        qWarning() << "You cannot specify --output-data with --output-wav, --output-wav-metadata or --output-raw-audio";
+        return 1;
+    }
+
+    if (noAudioConcealment && (!outputWav && !outputWavMetadata)) {
+        qWarning() << "You must specify --output-wav or --output-wav-metadata with --no-audio-concealment";
+        return 1;
+    }
+
+    if (outputRawAudio && outputWav) {
+        qWarning() << "You cannot specify --output-raw-audio with --output-wav";
+        return 1;
+    }
+
+    if (outputDataMetadata && !outputData) {
+        qWarning() << "You must specify --output-data with --output-data-metadata";
+        return 1;
+    }
 
     // Check for frame data options
     bool showF1 = parser.isSet("show-f1");
@@ -199,7 +227,7 @@ int main(int argc, char *argv[])
     EfmProcessor efmProcessor;
 
     efmProcessor.setShowData(showRawSector, showAudio, showData24, showF1, showF2, showF3);
-    efmProcessor.setOutputType(outputRawAudio, outputWav, outputWavMetadata, noAudioConcealment, outputData);
+    efmProcessor.setOutputType(outputRawAudio, outputWav, outputWavMetadata, noAudioConcealment, outputData, outputDataMetadata);
     efmProcessor.setDebug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
                           showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug,
                           showRawSectorDebug, showSectorDebug);

@@ -47,6 +47,7 @@
 #include "writer_wav.h"
 #include "writer_wav_metadata.h"
 #include "writer_sector.h"
+#include "writer_sector_metadata.h"
 
 #include "reader_data.h"
 
@@ -57,12 +58,13 @@ public:
 
     bool process(const QString &inputFilename, const QString &outputFilename);
     void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
-    void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData);
+    void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData, bool outputDataMetadata);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
                   bool audioCorrection, bool rawSector, bool sector);
     void showStatistics() const;
 
 private:
+    // Data debug options (to show data at various stages of processing)
     bool m_showRawSector;
     bool m_showAudio;
     bool m_showData24;
@@ -76,6 +78,7 @@ private:
     bool m_outputWavMetadata;
     bool m_noAudioConcealment;
     bool m_outputData;
+    bool m_outputDataMetadata;
 
     // IEC 60909-1999 Decoders
     TvaluesToChannel m_tValuesToChannel;
@@ -99,14 +102,14 @@ private:
     WriterWav m_writerWav;
     WriterWavMetadata m_writerWavMetadata;
     WriterSector m_writerSector;
+    WriterSectorMetadata m_writerSectorMetadata;
 
     // Processing statistics
     struct GeneralPipelineStatistics {
-        qint64 tValuesToChannelTime{0};
         qint64 channelToF3Time{0};
         qint64 f3ToF2Time{0};
         qint64 f2CorrectionTime{0};
-        qint64 f2ToF1Time{0};
+        qint64 f2SectionToF1SectionTime{0};
         qint64 f1ToData24Time{0};
     } m_generalPipelineStats;
 
