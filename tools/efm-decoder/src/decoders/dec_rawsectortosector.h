@@ -42,7 +42,7 @@ public:
 private:
     void processQueue();
     quint8 bcdToInt(quint8 bcd);
-    quint32 crc32(uchar *src, qint32 size);
+    quint32 crc32(const QByteArray &src, qint32 size);
 
     QQueue<RawSector> m_inputBuffer;
     QQueue<Sector> m_outputBuffer;

@@ -46,8 +46,6 @@ void Rspc::qParityEcc(QByteArray &inputData, QByteArray &errorData, bool m_showD
     // Keep track of the number of successful corrections
     qint32 successfulCorrections = 0;
 
-    // F1 Data is LSB then MSB
-    //
     // RS code is Q(45,43)
     // There are 104 bytes of Q-Parity (52 code words)
     // Each Q field covers 12 to 2248 = 2236 bytes (2 * 1118)
@@ -114,16 +112,16 @@ void Rspc::qParityEcc(QByteArray &inputData, QByteArray &errorData, bool m_showD
 
     // Show Q-Parity correction result to debug
     if (successfulCorrections >= 52) {
-        //qDebug() << "Rspc::qParityEcc(): Q-Parity correction successful with" << successfulCorrections << "corrected codewords";
+        //if (m_showDebug) qDebug() << "Rspc::qParityEcc(): Q-Parity correction successful with" << successfulCorrections << "corrected codewords";
     } else {
-        qDebug() << "Rspc::qParityEcc(): Q-Parity correction failed! Got" << successfulCorrections << "correct out of 52 possible codewords";
+        if (m_showDebug) qDebug() << "Rspc::qParityEcc(): Q-Parity correction failed! Got" << successfulCorrections << "correct out of 52 possible codewords";
     }
 }
 
 void Rspc::pParityEcc(QByteArray &inputData, QByteArray &errorData, bool m_showDebug)
 {
     // Initialise the RS error corrector
-    QRS<255,255-2> prs; // Up to 251 symbols data load with 2 symbols parity RS(26,24)
+    PRS<255,255-2> prs; // Up to 251 symbols data load with 2 symbols parity RS(26,24)
 
     // Keep track of the number of successful corrections
     qint32 successfulCorrections = 0;
@@ -131,8 +129,6 @@ void Rspc::pParityEcc(QByteArray &inputData, QByteArray &errorData, bool m_showD
     uchar* uF1Data = reinterpret_cast<uchar*>(inputData.data());
     uchar* uF1Erasures = reinterpret_cast<uchar*>(errorData.data());
 
-    // F1 Data is LSB then MSB
-    //
     // RS code is P(26,24)
     // There are 172 bytes of P-Parity (86 code words)
     // Each P field covers 12 to 2076 = 2064 bytes (2 * 1032)

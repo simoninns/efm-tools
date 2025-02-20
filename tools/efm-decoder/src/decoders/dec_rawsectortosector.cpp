@@ -72,8 +72,6 @@ void RawSectorToSector::processQueue()
             }
         }
 
-        uchar* uF1DataOut = reinterpret_cast<uchar*>(rawSector.data().data());
-
         // Note: The EDC is a CRC applied to bytes 0 to 2063 (sync to user data)
         // The intermediate field is 8 bytes of zero
         // The P and Q parity is applied to bytes 12 to 2075 (not sync and not parity bytes)
@@ -85,12 +83,12 @@ void RawSectorToSector::processQueue()
 
         // Get the 32-bit EDC word from the F1 data
         quint32 originalEdcWord =
-            ((static_cast<quint32>(uF1DataOut[2064])) <<  0) |
-            ((static_cast<quint32>(uF1DataOut[2065])) <<  8) |
-            ((static_cast<quint32>(uF1DataOut[2066])) << 16) |
-            ((static_cast<quint32>(uF1DataOut[2067])) << 24);
+            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
+            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
+            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2066]))) << 16) |
+            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2067]))) << 24);
 
-        quint32 edcWord = crc32(uF1DataOut, 2064);
+        quint32 edcWord = crc32(rawSector.data(), 2064);
 
         // Perform a CRC32 on bytes 0 to 2063 of the F1 frame
         if (originalEdcWord != edcWord) {
@@ -99,7 +97,6 @@ void RawSectorToSector::processQueue()
             }
 
             // Attempt Q and P parity error correction on the sector data
-            // Bytes 12 to 2075 are input into the RSPC encoder, Q the P
             Rspc rspc;
 
             // Make a local copy of the sector data
@@ -109,18 +106,18 @@ void RawSectorToSector::processQueue()
             rspc.qParityEcc(correctedData, correctedErrorData, m_showDebug);
             rspc.pParityEcc(correctedData, correctedErrorData, m_showDebug);
 
-            // Copy the corrected data back
+            // Copy the corrected data back to the raw sector
             rawSector.pushData(correctedData);
             rawSector.pushErrorData(correctedErrorData);
 
             // Check CRC again for the corrected data
             quint32 correctedEdcWord =
-                ((static_cast<quint32>(uF1DataOut[2064])) <<  0) |
-                ((static_cast<quint32>(uF1DataOut[2065])) <<  8) |
-                ((static_cast<quint32>(uF1DataOut[2066])) << 16) |
-                ((static_cast<quint32>(uF1DataOut[2067])) << 24);
+                ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
+                ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
+                ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2066]))) << 16) |
+                ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2067]))) << 24);
 
-            edcWord = crc32(uF1DataOut, 2064);
+            edcWord = crc32(rawSector.data(), 2064);
 
             // Perform a CRC32 on bytes 0 to 2063 of the F1 frame
             if (correctedEdcWord != edcWord) {
@@ -131,7 +128,7 @@ void RawSectorToSector::processQueue()
                 m_correctedSectors++;
             }
         } else {
-            if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data is correct.";
+            //if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data is correct.";
              m_validSectors++;
         }
 
@@ -228,12 +225,13 @@ quint8 RawSectorToSector::bcdToInt(quint8 bcd)
 
 // CRC code adapted and used under GPLv3 from:
 // https://github.com/claunia/edccchk/blob/master/edccchk.c
-quint32 RawSectorToSector::crc32(uchar *src, qint32 size)
+quint32 RawSectorToSector::crc32(const QByteArray &src, qint32 size)
 {
     quint32 crc = 0;
+    const uchar *data = reinterpret_cast<const uchar*>(src.constData());
 
     while(size--) {
-        crc = (crc >> 8) ^ m_crc32Lut[(crc ^ (*src++)) & 0xFF];
+        crc = (crc >> 8) ^ m_crc32Lut[(crc ^ (*data++)) & 0xFF];
     }
 
     return crc;
