@@ -42,6 +42,7 @@
 
 #include "dec_data24torawsector.h"
 #include "dec_rawsectortosector.h"
+#include "dec_sectorcorrection.h"
 
 #include "writer_data.h"
 #include "writer_wav.h"
@@ -60,7 +61,7 @@ public:
     void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
     void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData, bool outputDataMetadata);
     void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
-                  bool audioCorrection, bool rawSector, bool sector);
+                  bool audioCorrection, bool rawSector, bool sector, bool sectorCorrection);
     void showStatistics() const;
 
 private:
@@ -93,6 +94,7 @@ private:
     // ECMA-130 Decoders
     Data24ToRawSector m_data24ToRawSector;
     RawSectorToSector m_rawSectorToSector;
+    SectorCorrection m_sectorCorrection;
 
     // Input file readers
     ReaderData m_readerData;

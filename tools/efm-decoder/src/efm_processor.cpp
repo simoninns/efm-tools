@@ -133,6 +133,8 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         qInfo() << "";
         m_rawSectorToSector.showStatistics();
         qInfo() << "";
+        m_sectorCorrection.showStatistics();
+        qInfo() << "";
     }
 
     showGeneralPipelineStatistics();
@@ -286,9 +288,15 @@ void EfmProcessor::processDataPipeline()
     }
     m_dataPipelineStats.rawSectorToSectorTime += dataPipelineTimer.nsecsElapsed();
 
-    // Write out the sector data
+    // Sector correction processing
     while (m_rawSectorToSector.isReady()) {
         Sector sector = m_rawSectorToSector.popSector();
+        m_sectorCorrection.pushSector(sector);
+    }
+
+    // Write out the sector data
+    while (m_sectorCorrection.isReady()) {
+        Sector sector = m_sectorCorrection.popSector();
         m_writerSector.write(sector);
         if (m_outputDataMetadata)
             m_writerSectorMetadata.write(sector);
@@ -370,7 +378,7 @@ void EfmProcessor::setOutputType(bool outputRawAudio, bool outputWav, bool outpu
 }
 
 void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,
-                            bool audio, bool audioCorrection, bool rawSector, bool sector)
+                            bool audio, bool audioCorrection, bool rawSector, bool sector, bool sectorCorrection)
 {
     // Set the debug flags
     m_tValuesToChannel.setShowDebug(tvalue);
@@ -383,4 +391,5 @@ void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1
     m_audioCorrection.setShowDebug(audioCorrection);
     m_data24ToRawSector.setShowDebug(rawSector);
     m_rawSectorToSector.setShowDebug(sector);
+    m_sectorCorrection.setShowDebug(sectorCorrection);
 }

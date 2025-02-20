@@ -47,17 +47,10 @@ private:
     QQueue<RawSector> m_inputBuffer;
     QQueue<Sector> m_outputBuffer;
 
-    bool m_have_last_known_good;
-    SectorAddress m_last_known_good_address;
-    quint8 m_last_known_good_mode;
-    SectorAddress m_lastSectorAddress;
-    bool m_haveLastSectorAddress;
-
     // Statistics
     quint32 m_validSectors;
     quint32 m_invalidSectors;
     quint32 m_correctedSectors;
-    quint32 m_missingSectors;
 
     // This table is the CRC32 look-up for the EDC data
     const quint32 m_crc32Lut[256] = {

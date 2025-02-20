@@ -25,14 +25,9 @@
 #include "dec_rawsectortosector.h"
 
 RawSectorToSector::RawSectorToSector()
-    : m_have_last_known_good(false),
-    m_last_known_good_address(0, 0, 0),
-    m_last_known_good_mode(0),
-    m_validSectors(0),
+    : m_validSectors(0),
     m_invalidSectors(0),
-    m_correctedSectors(0),
-    m_haveLastSectorAddress(false),
-    m_missingSectors(0)
+    m_correctedSectors(0)
 {}
 
 void RawSectorToSector::pushSector(const RawSector &rawSector)
@@ -133,7 +128,7 @@ void RawSectorToSector::processQueue()
         SectorAddress sectorAddress(0, 0, 0);
         qint32 mode = 0;
 
-        // If the sector data is valid, we can simply extract the metadata
+        // If the raw sector data is valid, form a sector from it
         if (rawSectorValid) {
             // Extract the sector address data
             qint32 min = bcdToInt(rawSector.data()[12]);
@@ -146,82 +141,23 @@ void RawSectorToSector::processQueue()
             else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
             else if (static_cast<quint8>(rawSector.data()[15]) == 2) mode = 2;
             else mode = -1;
-
-            // Metadata is valid
-            m_have_last_known_good = true;
-            m_last_known_good_address = sectorAddress;
-            m_last_known_good_mode = mode;
-        } else {
-            // Sector data is invalid, we need to correct the metadata even
-            // though the sector data is invalid to keep the output correctly
-            // spaced
-            if (m_have_last_known_good) {
-                // Use the last known good address + 1
-                m_last_known_good_address++;
-
-                sectorAddress = m_last_known_good_address;
-                mode = m_last_known_good_mode;
-                if (m_showDebug) {
-                    qDebug() << "RawSectorToSector::processQueue(): Sector metadata is invalid. Replacing with last known good Address:" << sectorAddress.toString() << "Mode:" << mode;
-                }
-            } else {
-                // Use a default address
-                sectorAddress = SectorAddress(0, 0, 0);
-                mode = 1;
-                if (m_showDebug) {
-                    qDebug() << "RawSectorToSector::processQueue(): Sector metadata is invalid. Replacing with default Address:" << sectorAddress.toString() << "Mode:" << mode;
-                }
-            }
-        }
-
-        // Sanity check to ensure the sector doesn't repeat
-        if (sectorAddress == m_lastSectorAddress) {
-            if (m_showDebug) {
-                qWarning() << "RawSectorToSector::processQueue(): Sector is a repeat of the last sector. Address:" << sectorAddress.toString();
-                qFatal("RawSectorToSector::processQueue(): Sector is a repeat of the last sector - this is a bug");
-            }
-        }
-
-        // Is the sector in the correct sequential output position?
-        if ((sectorAddress != m_lastSectorAddress + 1) && m_haveLastSectorAddress) {
-            // The sector is not in the correct position
-            quint32 gap = sectorAddress.address() - m_lastSectorAddress.address() - 1;
-
-            if (m_showDebug) {
-                qWarning() << "RawSectorToSector::processQueue(): Sector is not in the correct position. Last good sector address:"
-                    << m_lastSectorAddress.address() << m_lastSectorAddress.toString()
-                    << "Current sector address:" << sectorAddress.address() << sectorAddress.toString() << "Gap:" << gap;
-            }
-
-            // Add missing sectors
-            for (int i = 0; i < gap; ++i) {
-                Sector missingSector;
-                missingSector.dataValid(false);
-                missingSector.setAddress(m_lastSectorAddress + 1 + i);
-                missingSector.setMode(1);
-                missingSector.pushData(QByteArray(2048, 0));
-                missingSector.pushErrorData(QByteArray(2048, 0));
-                m_outputBuffer.enqueue(missingSector);
-            }
-
-            m_missingSectors += gap;
-        }
-        m_lastSectorAddress = sectorAddress;
-        m_haveLastSectorAddress = true;
-
-        // Create an output sector
-        Sector sector;
-        sector.dataValid(rawSectorValid);
-        sector.setAddress(sectorAddress);
-        sector.setMode(mode);
         
-        // Push only the user data to the output sector (bytes 16 to 2063 = 2KBytes data)
-        sector.pushData(rawSector.data().mid(16, 2048));
-        sector.pushErrorData(rawSector.errorData().mid(16, 2048));
+            // Create an output sector
+            Sector sector;
+            sector.dataValid(rawSectorValid);
+            sector.setAddress(sectorAddress);
+            sector.setMode(mode);
+            
+            // Push only the user data to the output sector (bytes 16 to 2063 = 2KBytes data)
+            sector.pushData(rawSector.data().mid(16, 2048));
+            sector.pushErrorData(rawSector.errorData().mid(16, 2048));
 
-        // Add the sector to the output buffer
-        qDebug() << "RawSectorToSector::processQueue(): Pushing sector to output buffer. Address:" << sector.address().toString() << "Mode:" << sector.mode();
-        m_outputBuffer.enqueue(sector);
+            // Add the sector to the output buffer
+            m_outputBuffer.enqueue(sector);
+        } else {
+            // Sector is invalid - discard it
+            m_invalidSectors++;
+        }
     }
 }
 
@@ -248,9 +184,6 @@ quint32 RawSectorToSector::crc32(const QByteArray &src, qint32 size)
 void RawSectorToSector::showStatistics()
 {
     qInfo() << "Raw Sector to Sector (RSPC error-correction):";
-    qInfo() << "  Valid sectors:" << m_validSectors;
-    qInfo() << "  Corrected sectors:" << m_correctedSectors;
+    qInfo() << "  Valid sectors:" << m_validSectors + m_correctedSectors << " (corrected:" << m_correctedSectors << ")";
     qInfo() << "  Invalid sectors:" << m_invalidSectors;
-    qInfo() << "  Missing sectors:" << m_missingSectors;
-    qInfo() << "  Total sectors:" << m_validSectors + m_invalidSectors + m_correctedSectors;
 }

@@ -121,6 +121,8 @@ int main(int argc, char *argv[])
                 QCoreApplication::translate("main", "Show Data24 to raw sector decoding debug")),
         QCommandLineOption("show-sector-debug",
                 QCoreApplication::translate("main", "Show raw sector to sector decoding debug")),
+        QCommandLineOption("show-sector-correction-debug",
+                QCoreApplication::translate("main", "Show sector correction decoding debug")),
         QCommandLineOption("show-all-ecma-debug",
                 QCoreApplication::translate("main", "Show all ECMA spec (CD-ROM) decoding debug")),
     };
@@ -192,6 +194,7 @@ int main(int argc, char *argv[])
     bool showAllIecDebug = parser.isSet("show-all-iec-debug");
     bool showRawSectorDebug = parser.isSet("show-rawsector-debug");
     bool showSectorDebug = parser.isSet("show-sector-debug");
+    bool showSectorCorrectionDebug = parser.isSet("show-sector-correction-debug");
     bool showAllEcmaDebug = parser.isSet("show-all-ecma-debug");
 
     if (showAllIecDebug) {
@@ -208,6 +211,7 @@ int main(int argc, char *argv[])
     if (showAllEcmaDebug) {
         showRawSectorDebug = true;
         showSectorDebug = true;
+        showSectorCorrectionDebug = true;
     }
 
     // Get the filename arguments from the parser
@@ -230,7 +234,7 @@ int main(int argc, char *argv[])
     efmProcessor.setOutputType(outputRawAudio, outputWav, outputWavMetadata, noAudioConcealment, outputData, outputDataMetadata);
     efmProcessor.setDebug(showTValuesDebug, showChannelDebug, showF3Debug, showF2CorrectDebug,
                           showF2Debug, showF1Debug, showAudioDebug, showAudioCorrectionDebug,
-                          showRawSectorDebug, showSectorDebug);
+                          showRawSectorDebug, showSectorDebug, showSectorCorrectionDebug);
 
     if (!efmProcessor.process(inputFilename, outputFilename)) {
         return 1;
