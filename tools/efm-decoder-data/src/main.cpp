@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
     processStandardDebugOptions(parser);
 
     // Check for output data type options
-    bool outputData = parser.isSet("output-data");
     bool outputDataMetadata = parser.isSet("output-data-metadata");
 
     // Check for frame data options
@@ -135,7 +134,7 @@ int main(int argc, char *argv[])
     EfmProcessor efmProcessor;
 
     efmProcessor.setShowData(showRawSector);
-    efmProcessor.setOutputType(outputData, outputDataMetadata);
+    efmProcessor.setOutputType(outputDataMetadata);
     efmProcessor.setDebug(showRawSectorDebug, showSectorDebug, showSectorCorrectionDebug);
 
     if (!efmProcessor.process(inputFilename, outputFilename)) {

@@ -56,7 +56,6 @@ private:
     bool m_showRawSector;
 
     // Output options
-    bool m_outputData;
     bool m_outputDataMetadata;
 
     // ECMA-130 Decoders
