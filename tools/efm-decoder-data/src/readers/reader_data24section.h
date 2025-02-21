@@ -1,13 +1,13 @@
 /************************************************************************
 
-    reader_f2section.h
+    reader_data24section.h
 
-    ld-efm-decoder - EFM data encoder
+    efm-decoder-data - EFM Data24 to data decoder
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This application is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,8 +22,8 @@
 
 ************************************************************************/
 
-#ifndef READER_F2SECTION_H
-#define READER_F2SECTION_H
+#ifndef READER_DATA24SECTION_H
+#define READER_DATA24SECTION_H
 
 #include <QString>
 #include <QDebug>
@@ -31,14 +31,14 @@
 #include <QDataStream>
 #include "section.h"
 
-class ReaderF2Section
+class ReaderData24Section
 {
 public:
-    ReaderF2Section();
-    ~ReaderF2Section();
+    ReaderData24Section();
+    ~ReaderData24Section();
 
     bool open(const QString &filename);
-    F2Section read();
+    Data24Section read();
     void close();
     qint64 size();
 
@@ -48,4 +48,4 @@ private:
     qint64 m_fileSizeInSections;
 };
 
-#endif // READER_F2SECTION_H
+#endif // READER_DATA24SECTION_H

@@ -2,12 +2,12 @@
 
     efm_processor.h
 
-    ld-efm-decoder - EFM data encoder
+    efm-decoder-data - EFM Data24 to data decoder
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This application is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -31,22 +31,14 @@
 #include <QElapsedTimer>
 
 #include "decoders.h"
-#include "dec_f2sectiontof1section.h"
-#include "dec_f1sectiontodata24section.h"
-#include "dec_data24toaudio.h"
-#include "dec_audiocorrection.h"
-
 #include "dec_data24torawsector.h"
 #include "dec_rawsectortosector.h"
 #include "dec_sectorcorrection.h"
 
-#include "writer_data.h"
-#include "writer_wav.h"
-#include "writer_wav_metadata.h"
 #include "writer_sector.h"
 #include "writer_sector_metadata.h"
 
-#include "reader_f2section.h"
+#include "reader_data24section.h"
 
 class EfmProcessor
 {
@@ -54,33 +46,18 @@ public:
     EfmProcessor();
 
     bool process(const QString &inputFilename, const QString &outputFilename);
-    void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1);
-    void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata,
-        bool noAudioConcealment, bool outputData, bool outputDataMetadata);
-    void setDebug(bool f1, bool data24, bool audio, bool audioCorrection,
-        bool rawSector, bool sector, bool sectorCorrection);
+    void setShowData(bool showRawSector);
+    void setOutputType(bool outputDataMetadata);
+    void setDebug(bool rawSector, bool sector, bool sectorCorrection);
     void showStatistics() const;
 
 private:
     // Data debug options (to show data at various stages of processing)
     bool m_showRawSector;
-    bool m_showAudio;
-    bool m_showData24;
-    bool m_showF1;
 
     // Output options
-    bool m_outputRawAudio;
-    bool m_outputWav;
-    bool m_outputWavMetadata;
-    bool m_noAudioConcealment;
     bool m_outputData;
     bool m_outputDataMetadata;
-
-    // IEC 60909-1999 Decoders
-    F2SectionToF1Section m_f2SectionToF1Section;
-    F1SectionToData24Section m_f1SectionToData24Section;
-    Data24ToAudio m_data24ToAudio;
-    AudioCorrection m_audioCorrection;
 
     // ECMA-130 Decoders
     Data24ToRawSector m_data24ToRawSector;
@@ -88,37 +65,19 @@ private:
     SectorCorrection m_sectorCorrection;
 
     // Input file readers
-    ReaderF2Section m_readerF2Section;
+    ReaderData24Section m_readerData24Section;
 
     // Output file writers
-    WriterData m_writerData;
-    WriterWav m_writerWav;
-    WriterWavMetadata m_writerWavMetadata;
     WriterSector m_writerSector;
     WriterSectorMetadata m_writerSectorMetadata;
 
     // Processing statistics
-    struct GeneralPipelineStatistics {
-        qint64 f2SectionToF1SectionTime{0};
-        qint64 f1ToData24Time{0};
-    } m_generalPipelineStats;
-
-    struct AudioPipelineStatistics {
-        qint64 data24ToAudioTime{0};
-        qint64 audioCorrectionTime{0};
-    } m_audioPipelineStats;
-
     struct DataPipelineStatistics {
         qint64 data24ToRawSectorTime{0};
         qint64 rawSectorToSectorTime{0};
     } m_dataPipelineStats;
 
-    void processGeneralPipeline();
-    void processAudioPipeline();
     void processDataPipeline();
-
-    void showGeneralPipelineStatistics();
-    void showAudioPipelineStatistics();
     void showDataPipelineStatistics();
 };
 

@@ -1,13 +1,13 @@
 /************************************************************************
 
-    reader_f2section.cpp
+    reader_data24section.cpp
 
-    ld-efm-decoder - EFM data encoder
+    efm-decoder-data - EFM Data24 to data decoder
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This application is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,25 +22,25 @@
 
 ************************************************************************/
 
-#include "reader_f2section.h"
+#include "reader_data24section.h"
 
-ReaderF2Section::ReaderF2Section() :
+ReaderData24Section::ReaderData24Section() :
     m_dataStream(nullptr),
     m_fileSizeInSections(0)
 {}
 
-ReaderF2Section::~ReaderF2Section()
+ReaderData24Section::~ReaderData24Section()
 {
     if (m_file.isOpen()) {
         m_file.close();
     }
 }
 
-bool ReaderF2Section::open(const QString &filename)
+bool ReaderData24Section::open(const QString &filename)
 {
     m_file.setFileName(filename);
     if (!m_file.open(QIODevice::ReadOnly)) {
-        qCritical() << "ReaderF2Section::open() - Could not open file" << filename << "for reading";
+        qCritical() << "ReaderData24Section::open() - Could not open file" << filename << "for reading";
         return false;
     }
 
@@ -56,7 +56,7 @@ bool ReaderF2Section::open(const QString &filename)
     
     // Count number of F2Sections by reading through file
     while (!m_dataStream->atEnd()) {
-        F2Section dummy;
+        Data24Section dummy;
         *m_dataStream >> dummy;
         m_fileSizeInSections++;
     }
@@ -64,23 +64,23 @@ bool ReaderF2Section::open(const QString &filename)
     // Restore original position
     m_file.seek(currentPos);
 
-    qDebug() << "ReaderF2Section::open() - Opened file" << filename << "for data reading containing" << size() << "F2 Section objects";
+    qDebug() << "ReaderData24Section::open() - Opened file" << filename << "for data reading containing" << size() << "F2 Section objects";
     return true;
 }
 
-F2Section ReaderF2Section::read()
+Data24Section ReaderData24Section::read()
 {
     if (!m_file.isOpen()) {
-        qCritical() << "ReaderF2Section::read() - File is not open for reading";
-        return F2Section();
+        qCritical() << "ReaderData24Section::read() - File is not open for reading";
+        return Data24Section();
     }
 
-    F2Section f2Section;
-    *m_dataStream >> f2Section;
-    return f2Section;
+    Data24Section data24Section;
+    *m_dataStream >> data24Section;
+    return data24Section;
 }
 
-void ReaderF2Section::close()
+void ReaderData24Section::close()
 {
     if (!m_file.isOpen()) {
         return;
@@ -91,11 +91,10 @@ void ReaderF2Section::close()
     m_dataStream = nullptr;
 
     m_file.close();
-    qDebug() << "ReaderF2Section::close(): Closed the data file" << m_file.fileName();
+    qDebug() << "ReaderData24Section::close(): Closed the data file" << m_file.fileName();
 }
 
-// This is not really optimal... TODO: Implement a better way to get the number of F2Sections
-qint64 ReaderF2Section::size()
+qint64 ReaderData24Section::size()
 {
     return m_fileSizeInSections;
 }
