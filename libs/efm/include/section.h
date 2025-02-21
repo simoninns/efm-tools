@@ -79,6 +79,9 @@ public:
     void clear();
     void showData();
 
+    friend QDataStream& operator<<(QDataStream& stream, const Data24Section& section);
+    friend QDataStream& operator>>(QDataStream& stream, Data24Section& section);
+
     SectionMetadata metadata;
 
 private:
