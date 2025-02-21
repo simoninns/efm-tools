@@ -25,6 +25,7 @@ add_compile_definitions(APP_COMMIT=\"${GIT_COMMIT_HASH}\")
 
 # Add subdirectories
 add_subdirectory(libs/efm)
-add_subdirectory(tools/efm-decoder)
 add_subdirectory(tools/efm-decoder-f2)
 add_subdirectory(tools/efm-decoder-d24)
+add_subdirectory(tools/efm-decoder-audio)
+add_subdirectory(tools/efm-decoder-data)

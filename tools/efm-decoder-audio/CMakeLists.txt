@@ -1,5 +1,5 @@
 # Set the target name
-set(TARGET_NAME efm-decoder)
+set(TARGET_NAME efm-decoder-audio)
 
 # Find the Qt library
 set(CMAKE_AUTOMOC ON)
