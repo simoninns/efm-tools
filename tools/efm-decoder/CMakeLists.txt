@@ -23,7 +23,7 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/decoders
     ${CMAKE_CURRENT_SOURCE_DIR}/src/readers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/writers
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/library
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/efm/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/ezpwd/c++
     ${Qt5Core_INCLUDE_DIRS}
     ${Qt5Widgets_INCLUDE_DIRS}
@@ -31,5 +31,11 @@ target_include_directories(${TARGET_NAME} PRIVATE
 
 # Link the Qt libraries
 target_link_libraries(${TARGET_NAME} PRIVATE Qt::Core)
+
+# Link the efm library to your target
+target_link_libraries(${TARGET_NAME} PRIVATE efm)
+
+# Add the library directory for the EFM library
+target_link_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/../../libs/efm/lib)
 
 install(TARGETS ${TARGET_NAME})
