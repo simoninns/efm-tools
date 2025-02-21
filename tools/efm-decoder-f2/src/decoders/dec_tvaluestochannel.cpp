@@ -2,12 +2,12 @@
 
     dec_tvaluestochannel.cpp
 
-    ld-efm-decoder - EFM data decoder
+    efm-decoder-f2 - EFM T-values to F2 Section decoder
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This application is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.

@@ -26,6 +26,7 @@
 #define SECTION_H
 
 #include <QVector>
+#include <QDataStream>
 #include "frame.h"
 #include "audio.h"
 #include "section_metadata.h"
@@ -40,6 +41,9 @@ public:
     bool isComplete() const;
     void clear();
     void showData();
+
+    friend QDataStream& operator<<(QDataStream& stream, const F2Section& section);
+    friend QDataStream& operator>>(QDataStream& stream, F2Section& section);
 
     SectionMetadata metadata;
 

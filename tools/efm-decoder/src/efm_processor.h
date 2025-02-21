@@ -31,10 +31,6 @@
 #include <QElapsedTimer>
 
 #include "decoders.h"
-#include "dec_tvaluestochannel.h"
-#include "dec_channeltof3frame.h"
-#include "dec_f3frametof2section.h"
-#include "dec_f2sectioncorrection.h"
 #include "dec_f2sectiontof1section.h"
 #include "dec_f1sectiontodata24section.h"
 #include "dec_data24toaudio.h"
@@ -50,7 +46,7 @@
 #include "writer_sector.h"
 #include "writer_sector_metadata.h"
 
-#include "reader_data.h"
+#include "reader_f2section.h"
 
 class EfmProcessor
 {
@@ -58,10 +54,11 @@ public:
     EfmProcessor();
 
     bool process(const QString &inputFilename, const QString &outputFilename);
-    void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2, bool showF3);
-    void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata, bool noAudioConcealment, bool outputData, bool outputDataMetadata);
-    void setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24, bool audio,
-                  bool audioCorrection, bool rawSector, bool sector, bool sectorCorrection);
+    void setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1);
+    void setOutputType(bool outputRawAudio, bool outputWav, bool outputWavMetadata,
+        bool noAudioConcealment, bool outputData, bool outputDataMetadata);
+    void setDebug(bool f1, bool data24, bool audio, bool audioCorrection,
+        bool rawSector, bool sector, bool sectorCorrection);
     void showStatistics() const;
 
 private:
@@ -70,8 +67,6 @@ private:
     bool m_showAudio;
     bool m_showData24;
     bool m_showF1;
-    bool m_showF2;
-    bool m_showF3;
 
     // Output options
     bool m_outputRawAudio;
@@ -82,10 +77,6 @@ private:
     bool m_outputDataMetadata;
 
     // IEC 60909-1999 Decoders
-    TvaluesToChannel m_tValuesToChannel;
-    ChannelToF3Frame m_channelToF3;
-    F3FrameToF2Section m_f3FrameToF2Section;
-    F2SectionCorrection m_f2SectionCorrection;
     F2SectionToF1Section m_f2SectionToF1Section;
     F1SectionToData24Section m_f1SectionToData24Section;
     Data24ToAudio m_data24ToAudio;
@@ -97,7 +88,7 @@ private:
     SectorCorrection m_sectorCorrection;
 
     // Input file readers
-    ReaderData m_readerData;
+    ReaderF2Section m_readerF2Section;
 
     // Output file writers
     WriterData m_writerData;
@@ -108,9 +99,6 @@ private:
 
     // Processing statistics
     struct GeneralPipelineStatistics {
-        qint64 channelToF3Time{0};
-        qint64 f3ToF2Time{0};
-        qint64 f2CorrectionTime{0};
         qint64 f2SectionToF1SectionTime{0};
         qint64 f1ToData24Time{0};
     } m_generalPipelineStats;

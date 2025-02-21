@@ -40,6 +40,21 @@ QString SectionType::toString() const
     }
 }
 
+// Stream operators for SectionType
+QDataStream &operator>>(QDataStream &in, SectionType &type)
+{
+    qint32 rawType;
+    in >> rawType;
+    type.setType(static_cast<SectionType::Type>(rawType));
+    return in;
+}
+
+QDataStream &operator<<(QDataStream &out, const SectionType &type)
+{
+    out << static_cast<qint32>(type.type());
+    return out;
+}
+
 // Section time class
 // ---------------------------------------------------------------------------------------------------
 SectionTime::SectionTime() : m_frames(0)
@@ -140,6 +155,21 @@ quint8 SectionTime::intToBcd(quint32 value)
     return bcd & 0xFF;
 }
 
+// Stream operators for SectionTime
+QDataStream &operator>>(QDataStream &in, SectionTime &time)
+{
+    qint32 frames;
+    in >> frames;
+    time.setFrames(frames);
+    return in;
+}
+
+QDataStream &operator<<(QDataStream &out, const SectionTime &time)
+{
+    out << time.frames();
+    return out;
+}
+
 // Section metadata class
 // -----------------------------------------------------------------------------------------------
 void SectionMetadata::setSectionType(const SectionType &sectionType)
@@ -168,4 +198,55 @@ void SectionMetadata::setTrackNumber(quint8 trackNumber)
     if ((m_sectionType.type() == SectionType::UserData) && (m_trackNumber < 1 || m_trackNumber > 98)) {
         m_trackNumber = 1;
     }
+}
+
+// Stream operators for SectionMetadata
+QDataStream &operator>>(QDataStream &in, SectionMetadata &metadata)
+{
+    // Read section type and times
+    in >> metadata.m_sectionType;
+    in >> metadata.m_sectionTime;
+    in >> metadata.m_absoluteSectionTime;
+    
+    // Read track number
+    in >> metadata.m_trackNumber;
+    
+    // Read boolean flags
+    in >> metadata.m_isValid;
+    in >> metadata.m_isAudio;
+    in >> metadata.m_isCopyProhibited;
+    in >> metadata.m_hasPreemphasis;
+    in >> metadata.m_is2Channel;
+    in >> metadata.m_pFlag;
+    
+    // Read Q mode
+    qint32 qMode;
+    in >> qMode;
+    metadata.m_qMode = static_cast<SectionMetadata::QMode>(qMode);
+    
+    return in;
+}
+
+QDataStream &operator<<(QDataStream &out, const SectionMetadata &metadata)
+{
+    // Write section type and times
+    out << metadata.m_sectionType;
+    out << metadata.m_sectionTime;
+    out << metadata.m_absoluteSectionTime;
+    
+    // Write track number
+    out << metadata.m_trackNumber;
+    
+    // Write boolean flags
+    out << metadata.m_isValid;
+    out << metadata.m_isAudio;
+    out << metadata.m_isCopyProhibited;
+    out << metadata.m_hasPreemphasis;
+    out << metadata.m_is2Channel;
+    out << metadata.m_pFlag;
+    
+    // Write Q mode
+    out << static_cast<qint32>(metadata.m_qMode);
+    
+    return out;
 }

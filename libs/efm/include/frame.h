@@ -26,6 +26,7 @@
 #define FRAME_H
 
 #include <QVector>
+#include <QDataStream>
 #include <cstdint>
 #include <QDebug>
 
@@ -45,6 +46,10 @@ public:
 
     bool isFull() const;
     bool isEmpty() const;
+
+    // Add serialization operators
+    friend QDataStream& operator<<(QDataStream& out, const Frame& frame);
+    friend QDataStream& operator>>(QDataStream& in, Frame& frame);
 
 protected:
     QVector<quint8> m_frameData;

@@ -93,6 +93,24 @@ bool Frame::isEmpty() const
     return m_frameData.isEmpty();
 }
 
+QDataStream& operator<<(QDataStream& out, const Frame& frame)
+{
+    // Write frame data
+    out << frame.m_frameData;
+    // Write error data
+    out << frame.m_frameErrorData;
+    return out;
+}
+
+QDataStream& operator>>(QDataStream& in, Frame& frame)
+{
+    // Read frame data
+    in >> frame.m_frameData;
+    // Read error data
+    in >> frame.m_frameErrorData;
+    return in;
+}
+
 // Constructor for Data24, initializes data to the frame size
 Data24::Data24()
 {

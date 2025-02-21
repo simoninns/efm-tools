@@ -207,3 +207,41 @@ void AudioSection::showData()
         m_frames[i].showData();
     }
 }
+
+QDataStream& operator<<(QDataStream& stream, const F2Section& section)
+{
+    // Write metadata
+    stream << section.metadata;
+    
+    // Write number of frames
+    stream << static_cast<qint32>(section.m_frames.size());
+    
+    // Write frames
+    for (const auto& frame : section.m_frames) {
+        stream << frame;
+    }
+    
+    return stream;
+}
+
+QDataStream& operator>>(QDataStream& stream, F2Section& section)
+{
+    // Clear existing data
+    section.clear();
+    
+    // Read metadata
+    stream >> section.metadata;
+    
+    // Read number of frames
+    qint32 frameCount;
+    stream >> frameCount;
+    
+    // Read frames
+    for (qint32 i = 0; i < frameCount; ++i) {
+        F2Frame frame;
+        stream >> frame;
+        section.pushFrame(frame);
+    }
+    
+    return stream;
+}

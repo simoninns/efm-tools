@@ -28,8 +28,6 @@ EfmProcessor::EfmProcessor() :
     m_showAudio(false),
     m_showData24(false),
     m_showF1(false),
-    m_showF2(false),
-    m_showF3(false),
     m_outputData(false),
     m_outputWav(false),
     m_outputWavMetadata(false),
@@ -38,12 +36,12 @@ EfmProcessor::EfmProcessor() :
 
 bool EfmProcessor::process(const QString &inputFilename, const QString &outputFilename)
 {
-    qDebug() << "EfmProcessor::process(): Decoding EFM from file:" << inputFilename
+    qDebug() << "EfmProcessor::process(): Decoding F2 Sections from file:" << inputFilename
              << "to file:" << outputFilename;
 
     // Prepare the input file reader
-    if (!m_readerData.open(inputFilename)) {
-        qDebug() << "EfmProcessor::process(): Failed to open input file:" << inputFilename;
+    if (!m_readerF2Section.open(inputFilename)) {
+        qDebug() << "EfmProcessor::process(): Failed to open input F2 Section file:" << inputFilename;
         return false;
     }
 
@@ -70,36 +68,22 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         m_writerSectorMetadata.open(metadataFilename);
     }
 
-    // Get the total size of the input file for progress reporting
-    qint64 totalSize = m_readerData.size();
-    qint64 processedSize = 0;
-    int lastProgress = 0;
-
-    // Process the EFM data in chunks of 1024 T-values
-    bool endOfData = false;
-    while (!endOfData) {
-        // Read 1024 T-values from the input file
-        QByteArray tValues = m_readerData.read(1024);
-        processedSize += tValues.size();
-
-        int progress = static_cast<int>((processedSize * 100) / totalSize);
-        if (progress >= lastProgress + 5) { // Show progress every 5%
-            qInfo() << "Progress:" << progress << "%";
-            lastProgress = progress;
-        }
-
-        if (tValues.isEmpty()) {
-            endOfData = true;
-        } else {
-            m_tValuesToChannel.pushFrame(tValues);
-        }
-
+    // Process the F2 Section data
+    for (int index = 0; index < m_readerF2Section.size(); ++index) {
+        m_f2SectionToF1Section.pushSection(m_readerF2Section.read());
         processGeneralPipeline();
+
+        // Every 500 sections show progress
+        if (index % 500 == 0) {
+            // Calculate the percentage complete
+            float percentageComplete = (index / static_cast<float>(m_readerF2Section.size())) * 100.0;
+            qInfo().nospace().noquote() << "Decoding F2 Section " << index << " of " << m_readerF2Section.size() << " (" << QString::number(percentageComplete, 'f', 2) << "%)";
+        }
     }
 
     // We are out of data flush the pipeline and process it one last time
     qInfo() << "Flushing decoding pipelines";
-    m_f2SectionCorrection.flush();
+    // Nothing to do here at the moment...
 
     qInfo() << "Processing final pipeline data";
     processGeneralPipeline();
@@ -107,14 +91,7 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     // Show summary
     qInfo() << "Decoding complete";
 
-    m_tValuesToChannel.showStatistics();
-    qInfo() << "";
-    m_channelToF3.showStatistics();
-    qInfo() << "";
-    m_f3FrameToF2Section.showStatistics();
-    qInfo() << "";
-    m_f2SectionCorrection.showStatistics();
-    qInfo() << "";
+    // Show statistics
     m_f2SectionToF1Section.showStatistics();
     qInfo() << "";
     m_f1SectionToData24Section.showStatistics();
@@ -147,7 +124,7 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     }
 
     // Close the input file
-    m_readerData.close();
+    m_readerF2Section.close();
 
     // Close the output files
     if (m_writerData.isOpen()) m_writerData.close();
@@ -162,42 +139,6 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
 void EfmProcessor::processGeneralPipeline()
 {
     QElapsedTimer pipelineTimer;
-
-    // T-values to Channel processing
-    pipelineTimer.start();
-    while (m_tValuesToChannel.isReady()) {
-        QByteArray channelData = m_tValuesToChannel.popFrame();
-        m_channelToF3.pushFrame(channelData);
-    }
-    m_generalPipelineStats.channelToF3Time += pipelineTimer.nsecsElapsed();
-
-    // Channel to F3 processing
-    pipelineTimer.restart();
-    while (m_channelToF3.isReady()) {
-        F3Frame f3Frame = m_channelToF3.popFrame();
-        if (m_showF3)
-            f3Frame.showData();
-        m_f3FrameToF2Section.pushFrame(f3Frame);
-    }
-    m_generalPipelineStats.f3ToF2Time += pipelineTimer.nsecsElapsed();
-
-    // F3 to F2 section processing
-    pipelineTimer.restart();
-    while (m_f3FrameToF2Section.isReady()) {
-        F2Section section = m_f3FrameToF2Section.popSection();
-        m_f2SectionCorrection.pushSection(section);
-    }
-    m_generalPipelineStats.f2CorrectionTime += pipelineTimer.nsecsElapsed();
-
-    // F2 correction processing
-    pipelineTimer.restart();
-    while (m_f2SectionCorrection.isReady()) {
-        F2Section f2Section = m_f2SectionCorrection.popSection();
-        if (m_showF2)
-            f2Section.showData();
-        m_f2SectionToF1Section.pushSection(f2Section);
-    }
-    m_generalPipelineStats.f2SectionToF1SectionTime += pipelineTimer.nsecsElapsed();
 
     // F2 to F1 processing
     pipelineTimer.restart();
@@ -307,15 +248,10 @@ void EfmProcessor::showGeneralPipelineStatistics()
 {
     qInfo() << "Decoder processing summary (general):";
 
-    qInfo() << "  Channel to F3 processing time:" << m_generalPipelineStats.channelToF3Time / 1000000 << "ms";
-    qInfo() << "  F3 to F2 section processing time:" << m_generalPipelineStats.f3ToF2Time / 1000000 << "ms";
-    qInfo() << "  F2 correction processing time:" << m_generalPipelineStats.f2CorrectionTime / 1000000 << "ms";
     qInfo() << "  F2 to F1 processing time:" << m_generalPipelineStats.f2SectionToF1SectionTime / 1000000 << "ms";
     qInfo() << "  F1 to Data24 processing time:" << m_generalPipelineStats.f1ToData24Time / 1000000 << "ms";
 
-    qint64 totalProcessingTime = m_generalPipelineStats.channelToF3Time +
-                                 m_generalPipelineStats.f3ToF2Time + m_generalPipelineStats.f2CorrectionTime +
-                                 m_generalPipelineStats.f2SectionToF1SectionTime +
+    qint64 totalProcessingTime = m_generalPipelineStats.f2SectionToF1SectionTime +
                                  m_generalPipelineStats.f1ToData24Time;
     float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
     qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
@@ -350,15 +286,12 @@ void EfmProcessor::showDataPipelineStatistics()
     qInfo() << "";
 }
 
-void EfmProcessor::setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1, bool showF2,
-                               bool showF3)
+void EfmProcessor::setShowData(bool showRawSector, bool showAudio, bool showData24, bool showF1)
 {
     m_showRawSector = showRawSector;
     m_showAudio = showAudio;
     m_showData24 = showData24;
     m_showF1 = showF1;
-    m_showF2 = showF2;
-    m_showF3 = showF3;
 }
 
 // Set the output data type (true for WAV, false for raw)
@@ -377,14 +310,10 @@ void EfmProcessor::setOutputType(bool outputRawAudio, bool outputWav, bool outpu
     }
 }
 
-void EfmProcessor::setDebug(bool tvalue, bool channel, bool f3, bool f2, bool f1, bool data24,
-                            bool audio, bool audioCorrection, bool rawSector, bool sector, bool sectorCorrection)
+void EfmProcessor::setDebug(bool f1, bool data24, bool audio, bool audioCorrection, bool rawSector,
+    bool sector, bool sectorCorrection)
 {
     // Set the debug flags
-    m_tValuesToChannel.setShowDebug(tvalue);
-    m_channelToF3.setShowDebug(channel);
-    m_f3FrameToF2Section.setShowDebug(f3);
-    m_f2SectionCorrection.setShowDebug(f2);
     m_f2SectionToF1Section.setShowDebug(f1);
     m_f1SectionToData24Section.setShowDebug(data24);
     m_data24ToAudio.setShowDebug(audio);

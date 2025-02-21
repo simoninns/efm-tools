@@ -28,6 +28,7 @@
 #include <QDebug>
 #include <QVector>
 #include <QtGlobal>
+#include <QDataStream>
 
 // Section time class - stores ECMA-130 frame time as minutes, seconds, and frames (1/75th of a
 // second)
@@ -96,6 +97,9 @@ public:
         return SectionTime(m_frames - frames);
     }
 
+    friend QDataStream &operator>>(QDataStream &in, SectionTime &time);
+    friend QDataStream &operator<<(QDataStream &out, const SectionTime &time);
+
 private:
     qint32 m_frames;
     static quint8 intToBcd(quint32 value);
@@ -117,6 +121,9 @@ public:
 
     bool operator==(const SectionType &other) const { return m_type == other.m_type; }
     bool operator!=(const SectionType &other) const { return m_type != other.m_type; }
+
+    friend QDataStream &operator>>(QDataStream &in, SectionType &type);
+    friend QDataStream &operator<<(QDataStream &out, const SectionType &type);
 
 private:
     Type m_type;
@@ -176,6 +183,9 @@ public:
 
     bool isValid() const { return m_isValid; }
     void setValid(bool valid) { m_isValid = valid; }
+
+    friend QDataStream &operator>>(QDataStream &in, SectionMetadata &metadata);
+    friend QDataStream &operator<<(QDataStream &out, const SectionMetadata &metadata);
 
 private:
     // P-Channel metadata

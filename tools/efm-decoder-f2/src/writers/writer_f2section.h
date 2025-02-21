@@ -1,13 +1,13 @@
 /************************************************************************
 
-    reader_data.h
+    writer_f2section.h
 
-    ld-efm-decoder - EFM data encoder
+    efm-decoder-f2 - EFM T-values to F2 Section decoder
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
 
-    ld-efm-decoder is free software: you can redistribute it and/or
+    This application is free software: you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -22,26 +22,31 @@
 
 ************************************************************************/
 
-#ifndef READER_DATA_H
-#define READER_DATA_H
+#ifndef WRITER_F2SECTION_H
+#define WRITER_F2SECTION_H
 
 #include <QString>
 #include <QDebug>
 #include <QFile>
+#include <QDataStream>
 
-class ReaderData
+#include "section.h"
+
+class WriterF2Section
 {
 public:
-    ReaderData();
-    ~ReaderData();
+    WriterF2Section();
+    ~WriterF2Section();
 
     bool open(const QString &filename);
-    QByteArray read(uint32_t chunkSize);
+    void write(const F2Section &f2Section);
     void close();
     qint64 size() const;
+    bool isOpen() const { return m_file.isOpen(); };
 
 private:
     QFile m_file;
+    QDataStream* m_dataStream;
 };
 
-#endif // READER_DATA_H
+#endif // WRITER_F2SECTION_H
