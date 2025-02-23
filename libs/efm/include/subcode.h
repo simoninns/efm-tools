@@ -49,6 +49,7 @@ private:
     quint16 calculateQChannelCrc16(const QByteArray &data);
     bool repairData(QByteArray &qChannelData);
 
+    quint8 countBits(quint8 byteValue);
     quint8 intToBcd2(quint8 value);
     quint8 bcd2ToInt(quint8 bcd);
 

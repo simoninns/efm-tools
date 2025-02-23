@@ -49,7 +49,26 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
     SectionMetadata sectionMetadata;
 
     // Set the p-channel (p-channel is just repeating flag)
-    sectionMetadata.setPFlag(static_cast<char>(pChannelData[0]) != 0);
+    // For correction purposes we will count the number of 0s and 1s
+    // and set the flag to the majority value
+    int oneCount = 0;
+    for (int index = 2; index < pChannelData.size(); ++index) {
+        // Count the number of bits set to 1 in pChannelData[index]
+        oneCount += countBits(static_cast<quint8>(pChannelData[index]));
+    }
+
+    if (oneCount != 96 && oneCount != 0) {
+        if (m_showDebug) {
+            qDebug() << "Subcode::fromData(): P channel data contains" << 96-oneCount << "zeros and"
+                     << oneCount << "ones - indicating some p-channel corruption"; 
+        }
+    }
+
+    if (oneCount > (96/2)) {
+        sectionMetadata.setPFlag(true);
+    } else {
+        sectionMetadata.setPFlag(false);
+    }
 
     // Set the q-channel
     // If the q-channel CRC is not valid, attempt to repair the data
@@ -250,6 +269,16 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
 
     // All done!
     return sectionMetadata;
+}
+
+quint8 Subcode::countBits(quint8 byteValue)
+{
+    quint8 count = 0;
+    for (int i = 0; i < 8; ++i) {
+        if (byteValue & (1 << i))
+            count++;
+    }
+    return count;
 }
 
 // Takes a FrameMetadata object and returns 98 bytes of subcode data
