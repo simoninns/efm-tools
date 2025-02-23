@@ -27,6 +27,7 @@
 Data24ToRawSector::Data24ToRawSector()
     : m_validSectorCount(0),
       m_discardedBytes(0),
+      m_discardedPaddingBytes(0),
       m_missedSyncPatternCount(0),
       m_goodSyncPatternCount(0),
       m_syncLostCount(0),
@@ -63,16 +64,26 @@ void Data24ToRawSector::processStateMachine()
         // Add the data24 section's data to the sector data buffer
         m_sectorData.reserve(m_sectorData.size() + 2352);
         m_sectorErrorData.reserve(m_sectorErrorData.size() + 2352);
+
         for (int i = 0; i < 98; i++) {
             // Data
             const QVector<quint8>& frameData = data24Section.frame(i).data();
             QByteArray frameBytes = QByteArray(reinterpret_cast<const char*>(frameData.constData()), frameData.size());
             m_sectorData.append(frameBytes);
 
-            // Error data
-            const QVector<quint8>& frameErrorData = data24Section.frame(i).errorData();
-            QByteArray frameErrorBytes = QByteArray(reinterpret_cast<const char*>(frameErrorData.constData()), frameErrorData.size());
-            m_sectorErrorData.append(frameErrorBytes);
+            // If the section isn't marked as padding, add the error data
+            if (!data24Section.isPadding()) {
+                // Error data
+                const QVector<quint8>& frameErrorData = data24Section.frame(i).errorData();
+                QByteArray frameErrorBytes = QByteArray(reinterpret_cast<const char*>(frameErrorData.constData()), frameErrorData.size());
+                m_sectorErrorData.append(frameErrorBytes);
+            } else {
+                // If the section is padding, we flag this in the error data using "2" instead of "1"
+                // so we can distinguish between padding and real errors later (we can't just flag the sector
+                // since they are not necessarily frame-aligned)
+                QByteArray frameErrorBytes = QByteArray(24, 2);
+                m_sectorErrorData.append(frameErrorBytes);
+            }
         }
 
         switch (m_currentState) {
@@ -92,6 +103,21 @@ void Data24ToRawSector::processStateMachine()
 Data24ToRawSector::State Data24ToRawSector::waitingForSync()
 {
     State nextState = WaitingForSync;
+
+    // Is the sector padding?
+    if (m_sectorErrorData.contains(2)) {
+        // Padding sector, discard it
+        if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Padding sector, discarding" << m_sectorData.size() - 11 << "bytes";
+
+        // Clear the sector data buffer (except the last 11 bytes)
+        m_discardedPaddingBytes += m_sectorData.size() - 11;
+        m_sectorData = m_sectorData.right(11);
+        m_sectorErrorData = m_sectorErrorData.right(11);
+
+        // Get more data and try again
+        nextState = WaitingForSync;
+        return nextState;
+    }
 
     // Does the sector data contain the sync pattern?
     quint32 syncPatternPosition = m_sectorData.indexOf(m_syncPattern);
@@ -203,6 +229,7 @@ void Data24ToRawSector::showStatistics()
     qInfo() << "Data24ToRawSector statistics:";
     qInfo() << "  Valid sectors:" << m_validSectorCount;
     qInfo() << "  Discarded bytes:" << m_discardedBytes;
+    qInfo() << "  Discarded padding bytes:" << m_discardedPaddingBytes;
     
     qInfo() << "  Good sync patterns:" << m_goodSyncPatternCount;
     qInfo() << "  Bad sync patterns:" << m_badSyncPatternCount;

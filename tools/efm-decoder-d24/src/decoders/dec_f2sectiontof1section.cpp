@@ -201,6 +201,9 @@ void F2SectionToF1Section::processQueue()
         // All frames in the section are processed
         f1Section.metadata = f2Section.metadata;
 
+        // Preserve the padding flag
+        f1Section.setIsPadding(f2Section.isPadding());
+
         // Add the section to the output buffer
         m_outputBuffer.enqueue(f1Section);
     }

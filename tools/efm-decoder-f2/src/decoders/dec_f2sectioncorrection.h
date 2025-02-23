@@ -63,6 +63,7 @@ private:
     QQueue<F2Section> m_window;
     quint32 m_maximumGapSize;
     quint32 m_maximumInternalBufferSize;
+    quint32 m_paddingWatermark;
 
     // Statistics
     quint32 m_totalSections;
@@ -70,6 +71,7 @@ private:
     quint32 m_uncorrectableSections;
     quint32 m_preLeadinSections;
     quint32 m_missingSections;
+    quint32 m_paddingSections;
     quint32 m_outOfOrderSections;
     quint32 m_preCertTimeErrors;
 

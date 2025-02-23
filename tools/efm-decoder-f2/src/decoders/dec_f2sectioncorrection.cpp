@@ -39,7 +39,9 @@ F2SectionCorrection::F2SectionCorrection()
       m_absoluteStartTime(59, 59, 74),
       m_absoluteEndTime(0, 0, 0),
       m_outOfOrderSections(0),
-      m_preCertTimeErrors(0)
+      m_preCertTimeErrors(0),
+      m_paddingSections(0),
+      m_paddingWatermark(5)
 {}
 
 void F2SectionCorrection::pushSection(const F2Section &data)
@@ -242,14 +244,14 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
             qint32 missingSections = f2Section.metadata.absoluteSectionTime().frames()
                     - expectedAbsoluteTime.frames();
 
-            if (missingSections > 5) {
+            if (missingSections > m_paddingWatermark) {
                 // The gap is large - warn the user
                 qWarning() << "F2SectionCorrection::waitingForSection(): Missing section gap of" << missingSections << "is larger than 5,"
                         << "expected absolute time is"
                         << expectedAbsoluteTime.toString() << "actual absolute time is"
                         << f2Section.metadata.absoluteSectionTime().toString();
-                qWarning() << "F2SectionCorrection::waitingForSection(): It's possible that there is a gap in the EFM data,"
-                        << "this will show up as C1/C2 errors in the output but will not actually result in real data loss.";
+                qWarning() << "F2SectionCorrection::waitingForSection(): Gaps greated than" << m_paddingWatermark << "frames will be treated"
+                        << "as padding sections (i.e. the decoder thinks there is a gap in the EFM data rather than actual data loss).";
             }
 
             if (m_showDebug && missingSections == 1)
@@ -267,7 +269,6 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
             for (int i = 0; i < missingSections; ++i) {
                 // We have to insert a dummy section into the internal buffer or this
                 // will throw off the correction process due to the delay lines
-                m_missingSections++;
 
                 // It's important that all the metadata is correct otherwise track numbers and so on
                 // will be incorrect
@@ -278,6 +279,16 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
 
                 missingSection.metadata.setAbsoluteSectionTime(expectedAbsoluteTime + i);
                 missingSection.metadata.setValid(true);
+
+                // If there are more than m_paddingWatermark missing sections, it's likely that there is a gap in the EFM data
+                // so we should flag this as a padding section (this is used downstream to give a better 
+                // indication of what is really in error).
+                if (missingSections > m_paddingWatermark) {
+                    missingSection.setIsPadding(true);
+                    m_paddingSections++;
+                } else {
+                    m_missingSections++;
+                }
 
                 // To-do: Perhaps this could be improved if spanning a track boundary?
                 // might not be required though...
@@ -294,11 +305,24 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                 }
 
                 // Push 98 error frames in to the missing section
-                for (int i = 0; i < 98; ++i) {
-                    F2Frame errorFrame;
-                    errorFrame.setData(QVector<quint8>(32, 0x00));
-                    errorFrame.setErrorData(QVector<quint8>(32, 0x01)); // Flag as error
-                    missingSection.pushFrame(errorFrame);
+                if (missingSections <= m_paddingWatermark) {
+                    // Section is considered as missing, so mark it as error
+                    for (int i = 0; i < 98; ++i) {
+                        F2Frame errorFrame;
+                        errorFrame.setData(QVector<quint8>(32, 0x00));
+                        errorFrame.setErrorData(QVector<quint8>(32, 0x01)); // Flag as error
+                        missingSection.pushFrame(errorFrame);
+                    }
+                } else {
+                    // Section is considered as padding, so fill it with valid data
+                    for (int i = 0; i < 98; ++i) {
+                        F2Frame errorFrame;
+                        QVector<quint8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF};
+                        errorFrame.setData(data);
+                        errorFrame.setErrorData(QVector<quint8>(32, 0x00));
+                        missingSection.pushFrame(errorFrame);
+                    }
                 }
 
                 // Push it into the internal buffer
@@ -606,6 +630,7 @@ void F2SectionCorrection::showStatistics() const
     qInfo() << "    Uncorrectable:" << m_uncorrectableSections;
     qInfo() << "    Pre-Leadin:" << m_preLeadinSections;
     qInfo() << "    Missing:" << m_missingSections;
+    qInfo() << "    Padding:" << m_paddingSections;
     qInfo() << "    Out of order:" << m_outOfOrderSections;
     qInfo() << "    Pre-cert time errors:" << m_preCertTimeErrors;
 

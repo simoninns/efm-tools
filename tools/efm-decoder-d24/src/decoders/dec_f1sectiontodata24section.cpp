@@ -97,6 +97,9 @@ void F1SectionToData24Section::processQueue()
             data24Section.pushFrame(data24);
         }
 
+        // Preserve the padding flag
+        data24Section.setIsPadding(f1Section.isPadding());
+
         data24Section.metadata = f1Section.metadata;
 
         // Add the section to the output buffer

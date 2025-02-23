@@ -128,6 +128,6 @@ void SectorCorrection::showStatistics()
     qInfo().noquote() << "Sector gap correction:";
     qInfo().noquote() << "  Good sectors:" << m_goodSectors;
     qInfo().noquote() << "  Missing leading sectors:" << m_missingLeadingSectors;
-    qInfo().noquote() << "  Missing sectors:" << m_missingSectors;
+    qInfo().noquote() << "  Missing/Gap sectors:" << m_missingSectors;
     qInfo().noquote() << "  Total sectors:" << m_goodSectors + m_missingLeadingSectors + m_missingSectors;
 }

@@ -24,7 +24,8 @@
 
 #include "section.h"
 
-F2Section::F2Section()
+F2Section::F2Section() :
+    m_isPadding(false)
 {
     m_frames.reserve(98);
 }
@@ -68,6 +69,16 @@ void F2Section::showData()
     for (qint32 i = 0; i < m_frames.size(); ++i) {
         m_frames[i].showData();
     }
+}
+
+bool F2Section::isPadding() const
+{
+    return m_isPadding;
+}
+
+void F2Section::setIsPadding(bool padding)
+{
+    m_isPadding = padding;
 }
 
 F1Section::F1Section()
@@ -116,6 +127,16 @@ void F1Section::showData()
     }
 }
 
+bool F1Section::isPadding() const
+{
+    return m_isPadding;
+}
+
+void F1Section::setIsPadding(bool padding)
+{
+    m_isPadding = padding;
+}
+
 Data24Section::Data24Section()
 {
     m_frames.reserve(98);
@@ -160,6 +181,16 @@ void Data24Section::showData()
     for (qint32 i = 0; i < m_frames.size(); ++i) {
         m_frames[i].showData();
     }
+}
+
+bool Data24Section::isPadding() const
+{
+    return m_isPadding;
+}
+
+void Data24Section::setIsPadding(bool padding)
+{
+    m_isPadding = padding;
 }
 
 AudioSection::AudioSection()
@@ -221,6 +252,9 @@ QDataStream& operator<<(QDataStream& stream, const F2Section& section)
     for (const auto& frame : section.m_frames) {
         stream << frame;
     }
+
+    // Write padding flag
+    stream << section.m_isPadding;
     
     return stream;
 }
@@ -243,6 +277,9 @@ QDataStream& operator>>(QDataStream& stream, F2Section& section)
         stream >> frame;
         section.pushFrame(frame);
     }
+
+    // Read padding flag
+    stream >> section.m_isPadding;
     
     return stream;
 }
@@ -259,6 +296,9 @@ QDataStream& operator<<(QDataStream& stream, const Data24Section& section)
     for (const auto& frame : section.m_frames) {
         stream << frame;
     }
+
+    // Write padding flag
+    stream << section.m_isPadding;
     
     return stream;
 }
@@ -281,6 +321,9 @@ QDataStream& operator>>(QDataStream& stream, Data24Section& section)
         stream >> frame;
         section.pushFrame(frame);
     }
+
+    // Read padding flag
+    stream >> section.m_isPadding;
     
     return stream;
 }

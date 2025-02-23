@@ -69,6 +69,7 @@ private:
     quint32 m_invalidSectorCount;
     quint32 m_validSectorCount;
     quint32 m_discardedBytes;
+    quint32 m_discardedPaddingBytes;
     quint32 m_syncLostCount;
 
     // See https://www.domesday86.com/?page_id=2678#CD_Sector_descrambling
