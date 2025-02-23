@@ -53,16 +53,17 @@ bool ReaderData24Section::open(const QString &filename)
     
     // Reset to start of file
     m_file.seek(0);
-    
-    // Count number of F2Sections by reading through file
-    while (!m_dataStream->atEnd()) {
-        Data24Section dummy;
-        *m_dataStream >> dummy;
-        m_fileSizeInSections++;
-    }
+
+    // Get the size of one Data24Section object in bytes
+    Data24Section dummy;
+    *m_dataStream >> dummy;
+    qint64 sectionSize = m_file.pos();
+
+    // Calculate the number of Data24Section in the file
+    m_fileSizeInSections = totalSize / sectionSize;
     
     // Restore original position
-    m_file.seek(currentPos);
+    m_file.seek(currentPos);  
 
     qDebug() << "ReaderData24Section::open() - Opened file" << filename << "for data reading containing" << size() << "F2 Section objects";
     return true;

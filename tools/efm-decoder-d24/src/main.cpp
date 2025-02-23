@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     // Set up the command line parser
     QCommandLineParser parser;
     parser.setApplicationDescription(
-            "efm-decoder-d24 - EFM F2Section to Data24 Section decoder\n"
+            "efm-decoder-d24 - EFM F2 Section to Data24 Section decoder\n"
             "\n"
             "(c)2025 Simon Inns\n"
             "GPLv3 Open-Source - github: https://github.com/simoninns/efm-tools");

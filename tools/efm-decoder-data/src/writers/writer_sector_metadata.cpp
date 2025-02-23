@@ -45,11 +45,6 @@ bool WriterSectorMetadata::open(const QString &filename)
     }
     qDebug() << "WriterSectorMetadata::open() - Opened file" << filename << "for data writing";
 
-    // Write the metadata header
-    m_file.write("efm-decode - Sector Metadata\n");
-    m_file.write("Format: Address, mode and data valid flag\n");
-    m_file.write("Each address represents a 2048 byte sector\n");
-
     return true;
 }
 

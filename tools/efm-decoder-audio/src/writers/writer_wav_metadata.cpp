@@ -46,12 +46,6 @@ bool WriterWavMetadata::open(const QString &filename)
     }
     qDebug() << "WriterWavMetadata::open() - Opened file" << filename << "for data writing";
 
-    // Write the metadata header
-    m_file.write("efm-decode - WAV Metadata\n");
-    m_file.write("Format: Absolute time, track number, track time, error list (if present)\n");
-    m_file.write("Each time-stamp represents one section with 12*98 samples (positions 0 to 1175)\n");
-    m_file.write("Each section is 1/75th of a second - so timestamps are MM:DD:section 0-74\n");
-
     return true;
 }
 

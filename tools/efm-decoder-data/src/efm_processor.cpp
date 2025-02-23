@@ -52,8 +52,11 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     }
 
     // Process the Data24 Section data
+    QElapsedTimer dataPipelineTimer;
     for (int index = 0; index < m_readerData24Section.size(); ++index) {
+        dataPipelineTimer.restart();
         m_data24ToRawSector.pushSection(m_readerData24Section.read());
+        m_dataPipelineStats.data24ToRawSectorTime += dataPipelineTimer.nsecsElapsed();
         processDataPipeline();
 
         // Every 500 sections show progress

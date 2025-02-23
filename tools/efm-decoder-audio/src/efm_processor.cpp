@@ -54,8 +54,11 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     }
 
     // Process the Data24 Section data
+    QElapsedTimer audioPipelineTimer;
     for (int index = 0; index < m_readerData24Section.size(); ++index) {
+        audioPipelineTimer.restart();
         m_data24ToAudio.pushSection(m_readerData24Section.read());
+        m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
         processAudioPipeline();
 
         // Every 500 sections show progress
@@ -133,7 +136,7 @@ void EfmProcessor::showAudioPipelineStatistics()
     qInfo() << "  Data24 to Audio processing time:" << m_audioPipelineStats.data24ToAudioTime / 1000000 << "ms";
     qInfo() << "  Audio correction processing time:" << m_audioPipelineStats.audioCorrectionTime / 1000000 << "ms";
 
-    qint64 totalProcessingTime = m_audioPipelineStats.data24ToAudioTime + m_audioPipelineStats.data24ToAudioTime;
+    qint64 totalProcessingTime = m_audioPipelineStats.data24ToAudioTime + m_audioPipelineStats.audioCorrectionTime;
     float totalProcessingTimeSeconds = totalProcessingTime / 1000000000.0;
     qInfo().nospace() << "  Total processing time: " << totalProcessingTime / 1000000 << " ms ("
             << Qt::fixed << qSetRealNumberPrecision(2) << totalProcessingTimeSeconds << " seconds)";
