@@ -39,9 +39,12 @@ F2SectionCorrection::F2SectionCorrection()
       m_absoluteStartTime(59, 59, 74),
       m_absoluteEndTime(0, 0, 0),
       m_outOfOrderSections(0),
-      m_preCertTimeErrors(0),
       m_paddingSections(0),
-      m_paddingWatermark(5)
+      m_paddingWatermark(5),
+      m_qmode1Sections(0),
+      m_qmode2Sections(0),
+      m_qmode3Sections(0),
+      m_qmode4Sections(0)
 {}
 
 void F2SectionCorrection::pushSection(const F2Section &data)
@@ -188,41 +191,25 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
         }
     }
 
-    // Pre-cert LaserDiscs like Domesday have repeating lead-in sections within the 
-    // user data track.  The IEC-60908 standard doesn't seem to have a way to handle this.
-    // So, if we see one, we will correct the absolute time and track number and treat it
-    // as a user data section.
-    //
-    // They are easy to spot as they have the current frame number but the minutes and seconds
-    // are zero (and the track number is 0).
-    if (f2Section.metadata.isValid()
-        && f2Section.metadata.absoluteSectionTime().minutes() == 0
-        && f2Section.metadata.absoluteSectionTime().seconds() == 0
-        && f2Section.metadata.trackNumber() == 0) {
+    // Check for Q-mode 2 and 3 sections - these will only have valid frame numbers in the 
+    // absolute time (i.e. minutes and seconds will be zero)
+    if (f2Section.metadata.isValid() && (
+        f2Section.metadata.qMode() == SectionMetadata::QMode2 || f2Section.metadata.qMode() == SectionMetadata::QMode3)) {
 
-        // Check for false-positive (i.e. we were actually expecting a section with absolute time 00:00:xx)
-        if (expectedAbsoluteTime.minutes() == 0 && expectedAbsoluteTime.seconds() == 0) {
-            // This is a false positive, so we can ignore it
-            if (m_showDebug)
-                qDebug() << "F2SectionCorrection::waitingForSection(): False positive detected, "
-                            "ignoring section with absolute time"
-                         << f2Section.metadata.absoluteSectionTime().toString();
-        } else {
-            // This is a pre-cert lead-in section
+        // Use the expected time to correct the MM:SS of absolute time (leave the frames as-is)
+        SectionTime correctedAbsoluteTime = expectedAbsoluteTime;
+        correctedAbsoluteTime.setTime(expectedAbsoluteTime.minutes(), expectedAbsoluteTime.seconds(), f2Section.metadata.absoluteSectionTime().frameNumber());
 
-            // We keep the original frame number because it's always possible that the frame number was out of sync due to a missing section
-            // even if this is a pre-cert lead-in section.
-            SectionTime correctedAbsoluteTime = expectedAbsoluteTime;
-            correctedAbsoluteTime.setTime(expectedAbsoluteTime.minutes(), expectedAbsoluteTime.seconds(), f2Section.metadata.absoluteSectionTime().frameNumber());
+        f2Section.metadata.setAbsoluteSectionTime(correctedAbsoluteTime);
 
-            f2Section.metadata.setAbsoluteSectionTime(correctedAbsoluteTime);
-            f2Section.metadata.setSectionType(SectionType(SectionType::UserData));
-            f2Section.metadata.setTrackNumber(1); // TODO: Could be smarter about this
-
-            if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Pre-cert lead-in section"
+        if (m_showDebug && f2Section.metadata.qMode() == SectionMetadata::QMode2) {
+            qDebug() << "F2SectionCorrection::waitingForSection(): Q Mode 2 section"
                 << "detected, correcting absolute time to" << correctedAbsoluteTime.toString();
+        }
 
-            m_preCertTimeErrors++;
+        if (m_showDebug && f2Section.metadata.qMode() == SectionMetadata::QMode3) {
+            qDebug() << "F2SectionCorrection::waitingForSection(): Q Mode 3 section"
+                << "detected, correcting absolute time to" << correctedAbsoluteTime.toString();
         }
     }
 
@@ -317,6 +304,7 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                     // Section is considered as padding, so fill it with valid data
                     for (int i = 0; i < 98; ++i) {
                         F2Frame errorFrame;
+                        // Note: This data pattern will pass C1/C2 error correction resulting in a frame of zeros
                         QVector<quint8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF};
                         errorFrame.setData(data);
@@ -555,6 +543,15 @@ void F2SectionCorrection::outputSections()
     SectionTime sectionTime = section.metadata.sectionTime();
     SectionTime absoluteTime = section.metadata.absoluteSectionTime();
 
+    if (section.metadata.qMode() == SectionMetadata::QMode::QMode1)
+        m_qmode1Sections++;
+    if (section.metadata.qMode() == SectionMetadata::QMode::QMode2)
+        m_qmode2Sections++;
+    if (section.metadata.qMode() == SectionMetadata::QMode::QMode3)
+        m_qmode3Sections++;
+    if (section.metadata.qMode() == SectionMetadata::QMode::QMode4)
+        m_qmode4Sections++;
+
     // Set the absolute start and end times
     if (absoluteTime <= m_absoluteStartTime)
         m_absoluteStartTime = absoluteTime;
@@ -632,7 +629,12 @@ void F2SectionCorrection::showStatistics() const
     qInfo() << "    Missing:" << m_missingSections;
     qInfo() << "    Padding:" << m_paddingSections;
     qInfo() << "    Out of order:" << m_outOfOrderSections;
-    qInfo() << "    Pre-cert time errors:" << m_preCertTimeErrors;
+
+    qInfo() << "  QMode Sections:";
+    qInfo() << "    QMode 1 (CD Data):" << m_qmode1Sections;
+    qInfo() << "    QMode 2 (Catalogue No.):" << m_qmode2Sections;
+    qInfo() << "    QMode 3 (ISO 3901 ISRC):" << m_qmode3Sections;
+    qInfo() << "    QMode 4 (LD Data):" << m_qmode4Sections;
 
     qInfo() << "  Absolute Time:";
     qInfo().noquote() << "    Start time:" << m_absoluteStartTime.toString();

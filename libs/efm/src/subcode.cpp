@@ -183,32 +183,71 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
                    controlNybble);
         }
 
-        // Get the track number
-        quint8 trackNumber = bcd2ToInt(qChannelData[1]);
+        if (sectionMetadata.qMode() == SectionMetadata::QMode1
+            || sectionMetadata.qMode() == SectionMetadata::QMode4) {
+            // Get the track number
+            quint8 trackNumber = bcd2ToInt(qChannelData[1]);
 
-        // If the track number is 0, then this is a lead-in frame
-        // If the track number is 0xAA, then this is a lead-out frame
-        // If the track number is 1-99, then this is a user data frame
-        if (trackNumber == 0) {
-            sectionMetadata.setSectionType(SectionType(SectionType::LeadIn));
-        } else if (trackNumber == 0xAA) {
-            sectionMetadata.setSectionType(SectionType(SectionType::LeadOut));
-        } else {
+            // If the track number is 0, then this is a lead-in frame
+            // If the track number is 0xAA, then this is a lead-out frame
+            // If the track number is 1-99, then this is a user data frame
+            if (trackNumber == 0) {
+                sectionMetadata.setSectionType(SectionType(SectionType::LeadIn));
+            } else if (trackNumber == 0xAA) {
+                sectionMetadata.setSectionType(SectionType(SectionType::LeadOut));
+            } else {
+                sectionMetadata.setSectionType(SectionType(SectionType::UserData));
+            }
+
+            // Now set the track number
+            sectionMetadata.setTrackNumber(trackNumber);
+
+            // Set the frame time q_data_channel[3-5]
+            sectionMetadata.setSectionTime(SectionTime(
+                    bcd2ToInt(qChannelData[3]), bcd2ToInt(qChannelData[4]), bcd2ToInt(qChannelData[5])));
+
+            // Set the zero byte q_data_channel[6] - Not used at the moment
+
+            // Set the ap time q_data_channel[7-9]
+            sectionMetadata.setAbsoluteSectionTime(SectionTime(
+                    bcd2ToInt(qChannelData[7]), bcd2ToInt(qChannelData[8]), bcd2ToInt(qChannelData[9])));
+        } else if (sectionMetadata.qMode() == SectionMetadata::QMode2) {
+            // Extract the 52 bit UPC/EAN code
+            // This is a 13 digit BCD code, so we need to convert it to an integer
+            quint64 upc = 0;
+            for (int i = 0; i < 13; ++i) {
+                upc *= 10;
+                upc += bcd2ToInt(qChannelData[i + 1]);
+            }
+            sectionMetadata.setUpcEanCode(upc);
+            if (m_showDebug) {
+                // Show the UPC/EAN code as 13 digits padded with leading zeros
+                QString upcString = QString::number(upc);
+                while (upcString.size() < 13) {
+                    upcString = "0" + upcString;
+                }
+                
+                qDebug() << "Subcode::fromData(): Q-Mode 2 has UPC/EAN code of:" << upcString;
+            }
+
+            // Only the absolute frame number is included for Q mode 2
+            sectionMetadata.setTrackNumber(1);
             sectionMetadata.setSectionType(SectionType(SectionType::UserData));
+            sectionMetadata.setSectionTime(SectionTime(0, 0, 0));
+            sectionMetadata.setAbsoluteSectionTime(SectionTime(0, 0, bcd2ToInt(qChannelData[9])));
+        } else if (sectionMetadata.qMode() == SectionMetadata::QMode3) {
+            // There is no test data for this qmode, so this is untested
+            qWarning("Subcode::fromData(): Q-Mode 3 metadata is present on this disc.  This is untested.");
+            qFatal("Subcode::fromData(): Please submit this data for testing - ask in Discord/IRC");
+
+            // Only the absolute frame number is included for Q mode 3
+            sectionMetadata.setTrackNumber(1);
+            sectionMetadata.setSectionType(SectionType(SectionType::UserData));
+            sectionMetadata.setSectionTime(SectionTime(0, 0, 0));
+            sectionMetadata.setAbsoluteSectionTime(SectionTime(0, 0, bcd2ToInt(qChannelData[9])));
+        } else {
+            qFatal("Subcode::fromData(): Invalid Q-mode %d", sectionMetadata.qMode());
         }
-
-        // Now set the track number
-        sectionMetadata.setTrackNumber(trackNumber);
-
-        // Set the frame time q_data_channel[3-5]
-        sectionMetadata.setSectionTime(SectionTime(
-                bcd2ToInt(qChannelData[3]), bcd2ToInt(qChannelData[4]), bcd2ToInt(qChannelData[5])));
-
-        // Set the zero byte q_data_channel[6] - Not used at the moment
-
-        // Set the ap time q_data_channel[7-9]
-        sectionMetadata.setAbsoluteSectionTime(SectionTime(
-                bcd2ToInt(qChannelData[7]), bcd2ToInt(qChannelData[8]), bcd2ToInt(qChannelData[9])));
 
         sectionMetadata.setValid(true);
     } else {

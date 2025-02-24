@@ -147,7 +147,9 @@ public:
           m_hasPreemphasis(false),
           m_is2Channel(true),
           m_pFlag(true),
-          m_qMode(QMode1)
+          m_qMode(QMode1),
+          m_upcEanCode(0),
+          m_isrcCode(0)
     {
     }
 
@@ -178,6 +180,11 @@ public:
     bool is2Channel() const { return m_is2Channel; }
     void set2Channel(bool is2Channel) { m_is2Channel = is2Channel; }
 
+    void setUpcEanCode(quint32 upcEanCode) { m_upcEanCode = upcEanCode; }
+    quint32 upcEanCode() const { return m_upcEanCode; }
+    void setIsrcCode(quint32 isrcCode) { m_isrcCode = isrcCode; }
+    quint32 isrcCode() const { return m_isrcCode; }
+
     bool pFlag() const { return m_pFlag; }
     void setPFlag(bool pFlag) { m_pFlag = pFlag; }
 
@@ -204,6 +211,10 @@ private:
     bool m_isCopyProhibited;
     bool m_hasPreemphasis;
     bool m_is2Channel;
+
+    // Q-Channel mode 2 and 3 metadata
+    quint32 m_upcEanCode;
+    quint32 m_isrcCode;
 };
 
 #endif // SECTION_METADATA_H

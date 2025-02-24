@@ -73,7 +73,11 @@ private:
     quint32 m_missingSections;
     quint32 m_paddingSections;
     quint32 m_outOfOrderSections;
-    quint32 m_preCertTimeErrors;
+
+    quint32 m_qmode1Sections;
+    quint32 m_qmode2Sections;
+    quint32 m_qmode3Sections;
+    quint32 m_qmode4Sections;
 
     // Time statistics
     SectionTime m_absoluteStartTime;

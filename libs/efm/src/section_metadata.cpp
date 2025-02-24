@@ -218,6 +218,10 @@ QDataStream &operator>>(QDataStream &in, SectionMetadata &metadata)
     in >> metadata.m_hasPreemphasis;
     in >> metadata.m_is2Channel;
     in >> metadata.m_pFlag;
+
+    // Read qmode 1 and 2 parameters
+    in >> metadata.m_upcEanCode;
+    in >> metadata.m_isrcCode;
     
     // Read Q mode
     qint32 qMode;
@@ -244,6 +248,10 @@ QDataStream &operator<<(QDataStream &out, const SectionMetadata &metadata)
     out << metadata.m_hasPreemphasis;
     out << metadata.m_is2Channel;
     out << metadata.m_pFlag;
+
+    // Write qmode 1 and 2 parameters
+    out << metadata.m_upcEanCode;
+    out << metadata.m_isrcCode;
     
     // Write Q mode
     out << static_cast<qint32>(metadata.m_qMode);
