@@ -72,6 +72,13 @@ void RawSectorToSector::processQueue()
             }
         }
 
+        if (rawSector.errorData().size() != 2352) {
+            if (m_showDebug) {
+                qDebug() << "RawSectorToSector::processQueue(): Sector error data size is incorrect. Expected 2352 bytes, got" << rawSector.errorData().size() << "bytes";
+                qFatal("RawSectorToSector::processQueue(): Sector error data size is incorrect");
+            }
+        }
+
         // Determine the sector mode (for modes 0 and 2 there is no correction available)
         qint32 mode = 0;
 
@@ -88,10 +95,12 @@ void RawSectorToSector::processQueue()
             }
         } else {
             // Mode byte is invalid
-            if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is invalid"; 
+            if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is invalid. Assuming it's mode 1";
             mode = -1;
         }
 
+        // If the mode is invalid, we try to treat the sector as mode 1 to see if the error correction
+        // makes the mode metadata valid.  If it doesn't we discard the sector as error
         if (mode == 1 || mode == -1) {
             // Compute the CRC32 of the sector data based on the EDC word
             quint32 originalEdcWord =
@@ -150,6 +159,7 @@ void RawSectorToSector::processQueue()
                     if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data corrected. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "";
                     m_correctedSectors++;
                     rawSectorValid = true;
+                    mode = 1; // If error correction worked... this a mode 1 sector
                 }
             } else {
                 // Original sector data is valid

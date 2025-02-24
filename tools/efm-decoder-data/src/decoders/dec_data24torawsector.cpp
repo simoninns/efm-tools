@@ -178,12 +178,18 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
                     qDebug() << "Data24ToRawSector::inSync(): Sync pattern mismatch:"
                         << "Found:" << foundPattern
                         << "Expected:" << expectedPattern
-                        << "Sector count:" << m_validSectorCount;
+                        << "Sector count:" << m_validSectorCount
+                        << "Missed sync patterns:" << m_missedSyncPatternCount;
                 }
             }
         } else {
             // Sync pattern found
             m_goodSyncPatternCount++;
+
+            if (m_showDebug && m_missedSyncPatternCount) {
+                qDebug() << "Data24ToRawSector::inSync(): Sync pattern found after" << m_missedSyncPatternCount << "missed sync patterns (resynced)";
+            }
+
             m_missedSyncPatternCount = 0;
         }
 
@@ -206,8 +212,8 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
 
         m_outputBuffer.enqueue(rawSector);
         m_validSectorCount++;
-
-        // Clear the sector data buffer
+        
+        // Remove 2352 bytes of processed data from the buffers
         m_sectorData = m_sectorData.right(m_sectorData.size() - 2352);
         m_sectorErrorData = m_sectorErrorData.right(m_sectorErrorData.size() - 2352);
     }
