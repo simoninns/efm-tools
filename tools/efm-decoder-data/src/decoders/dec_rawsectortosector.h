@@ -52,6 +52,11 @@ private:
     quint32 m_invalidSectors;
     quint32 m_correctedSectors;
 
+    quint32 m_mode0Sectors;
+    quint32 m_mode1Sectors;
+    quint32 m_mode2Sectors;
+    quint32 m_invalidModeSectors;
+
     // This table is the CRC32 look-up for the EDC data
     const quint32 m_crc32Lut[256] = {
         0x00000000, 0x90910101, 0x91210201, 0x01B00300, 0x92410401, 0x02D00500, 0x03600600, 0x93F10701,

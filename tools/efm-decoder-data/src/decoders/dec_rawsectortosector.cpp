@@ -27,7 +27,11 @@
 RawSectorToSector::RawSectorToSector()
     : m_validSectors(0),
     m_invalidSectors(0),
-    m_correctedSectors(0)
+    m_correctedSectors(0),
+    m_mode0Sectors(0),
+    m_mode1Sectors(0),
+    m_mode2Sectors(0),
+    m_invalidModeSectors(0)
 {}
 
 void RawSectorToSector::pushSector(const RawSector &rawSector)
@@ -68,65 +72,106 @@ void RawSectorToSector::processQueue()
             }
         }
 
-        // Compute the CRC32 of the sector data based on the EDC word
-        quint32 originalEdcWord =
-            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
-            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
-            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2066]))) << 16) |
-            ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2067]))) << 24);
+        // Determine the sector mode (for modes 0 and 2 there is no correction available)
+        qint32 mode = 0;
 
-        quint32 edcWord = crc32(rawSector.data(), 2064);
+        // Is the mode byte valid?
+        if (static_cast<quint8>(rawSector.errorData()[15]) == 0) {
+            // Extract the sector mode data
+            if (static_cast<quint8>(rawSector.data()[15]) == 0) mode = 0;
+            else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
+            else if (static_cast<quint8>(rawSector.data()[15]) == 2) mode = 2;
+            else mode = -1;
 
-        // If the CRC32 of the sector data is incorrect, attempt to correct it using Q and P parity
-        if (originalEdcWord != edcWord) {
-            if (m_showDebug) {
-                qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data is corrupt. EDC:" << originalEdcWord << "Calculated:" << edcWord << "attempting to correct";
+            if (mode != 1) {
+                qFatal("RawSectorToSector::processQueue(): Sector mode is not 1. Mode 0 and Mode 2 are not supported");
             }
+        } else {
+            // Mode byte is invalid
+            if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is invalid"; 
+            mode = -1;
+        }
 
-            // Attempt Q and P parity error correction on the sector data
-            Rspc rspc;
-
-            // Make a local copy of the sector data
-            QByteArray correctedData = rawSector.data();
-            QByteArray correctedErrorData = rawSector.errorData();
-
-            rspc.qParityEcc(correctedData, correctedErrorData, m_showDebug);
-            rspc.pParityEcc(correctedData, correctedErrorData, m_showDebug);
-
-            // Copy the corrected data back to the raw sector
-            rawSector.pushData(correctedData);
-            rawSector.pushErrorData(correctedErrorData);
-
-            // Computer CRC32 again for the corrected data
-            quint32 correctedEdcWord =
+        if (mode == 1 || mode == -1) {
+            // Compute the CRC32 of the sector data based on the EDC word
+            quint32 originalEdcWord =
                 ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
                 ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
                 ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2066]))) << 16) |
                 ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2067]))) << 24);
 
-            edcWord = crc32(rawSector.data(), 2064);
+            quint32 edcWord = crc32(rawSector.data(), 2064);
 
-            // Is the CRC now correct?
-            if (correctedEdcWord != edcWord) {
-                // Error correction failed - sector is invalid and there's nothing more we can do
-                if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data cannot be recovered. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "post correction";
-                m_invalidSectors++;
-                rawSectorValid = false;
+            // If the CRC32 of the sector data is incorrect, attempt to correct it using Q and P parity
+            if (originalEdcWord != edcWord) {
+                if (m_showDebug) {
+                    qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data is corrupt. EDC:" << originalEdcWord << "Calculated:" << edcWord << "attempting to correct";
+                }
+
+                // Attempt Q and P parity error correction on the sector data
+                Rspc rspc;
+
+                // Make a local copy of the sector data
+                QByteArray correctedData = rawSector.data();
+                QByteArray correctedErrorData = rawSector.errorData();
+
+                rspc.qParityEcc(correctedData, correctedErrorData, m_showDebug);
+                rspc.pParityEcc(correctedData, correctedErrorData, m_showDebug);
+
+                // Copy the corrected data back to the raw sector
+                rawSector.pushData(correctedData);
+                rawSector.pushErrorData(correctedErrorData);
+
+                // Computer CRC32 again for the corrected data
+                quint32 correctedEdcWord =
+                    ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2064]))) <<  0) |
+                    ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2065]))) <<  8) |
+                    ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2066]))) << 16) |
+                    ((static_cast<quint32>(static_cast<uchar>(rawSector.data()[2067]))) << 24);
+
+                edcWord = crc32(rawSector.data(), 2064);
+
+                // Is the CRC now correct?
+                if (correctedEdcWord != edcWord) {
+                    // Error correction failed - sector is invalid and there's nothing more we can do
+
+                    if (mode == 1) {
+                        if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): CRC32 error - sector data cannot be recovered. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "post correction";
+                        m_mode1Sectors++;
+                        rawSectorValid = false;
+                    } else {
+                        // Mode was invalid as the sector is completely invalid.  This is probably padding of some sort
+                        if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode was invalid and the sector doesn't appear to be mode 1";
+                        m_invalidModeSectors++;
+                        rawSectorValid = false;
+                    }
+                } else {
+                    // Sector was invalid, but now corrected
+                    if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data corrected. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "";
+                    m_correctedSectors++;
+                    rawSectorValid = true;
+                }
             } else {
-                // Sector was invalid, but now corrected
-                if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector data corrected. EDC:" << correctedEdcWord << "Calculated:" << edcWord << "";
-                m_correctedSectors++;
+                // Original sector data is valid
+                m_validSectors++;
                 rawSectorValid = true;
+
+                if (mode == 0) m_mode0Sectors++;
+                else if (mode == 1) m_mode1Sectors++;
+                else if (mode == 2) m_mode2Sectors++;
+                else qFatal("RawSectorToSector::processQueue(): Invalid sector mode of %d", mode);
             }
         } else {
-            // Original sector data is valid
-            m_validSectors++;
+            // Mode 0 and Mode 2 sectors are not corrected
+            if (mode == 0) m_mode0Sectors++;
+            else if (mode == 2) m_mode2Sectors++;
             rawSectorValid = true;
+
+            qWarning() << "RawSectorToSector::processQueue(): Mode 0 and Mode 2 sectors are probably not handled correctly - consider submitting this as test data";
         }
 
         // Determine the sector's metadata
         SectorAddress sectorAddress(0, 0, 0);
-        qint32 mode = 0;
 
         // If the raw sector data is valid, form a sector from it
         if (rawSectorValid) {
@@ -186,4 +231,10 @@ void RawSectorToSector::showStatistics()
     qInfo() << "Raw Sector to Sector (RSPC error-correction):";
     qInfo() << "  Valid sectors:" << m_validSectors + m_correctedSectors << " (corrected:" << m_correctedSectors << ")";
     qInfo() << "  Invalid sectors:" << m_invalidSectors;
+
+    qInfo() << "  Sector metadata:";
+    qInfo() << "    Mode 0 sectors:" << m_mode0Sectors;
+    qInfo() << "    Mode 1 sectors:" << m_mode1Sectors;
+    qInfo() << "    Mode 2 sectors:" << m_mode2Sectors;
+    qInfo() << "    Invalid mode sectors:" << m_invalidModeSectors;
 }
