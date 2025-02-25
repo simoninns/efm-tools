@@ -1,6 +1,6 @@
 /************************************************************************
 
-    f2_stacker.h
+    writer_f2section.h
 
     efm-stacker-f2 - EFM F2 Section stacker
     Copyright (C) 2025 Simon Inns
@@ -22,42 +22,31 @@
 
 ************************************************************************/
 
-#ifndef F2_STACKER_H
-#define F2_STACKER_H
+#ifndef WRITER_F2SECTION_H
+#define WRITER_F2SECTION_H
 
 #include <QString>
-#include <QVector>
 #include <QDebug>
 #include <QFile>
+#include <QDataStream>
 
-#include "reader_f2section.h"
-#include "writer_f2section.h"
+#include "section.h"
 
-class F2Stacker
+class WriterF2Section
 {
 public:
-    F2Stacker();
+    WriterF2Section();
+    ~WriterF2Section();
 
-    bool process(const QVector<QString> &inputFilenames, const QString &outputFilename);
+    bool open(const QString &filename);
+    void write(const F2Section &f2Section);
+    void close();
+    qint64 size() const;
+    bool isOpen() const { return m_file.isOpen(); };
 
 private:
-    QVector<ReaderF2Section*> m_inputFiles;
-    WriterF2Section m_outputFile;
-
-    F2Section stackSections(const QVector<F2Section> &sections);
-    F2Frame stackFrames(QVector<F2Frame> &f2Frames);
-
-    // Statistics
-    quint64 m_goodBytes;
-    quint64 m_noValidValueForByte;
-
-    quint64 m_validValueForByte;
-    quint64 m_usedMostCommonValue;
-
-    quint64 m_errorFreeFrames;
-    quint64 m_errorFrames;
-
-    QVector<quint64> m_byteMatch;
+    QFile m_file;
+    QDataStream* m_dataStream;
 };
 
-#endif // F2_STACKER_H
+#endif // WRITER_F2SECTION_H

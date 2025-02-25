@@ -1,8 +1,8 @@
 /************************************************************************
 
-    writer_section.cpp
+    writer_f2section.h
 
-    efm-decoder-f2 - EFM T-values to F2 Section decoder
+    efm-stacker-f2 - EFM F2 Section stacker
     Copyright (C) 2025 Simon Inns
 
     This file is part of ld-decode-tools.
