@@ -57,7 +57,7 @@ private:
     quint64 m_errorFreeFrames;
     quint64 m_errorFrames;
 
-    QVector<quint64> m_byteMatch;
+    QVector<quint64> m_sourceDifferences;
 };
 
 #endif // F2_STACKER_H

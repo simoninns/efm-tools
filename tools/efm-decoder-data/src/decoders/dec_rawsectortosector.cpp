@@ -91,7 +91,9 @@ void RawSectorToSector::processQueue()
             else mode = -1;
 
             if (mode != 1) {
-                qFatal("RawSectorToSector::processQueue(): Sector mode is not 1. Mode 0 and Mode 2 are not supported");
+                qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is valid, but mode isn't? Mode reported as" << static_cast<quint8>(rawSector.data()[15]);
+                qFatal("RawSectorToSector::processQueue(): This is a bug - a valid mode byte should have a valid mode");
+                mode = -1;
             }
         } else {
             // Mode byte is invalid

@@ -35,6 +35,10 @@ F2Stacker::F2Stacker() :
 
 bool F2Stacker::process(const QVector<QString> &inputFilenames, const QString &outputFilename)
 {
+    // Prepare the source differences statistics
+    m_sourceDifferences.resize(inputFilenames.size());
+    m_sourceDifferences.fill(0);
+
     // Start by opening all the input F2 section files
     for (int index = 0; index < inputFilenames.size(); index++) {
         ReaderF2Section* reader = new ReaderF2Section();
@@ -63,7 +67,7 @@ bool F2Stacker::process(const QVector<QString> &inputFilenames, const QString &o
         
         // Seek back to the start of the file
         m_inputFiles[inputFileIdx]->seekToSection(0);
-        qInfo().noquote() << "Input File" << inputFilenames[inputFileIdx] << "- Start:" << startTime.toString() << "End:" << endTime.toString();
+        qInfo().noquote() << "Input File" << inputFilenames[inputFileIdx] << "- Start:" << startTime.toString() << "- End:" << endTime.toString();
     }
 
     // The start time (for the stacking) is the earliest start time of all the input files
@@ -134,6 +138,12 @@ bool F2Stacker::process(const QVector<QString> &inputFilenames, const QString &o
     qInfo().noquote() << "  Error free frames:" << m_errorFreeFrames;
     qInfo().noquote() << "  Error frames:" << m_errorFrames;
     qInfo().noquote() << "  Total frames:" << m_errorFreeFrames + m_errorFrames;
+    qInfo().noquote() << "";
+    qInfo().noquote() << "  Source differences:";
+    qInfo().noquote() << "    Source 0" << inputFilenames[0];
+    for (int sourceIndex = 1; sourceIndex < m_sourceDifferences.size(); sourceIndex++) {
+        qInfo().noquote() << "    Source" << sourceIndex << inputFilenames[sourceIndex] << ":" << m_sourceDifferences[sourceIndex];
+    }
 
     return true;
 }
@@ -198,7 +208,7 @@ F2Frame F2Stacker::stackFrames(QVector<F2Frame> &f2Frames)
         }
 
         if (validBytes.size() == 0) {
-            // All bytes are error - can't correct
+            // All bytes are errors - can't correct
             stackedFrameData.append(f2Frames.at(0).data().at(byteIndex));
             stackedFrameErrorData.append(1);
             qDebug() << "F2Stacker::stackFrames - No valid byte value for index" << byteIndex;
@@ -247,7 +257,15 @@ F2Frame F2Stacker::stackFrames(QVector<F2Frame> &f2Frames)
                     << mostCommonByteString << "from" << validBytesString;
 
                 stackedFrameData.append(mostCommonByte);
-                stackedFrameErrorData.append(0);
+                stackedFrameErrorData.append(0);                
+            }
+        }
+
+        // Update the source differences statistics for this byte
+        quint8 expectedValue = f2Frames.at(0).data().at(byteIndex);
+        for (int sourceIndex = 0; sourceIndex < f2Frames.size(); sourceIndex++) {
+            if (f2Frames.at(sourceIndex).data().at(byteIndex) != expectedValue) {
+                m_sourceDifferences[sourceIndex]++;
             }
         }
     }
