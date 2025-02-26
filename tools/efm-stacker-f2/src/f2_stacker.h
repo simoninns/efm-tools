@@ -56,6 +56,7 @@ private:
 
     quint64 m_errorFreeFrames;
     quint64 m_errorFrames;
+    quint64 m_paddedFrames;
 
     QVector<quint64> m_sourceDifferences;
 };
