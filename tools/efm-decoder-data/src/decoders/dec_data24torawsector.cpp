@@ -71,19 +71,10 @@ void Data24ToRawSector::processStateMachine()
             QByteArray frameBytes = QByteArray(reinterpret_cast<const char*>(frameData.constData()), frameData.size());
             m_sectorData.append(frameBytes);
 
-            // If the section isn't marked as padding, add the error data
-            if (!data24Section.isPadding()) {
-                // Error data
-                const QVector<quint8>& frameErrorData = data24Section.frame(i).errorData();
-                QByteArray frameErrorBytes = QByteArray(reinterpret_cast<const char*>(frameErrorData.constData()), frameErrorData.size());
-                m_sectorErrorData.append(frameErrorBytes);
-            } else {
-                // If the section is padding, we flag this in the error data using "2" instead of "1"
-                // so we can distinguish between padding and real errors later (we can't just flag the sector
-                // since they are not necessarily frame-aligned)
-                QByteArray frameErrorBytes = QByteArray(24, 2);
-                m_sectorErrorData.append(frameErrorBytes);
-            }
+            // Add the error data
+            const QVector<quint8>& frameErrorData = data24Section.frame(i).errorData();
+            QByteArray frameErrorBytes = QByteArray(reinterpret_cast<const char*>(frameErrorData.constData()), frameErrorData.size());
+            m_sectorErrorData.append(frameErrorBytes);
         }
 
         switch (m_currentState) {
@@ -104,26 +95,11 @@ Data24ToRawSector::State Data24ToRawSector::waitingForSync()
 {
     State nextState = WaitingForSync;
 
-    // Is the sector padding?
-    if (m_sectorErrorData.contains(2)) {
-        // Padding sector, discard it
-        if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Padding sector, discarding" << m_sectorData.size() - 11 << "bytes";
-
-        // Clear the sector data buffer (except the last 11 bytes)
-        m_discardedPaddingBytes += m_sectorData.size() - 11;
-        m_sectorData = m_sectorData.right(11);
-        m_sectorErrorData = m_sectorErrorData.right(11);
-
-        // Get more data and try again
-        nextState = WaitingForSync;
-        return nextState;
-    }
-
     // Does the sector data contain the sync pattern?
     quint32 syncPatternPosition = m_sectorData.indexOf(m_syncPattern);
     if (syncPatternPosition == -1) {
         // No sync pattern found
-        if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): No sync pattern found in sectorData, discarding" << m_sectorData.size() - 11 << "bytes";
+        //if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): No sync pattern found in sectorData, discarding" << m_sectorData.size() - 11 << "bytes";
 
         // Clear the sector data buffer (except the last 11 bytes)
         m_discardedBytes += m_sectorData.size() - 11;
@@ -139,9 +115,29 @@ Data24ToRawSector::State Data24ToRawSector::waitingForSync()
         m_discardedBytes += syncPatternPosition;
         m_sectorData = m_sectorData.right(m_sectorData.size() - syncPatternPosition);
         m_sectorErrorData = m_sectorErrorData.right(m_sectorErrorData.size() - syncPatternPosition);
-        if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Sync pattern found in sectorData at position:" << syncPatternPosition << "discarding" << syncPatternPosition << "bytes";
+        if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Possible sync pattern found in sectorData at position:" << syncPatternPosition << "discarding" << syncPatternPosition << "bytes";
 
-        nextState = InSync;
+        // Do we really have a valid sector or is this a false positive?
+
+        // Is the sector broken?  Count the total number of error bytes and padding bytes in the sector
+        qint32 errorByteCount = 0;
+        qint32 paddingByteCount = 0;
+        for (int i = 0; i < 2352; i++) {
+            if (static_cast<quint8>(m_sectorErrorData[i]) == 0x01) {
+                errorByteCount++;
+            }
+            if (static_cast<quint8>(m_sectorErrorData[i]) == 0xFF) {
+                paddingByteCount++;
+            }
+        }
+
+        if (errorByteCount > 1000 || paddingByteCount > 1000) {
+            if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Discarding sync as false positive due to" << errorByteCount << "error bytes and" << paddingByteCount << "padding bytes";
+            nextState = WaitingForSync;
+        } else {
+            if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Valid sector sync found with" << errorByteCount << "error bytes and" << paddingByteCount << "padding bytes";
+            nextState = InSync;
+        }
     }
 
     return nextState;
@@ -160,6 +156,26 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
         nextState = InSync;
         return nextState;
     } else {
+        // Are there any error bytes or padding in the first 12 bytes?
+        if (m_sectorErrorData.left(12).contains(0x01) || m_sectorErrorData.left(12).contains(0xFF)) {
+            // Is the sector broken?  Count the total number of error bytes and padding bytes in the sector
+            qint32 errorByteCount = 0;
+            qint32 paddingByteCount = 0;
+            for (int i = 0; i < 2352; i++) {
+                if (static_cast<quint8>(m_sectorErrorData[i]) == 0x01) {
+                    errorByteCount++;
+                }
+                if (static_cast<quint8>(m_sectorErrorData[i]) == 0xFF) {
+                    paddingByteCount++;
+                }
+            }
+
+            if (m_showDebug) {
+                qDebug() << "Data24ToRawSector::inSync(): Sector header corrupt. Sector contains" << errorByteCount
+                    << "error bytes and" << paddingByteCount << "padding bytes";
+            }
+        }
+
         // Is there a valid sync pattern at the beginning of the sector data?
         if (m_sectorData.left(12) != m_syncPattern) {
             // No sync pattern found

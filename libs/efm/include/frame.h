@@ -43,6 +43,7 @@ public:
     virtual void setErrorData(const QVector<quint8> &errorData);
     virtual QVector<quint8> errorData() const;
     virtual quint32 countErrors() const;
+    virtual quint32 countPadding() const;
 
     bool isFull() const;
     bool isEmpty() const;

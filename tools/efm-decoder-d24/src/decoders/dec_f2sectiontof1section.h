@@ -65,15 +65,18 @@ private:
     Interleave m_interleaveErr;
 
     // Statistics
-    quint32 m_invalidInputF2FramesCount;
-    quint32 m_validInputF2FramesCount;
-    quint32 m_invalidOutputF1FramesCount;
-    quint32 m_validOutputF1FramesCount;
-    quint32 m_dlLostFramesCount;
-    quint32 m_continuityErrorCount;
+    quint64 m_invalidInputF2FramesCount;
+    quint64 m_validInputF2FramesCount;
+    quint64 m_invalidOutputF1FramesCount;
+    quint64 m_validOutputF1FramesCount;
+    quint64 m_dlLostFramesCount;
+    quint64 m_continuityErrorCount;
 
-    quint32 m_inputByteErrors;
-    quint32 m_outputByteErrors;
+    quint64 m_inputByteErrors;
+    quint64 m_outputByteErrors;
+
+    quint64 m_invalidPaddedF1FramesCount;
+    quint64 m_invalidNonPaddedF1FramesCount;
 
     // Continuity check
     qint32 m_lastFrameNumber;

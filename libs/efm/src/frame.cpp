@@ -81,6 +81,18 @@ quint32 Frame::countErrors() const
     return errorCount;
 }
 
+// Count the number of padded bytes in the frame
+quint32 Frame::countPadding() const
+{
+    quint32 paddingCount = 0;
+    for (int i = 0; i < m_frameErrorData.size(); ++i) {
+        if (m_frameErrorData[i] == 0xFF) {
+            paddingCount++;
+        }
+    }
+    return paddingCount;
+}
+
 // Check if the frame is full (i.e., has data)
 bool Frame::isFull() const
 {

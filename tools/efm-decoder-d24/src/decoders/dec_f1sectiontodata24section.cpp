@@ -24,12 +24,14 @@
 
 #include "dec_f1sectiontodata24section.h"
 
-F1SectionToData24Section::F1SectionToData24Section()
-    : m_invalidF1FramesCount(0),
-      m_validF1FramesCount(0),
-      m_corruptBytesCount(0)
-{
-}
+F1SectionToData24Section::F1SectionToData24Section() :
+    m_invalidF1FramesCount(0),
+    m_validF1FramesCount(0),
+    m_corruptBytesCount(0),
+    m_paddedBytesCount(0),
+    m_unpaddedF1FramesCount(0),
+    m_paddedF1FramesCount(0)
+{}
 
 void F1SectionToData24Section::pushSection(const F1Section &f1Section)
 {
@@ -89,6 +91,15 @@ void F1SectionToData24Section::processQueue()
             else
                 ++m_validF1FramesCount;
 
+            // Check the error data (and count any flagged padding)
+            quint32 paddingCount = f1Section.frame(index).countPadding();
+            m_paddedBytesCount += paddingCount;
+
+            if (paddingCount > 0)
+                ++m_paddedF1FramesCount;
+            else
+                ++m_unpaddedF1FramesCount;
+
             // Put the resulting data into a Data24 frame and push it to the output buffer
             Data24 data24;
             data24.setData(data);
@@ -97,9 +108,9 @@ void F1SectionToData24Section::processQueue()
             data24Section.pushFrame(data24);
         }
 
-        // Preserve the padding flag
-        data24Section.setIsPadding(f1Section.isPadding());
-
+        // We don't need to preserve the padding flag as it's now marked
+        // in the data24 frames error data
+        // Just keep the metadata
         data24Section.metadata = f1Section.metadata;
 
         // Add the section to the output buffer
@@ -113,8 +124,10 @@ void F1SectionToData24Section::showStatistics()
 
     qInfo() << "  Frames:";
     qInfo() << "    Total F1 frames:" << m_validF1FramesCount + m_invalidF1FramesCount;
-    qInfo() << "    Valid F1 frames:" << m_validF1FramesCount;
-    qInfo() << "    Invalid F1 frames:" << m_invalidF1FramesCount;
+    qInfo() << "    Error-free F1 frames:" << m_validF1FramesCount;
+    qInfo() << "    F1 frames containing errors:" << m_invalidF1FramesCount;
+    qInfo() << "    Padded F1 frames:" << m_paddedF1FramesCount;
+    qInfo() << "    Unpadded F1 frames:" << m_unpaddedF1FramesCount;
 
     qInfo() << "  Data:";
     quint32 validBytes = (m_validF1FramesCount + m_invalidF1FramesCount) * 24;
@@ -125,22 +138,27 @@ void F1SectionToData24Section::showStatistics()
         qInfo().nospace().noquote() << "    Total bytes: " << validBytes + m_corruptBytesCount;
         qInfo().nospace().noquote() << "    Valid bytes: " << validBytes;
         qInfo().nospace().noquote() << "    Corrupt bytes: " << m_corruptBytesCount;
+        qInfo().nospace().noquote() << "    Padded bytes: " << m_paddedBytesCount;
     } else if (totalSize < 1024 * 1024) {
         // Show in KB if less than 1MB
         double validKBytes = static_cast<double>(validBytes + m_corruptBytesCount) / 1024.0;
         double validOnlyKBytes = static_cast<double>(validBytes) / 1024.0;
         double corruptKBytes = static_cast<double>(m_corruptBytesCount) / 1024.0;
+        double paddedKBytes = static_cast<double>(m_paddedBytesCount) / 1024.0;
         qInfo().nospace().noquote() << "    Total KBytes: " << QString::number(validKBytes, 'f', 2);
         qInfo().nospace().noquote() << "    Valid KBytes: " << QString::number(validOnlyKBytes, 'f', 2);
         qInfo().nospace().noquote() << "    Corrupt KBytes: " << QString::number(corruptKBytes, 'f', 2);
+        qInfo().nospace().noquote() << "    Padded KBytes: " << QString::number(paddedKBytes, 'f', 2);
     } else {
         // Show in MB if 1MB or larger
         double validMBytes = static_cast<double>(validBytes + m_corruptBytesCount) / (1024.0 * 1024.0);
         double validOnlyMBytes = static_cast<double>(validBytes) / (1024.0 * 1024.0);
         double corruptMBytes = static_cast<double>(m_corruptBytesCount) / (1024.0 * 1024.0);
+        double paddedMBytes = static_cast<double>(m_paddedBytesCount) / (1024.0 * 1024.0);
         qInfo().nospace().noquote() << "    Total MBytes: " << QString::number(validMBytes, 'f', 2);
         qInfo().nospace().noquote() << "    Valid MBytes: " << QString::number(validOnlyMBytes, 'f', 2);
         qInfo().nospace().noquote() << "    Corrupt MBytes: " << QString::number(corruptMBytes, 'f', 2);
+        qInfo().nospace().noquote() << "    Padded MBytes: " << QString::number(paddedMBytes, 'f', 2);
     }
 
     qInfo().nospace().noquote() << "    Data loss: "

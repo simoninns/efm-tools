@@ -24,28 +24,29 @@
 
 #include "dec_f2sectiontof1section.h"
 
-F2SectionToF1Section::F2SectionToF1Section()
-    : m_delayLine1({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-                   0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
-      m_delayLine2({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
-      m_delayLineM({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
-                   52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
-      m_delayLine1Err({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-                      0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
-      m_delayLine2Err({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
-      m_delayLineMErr({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
-                      52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
-      m_validInputF2FramesCount(0),
-      m_invalidInputF2FramesCount(0),
-      m_invalidOutputF1FramesCount(0),
-      m_validOutputF1FramesCount(0),
-      m_inputByteErrors(0),
-      m_outputByteErrors(0),
-      m_dlLostFramesCount(0),
-      m_lastFrameNumber(-1),
-      m_continuityErrorCount(0)
-{
-}
+F2SectionToF1Section::F2SectionToF1Section() :
+    m_delayLine1({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
+    m_delayLine2({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
+    m_delayLineM({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
+        52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
+    m_delayLine1Err({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
+    m_delayLine2Err({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
+    m_delayLineMErr({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
+        52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
+    m_validInputF2FramesCount(0),
+    m_invalidInputF2FramesCount(0),
+    m_invalidOutputF1FramesCount(0),
+    m_validOutputF1FramesCount(0),
+    m_inputByteErrors(0),
+    m_outputByteErrors(0),
+    m_dlLostFramesCount(0),
+    m_lastFrameNumber(-1),
+    m_continuityErrorCount(0),
+    m_invalidPaddedF1FramesCount(0),
+    m_invalidNonPaddedF1FramesCount(0)
+{}
 
 void F2SectionToF1Section::pushSection(const F2Section &f2Section)
 {
@@ -102,12 +103,26 @@ void F2SectionToF1Section::processQueue()
 
         for (int index = 0; index < 98; index++) {
             QVector<quint8> data = f2Section.frame(index).data();
-            QVector<quint8> errorData = f2Section.frame(index).errorData();
+            QVector<quint8> errorData;
+            
+            // Is the ingress section padding?
+            // Note: For audio data the padding isn't really important (it's just silence)
+            // but for data sections it's important to know if the section is padded because
+            // it will look like we have valid data but, when we try to decode it into sections,
+            // we will get errors due to missing syncs and so on.
+            if (f2Section.isPadding()) {
+                // Mark the padded data with 0xFF so we can track it
+                // Note: Error counting and CIRC will only see an error if the error data is 1
+                // so we can't use 0xFF to mark padding without changing the error data
+                errorData = QVector<quint8>(32, 0xFF);
+            } else {
+                errorData = f2Section.frame(index).errorData();
+            }
 
             // if (m_showDebug) showData(" F2 Input", index,
             // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);
 
-            // Check F2 frame for errors
+            // Check F2 frame for errors (counts only when errorData = 1)
             quint32 inFrameErrors = f2Section.frame(index).countErrors();
             if (inFrameErrors == 0)
                 m_validInputF2FramesCount++;
@@ -188,11 +203,17 @@ void F2SectionToF1Section::processQueue()
 
             // Check F1 frame for errors
             quint32 outFrameErrors = f1Frame.countErrors();
-            if (outFrameErrors == 0)
+            quint32 outFramePadding = f1Frame.countPadding();
+
+            if (outFrameErrors == 0 && outFramePadding == 0)
                 m_validOutputF1FramesCount++;
             else {
                 m_invalidOutputF1FramesCount++;
                 m_outputByteErrors += outFrameErrors;
+
+                // Invalid with or without padding?
+                if (outFramePadding > 0) m_invalidPaddedF1FramesCount++;
+                else m_invalidNonPaddedF1FramesCount++;
             }
 
             f1Section.pushFrame(f1Frame);
@@ -255,7 +276,9 @@ void F2SectionToF1Section::showStatistics()
 
     qInfo() << "  Output F1 Frames (after CIRC):";
     qInfo() << "    Valid frames:" << m_validOutputF1FramesCount;
-    qInfo() << "    Corrupt frames:" << m_invalidOutputF1FramesCount;
+    qInfo() << "    Invalid frames due to padding:" << m_invalidPaddedF1FramesCount;
+    qInfo() << "    Invalid frames without padding:" << m_invalidNonPaddedF1FramesCount;
+    qInfo() << "    Invalid frames (total):" << m_invalidOutputF1FramesCount;
     qInfo() << "    Output byte errors:" << m_outputByteErrors;
 
     qInfo() << "  C1 decoder:";

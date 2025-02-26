@@ -139,7 +139,7 @@ bool F2Stacker::process(const QVector<QString> &inputFilenames, const QString &o
     qInfo().noquote() << "";
     qInfo().noquote() << "  Error free frames:" << m_errorFreeFrames;
     qInfo().noquote() << "  Error frames:" << m_errorFrames;
-    qInfo().noquote() << "  Padded frames:" << m_paddedFrames;
+    qInfo().noquote().nospace() << "  Padded frames: " << m_paddedFrames << " (" << m_paddedFrames / 98 << " sections)";
     qInfo().noquote() << "  Total frames:" << m_errorFreeFrames + m_errorFrames + m_paddedFrames;
     qInfo().noquote() << "";
     qInfo().noquote() << "  Valid bytes common to all sources:" << m_validValueForByte;

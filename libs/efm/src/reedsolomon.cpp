@@ -71,7 +71,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // Convert the errorData into a list of erasure positions
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] != 0)
+        if (errorData[index] == 1)
             erasures.push_back(index);
     }
 
@@ -96,7 +96,11 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
-        errorData.fill(0);
+        // Clear the error data, but keep the padding markers
+        for (int index = 0; index < errorData.size(); ++index) {
+            if (errorData[index] == 0 || errorData[index] == 1)
+                errorData[index] = 0;
+        }
         if (result == 0)
             ++m_validC1s;
         else
@@ -108,7 +112,12 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     // if (m_showDebug) qDebug() << "ReedSolomon::c1Decode - C1 corrupt and could not be fixed";
 
     // Make every byte in the error data 1 - i.e. all errors
-    errorData.fill(1);
+
+    // Set the error data, but keep the padding markers
+    for (int index = 0; index < errorData.size(); ++index) {
+        if (errorData[index] == 0 || errorData[index] == 1)
+            errorData[index] = 1;
+    }
     ++m_errorC1s;
     return;
 }
@@ -134,7 +143,7 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // Convert the errorData into a list of erasure positions
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] != 0)
+        if (errorData[index] == 1)
             erasures.push_back(index);
     }
 
@@ -148,7 +157,13 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
         inputData = QVector<quint8>(tmpData.begin(), tmpData.begin() + 12)
                 + QVector<quint8>(tmpData.begin() + 16, tmpData.end());
         errorData.resize(inputData.size());
-        errorData.fill(1);
+        
+        // Set the error data, but keep the padding markers
+        for (int index = 0; index < errorData.size(); ++index) {
+            if (errorData[index] == 0 || errorData[index] == 1)
+                errorData[index] = 1;
+        }
+
         ++m_errorC2s;
         return;
     }
@@ -169,7 +184,11 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
-        errorData.fill(0);
+        // Clear the error data, but keep the padding markers
+        for (int index = 0; index < errorData.size(); ++index) {
+            if (errorData[index] == 0 || errorData[index] == 1)
+                errorData[index] = 0;
+        }
         if (result == 0)
             ++m_validC2s;
         else
@@ -181,7 +200,13 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     // if (m_showDebug)
     //     qDebug().noquote() << "ReedSolomon::c2Decode - C2 corrupt and could not be fixed"
     //                        << result;
-    errorData.fill(1);
+    
+    // Set the error data, but keep the padding markers
+    for (int index = 0; index < errorData.size(); ++index) {
+        if (errorData[index] == 0 || errorData[index] == 1)
+            errorData[index] = 1;
+    }
+
     ++m_errorC2s;
     return;
 }

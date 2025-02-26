@@ -44,9 +44,13 @@ private:
     QQueue<F1Section> m_inputBuffer;
     QQueue<Data24Section> m_outputBuffer;
 
-    quint32 m_invalidF1FramesCount;
-    quint32 m_validF1FramesCount;
-    quint32 m_corruptBytesCount;
+    quint64 m_invalidF1FramesCount;
+    quint64 m_validF1FramesCount;
+    quint64 m_corruptBytesCount;
+
+    quint64 m_paddedBytesCount;
+    quint64 m_unpaddedF1FramesCount;
+    quint64 m_paddedF1FramesCount;
 };
 
 #endif // DEC_F1SECTIONTODATA24SECTION_H
