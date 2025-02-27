@@ -41,29 +41,35 @@ public:
 
 private:
     void processStateMachine();
+    void outputSection(bool showAddress);
 
     QQueue<F3Frame> m_inputBuffer;
     QQueue<F2Section> m_outputBuffer;
 
+    QVector<F3Frame> m_internalBuffer;
+    QVector<F3Frame> m_sectionFrames;
+
     // State machine states
-    enum State { ExpectingSync0, ExpectingSync1, ExpectingSubcode, ProcessSection };
+    enum State { ExpectingInitialSync, ExpectingSync, HandleValid, HandleOvershoot, HandleUndershoot };
 
     State m_currentState;
-    QVector<F3Frame> m_sectionBuffer;
 
     // State machine state processing functions
-    State expectingSync0();
-    State expectingSync1();
-    State expectingSubcode();
-    State processSection();
+    State expectingInitialSync();
+    State expectingSync();
+    State handleValid();
+    State handleUndershoot();
+    State handleOvershoot();
 
     // Statistics
-    quint32 m_missedSync0s;
-    quint32 m_missedSync1s;
-    quint32 m_missedSubcodes;
-    quint32 m_validSections;
-    quint32 m_invalidSections;
-    quint32 m_inputF3Frames;
+    quint64 m_inputF3Frames;
+    quint64 m_presyncDiscardedF3Frames;
+    quint64 m_goodSync0;
+    quint64 m_missingSync0;
+    quint64 m_undershootSync0;
+    quint64 m_overshootSync0;
+    quint64 m_discardedF3Frames;
+    quint64 m_paddedF3Frames;
 };
 
 #endif // DEC_F3FRAMETOF2SECTION_H

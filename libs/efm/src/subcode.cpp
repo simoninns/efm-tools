@@ -57,12 +57,12 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
         oneCount += countBits(static_cast<quint8>(pChannelData[index]));
     }
 
-    if (oneCount != 96 && oneCount != 0) {
-        if (m_showDebug) {
-            qDebug() << "Subcode::fromData(): P channel data contains" << 96-oneCount << "zeros and"
-                     << oneCount << "ones - indicating some p-channel corruption"; 
-        }
-    }
+    // if (oneCount != 96 && oneCount != 0) {
+    //     if (m_showDebug) {
+    //         qDebug() << "Subcode::fromData(): P channel data contains" << 96-oneCount << "zeros and"
+    //                  << oneCount << "ones - indicating some p-channel corruption"; 
+    //     }
+    // }
 
     if (oneCount > (96/2)) {
         sectionMetadata.setPFlag(true);
