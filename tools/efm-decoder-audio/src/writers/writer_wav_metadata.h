@@ -45,6 +45,7 @@ public:
 
 private:
     QFile m_file;
+    qint32 m_currentTrack;
 };
 
 #endif // WRITER_WAV_METADATA_H

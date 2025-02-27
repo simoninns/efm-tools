@@ -27,7 +27,8 @@
 // This writer class writes metadata about audio data to a file
 // This is used when the output is stereo audio data
 
-WriterWavMetadata::WriterWavMetadata()
+WriterWavMetadata::WriterWavMetadata() :
+    m_currentTrack(-1)
 {}
 
 WriterWavMetadata::~WriterWavMetadata()
@@ -56,11 +57,6 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
         return;
     }
 
-    // Write a metadata entry for the section
-    QString metadata = audioSection.metadata.absoluteSectionTime().toString() + ","
-            + QString::number(audioSection.metadata.trackNumber()) + ","
-            + audioSection.metadata.sectionTime().toString();
-
     // Each Audio section contains 98 frames that we need to write metadata for in the output file
     QString sectionErrorList;
     for (int index = 0; index < 98; index++) {
@@ -81,10 +77,21 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
         }
     }
 
-    // Write the metadata to the metadata file
-    metadata += sectionErrorList;
-    metadata += "\n";
-    m_file.write(metadata.toUtf8());
+    // Only write metadata is the section contains errors or the track number has changed
+    if (!sectionErrorList.isEmpty() || m_currentTrack != audioSection.metadata.trackNumber()) {
+        // Write a metadata entry for the section
+        QString frameEntry = audioSection.metadata.absoluteSectionTime().toString() + ","
+                + QString::number(audioSection.metadata.trackNumber()) + ","
+                + audioSection.metadata.sectionTime().toString();
+
+        // Write the metadata to the metadata file
+        frameEntry += sectionErrorList;
+        frameEntry += "\n";
+        m_file.write(frameEntry.toUtf8());
+    }
+
+    // Save the current track
+    m_currentTrack = audioSection.metadata.trackNumber();
 }
 
 void WriterWavMetadata::close()
