@@ -85,6 +85,10 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
 
         // Set the q-channel mode
         switch (modeNybble) {
+        case 0x0:
+            // IEC 60908 17.5.4 says to treat this as Q-mode 1
+            sectionMetadata.setQMode(SectionMetadata::QMode1);
+            break;
         case 0x1:
             sectionMetadata.setQMode(SectionMetadata::QMode1);
             break;

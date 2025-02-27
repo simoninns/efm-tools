@@ -249,7 +249,7 @@ quint32 RawSectorToSector::crc32(const QByteArray &src, qint32 size)
 void RawSectorToSector::showStatistics()
 {
     qInfo() << "Raw Sector to Sector (RSPC error-correction):";
-    qInfo().nospace() << "  Valid sectors: " << m_validSectors + m_correctedSectors << " (corrected:" << m_correctedSectors << ")";
+    qInfo().nospace() << "  Valid sectors: " << m_validSectors + m_correctedSectors << " (corrected: " << m_correctedSectors << ")";
     qInfo() << "  Invalid sectors:" << m_invalidSectors;
 
     qInfo() << "  Sector metadata:";

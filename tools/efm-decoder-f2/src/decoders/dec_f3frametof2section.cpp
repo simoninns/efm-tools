@@ -168,7 +168,7 @@ F3FrameToF2Section::State F3FrameToF2Section::handleValid()
     State nextState = ExpectingSync;
 
     // Output the section
-    outputSection(true);
+    outputSection(false);
 
     // Reset the bad sync counter
     m_badSyncCounter = 0;
