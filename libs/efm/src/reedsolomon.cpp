@@ -150,22 +150,9 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     // Since we know the erasure positions, we can correct a maximum of 4 errors.  If the number
     // of know input erasures is greater than 4, then we can't correct the data.
     if (erasures.size() > 4) {
-        // If there are more than 4 erasures, then we can't correct the data - copy the input data
-        // to the output data and flag it with errors
-        // if (m_showDebug)
-        //     qDebug().noquote() << "ReedSolomon::c2Decode - Too many erasures to correct";
-        inputData = QVector<quint8>(tmpData.begin(), tmpData.begin() + 12)
-                + QVector<quint8>(tmpData.begin() + 16, tmpData.end());
-        errorData.resize(inputData.size());
-        
-        // Set the error data, but keep the padding markers
-        for (int index = 0; index < errorData.size(); ++index) {
-            if (errorData[index] == 0 || errorData[index] == 1)
-                errorData[index] = 1;
-        }
-
-        ++m_errorC2s;
-        return;
+        // Note: This is based on the assumption that, althoug we have more than 4 erasures, the
+        // input data error marking may be incorrect, so we should try without erasures.
+        erasures.clear();
     }
 
     // Decode the data
