@@ -49,8 +49,10 @@ private:
     QVector<F3Frame> m_internalBuffer;
     QVector<F3Frame> m_sectionFrames;
 
+    qint32 m_badSyncCounter;
+
     // State machine states
-    enum State { ExpectingInitialSync, ExpectingSync, HandleValid, HandleOvershoot, HandleUndershoot };
+    enum State { ExpectingInitialSync, ExpectingSync, HandleValid, HandleOvershoot, HandleUndershoot, LostSync };
 
     State m_currentState;
 
@@ -60,6 +62,7 @@ private:
     State handleValid();
     State handleUndershoot();
     State handleOvershoot();
+    State lostSync();
 
     // Statistics
     quint64 m_inputF3Frames;
@@ -70,6 +73,7 @@ private:
     quint64 m_overshootSync0;
     quint64 m_discardedF3Frames;
     quint64 m_paddedF3Frames;
+    quint64 m_lostSyncCounter;
 };
 
 #endif // DEC_F3FRAMETOF2SECTION_H

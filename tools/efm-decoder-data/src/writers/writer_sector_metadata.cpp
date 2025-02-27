@@ -55,19 +55,13 @@ void WriterSectorMetadata::write(const Sector &sector)
         return;
     }
 
-    // Write a metadata entry for the sector
-    QString metadata = QString::number(sector.address().address()) + ","
-            + QString::number(sector.mode());
-
-    if (sector.isDataValid()) {
-        metadata += ",true";
-    } else {
-        metadata += ",false";
+    // If the sector is not valid, write a metadata entry for it
+    if (!sector.isDataValid()) {
+        // Write a metadata entry for the sector
+        QString metadata = QString::number(sector.address().address()) + ","
+            + QString::number(sector.mode()) + "\n";
+        m_file.write(metadata.toUtf8());
     }
-
-    // Write the metadata to the metadata file
-    metadata += "\n";
-    m_file.write(metadata.toUtf8());
 }
 
 void WriterSectorMetadata::close()

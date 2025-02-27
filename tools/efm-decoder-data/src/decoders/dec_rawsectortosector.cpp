@@ -82,8 +82,12 @@ void RawSectorToSector::processQueue()
         // Determine the sector mode (for modes 0 and 2 there is no correction available)
         qint32 mode = 0;
 
-        // Is the mode byte valid?
-        if (static_cast<quint8>(rawSector.errorData()[15]) == 0) {
+        // Is the mode byte valid (not error or padding)?
+        if (static_cast<quint8>(rawSector.errorData()[15]) != 0) {
+            // Mode byte is invalid
+            if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is invalid. Assuming it's mode 1";
+            mode = -1;
+        } else {
             // Extract the sector mode data
             if (static_cast<quint8>(rawSector.data()[15]) == 0) mode = 0;
             else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
@@ -91,14 +95,8 @@ void RawSectorToSector::processQueue()
             else mode = -1;
 
             if (mode != 1) {
-                qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is valid, but mode isn't? Mode reported as" << static_cast<quint8>(rawSector.data()[15]);
-                qFatal("RawSectorToSector::processQueue(): This is a bug - a valid mode byte should have a valid mode");
-                mode = -1;
+                if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is valid, but mode isn't? Mode reported as" << static_cast<quint8>(rawSector.data()[15]);
             }
-        } else {
-            // Mode byte is invalid
-            if (m_showDebug) qDebug() << "RawSectorToSector::processQueue(): Sector mode byte is invalid. Assuming it's mode 1";
-            mode = -1;
         }
 
         // If the mode is invalid, we try to treat the sector as mode 1 to see if the error correction
@@ -168,10 +166,20 @@ void RawSectorToSector::processQueue()
                 m_validSectors++;
                 rawSectorValid = true;
 
+                // It's possible that the original mode byte was marked as error, but the RSCP error correction
+                // was able to correct the data.  In this case, we need to update the mode byte
+                if (static_cast<quint8>(rawSector.data()[15]) == 0) mode = 0;
+                else if (static_cast<quint8>(rawSector.data()[15]) == 1) mode = 1;
+                else if (static_cast<quint8>(rawSector.data()[15]) == 2) mode = 2;
+                else mode = -1;
+
                 if (mode == 0) m_mode0Sectors++;
                 else if (mode == 1) m_mode1Sectors++;
                 else if (mode == 2) m_mode2Sectors++;
-                else qFatal("RawSectorToSector::processQueue(): Invalid sector mode of %d", mode);
+                else {
+                    qDebug() << "RawSectorToSector::processQueue(): EDC:" << originalEdcWord << "Calculated:" << edcWord << "Mode byte:" << static_cast<quint8>(rawSector.data()[15]);
+                    qFatal("RawSectorToSector::processQueue(): Invalid sector mode of %d - even though sector data was valid - bug?", mode);
+                }
             }
         } else {
             // Mode 0 and Mode 2 sectors are not corrected
@@ -241,7 +249,7 @@ quint32 RawSectorToSector::crc32(const QByteArray &src, qint32 size)
 void RawSectorToSector::showStatistics()
 {
     qInfo() << "Raw Sector to Sector (RSPC error-correction):";
-    qInfo() << "  Valid sectors:" << m_validSectors + m_correctedSectors << "(corrected:" << m_correctedSectors << ")";
+    qInfo().nospace() << "  Valid sectors: " << m_validSectors + m_correctedSectors << " (corrected:" << m_correctedSectors << ")";
     qInfo() << "  Invalid sectors:" << m_invalidSectors;
 
     qInfo() << "  Sector metadata:";

@@ -33,7 +33,9 @@ F3FrameToF2Section::F3FrameToF2Section() :
     m_overshootSync0(0),
     m_discardedF3Frames(0),
     m_paddedF3Frames(0),
-    m_missingSync0(0)
+    m_missingSync0(0),
+    m_badSyncCounter(0),
+    m_lostSyncCounter(0)
 {}
 
 void F3FrameToF2Section::pushFrame(const F3Frame &data)
@@ -71,6 +73,9 @@ void F3FrameToF2Section::processStateMachine()
             break;
         case HandleOvershoot:
             m_currentState = handleOvershoot();
+            break;
+        case LostSync:
+            m_currentState = lostSync();
             break;
         }
     }
@@ -150,6 +155,11 @@ F3FrameToF2Section::State F3FrameToF2Section::expectingSync()
         nextState = HandleOvershoot;
     }
 
+    // Have we hit the bad sync limit?
+    if (m_badSyncCounter > 3) {
+        nextState = LostSync;
+    }
+
     return nextState;
 }
 
@@ -158,7 +168,10 @@ F3FrameToF2Section::State F3FrameToF2Section::handleValid()
     State nextState = ExpectingSync;
 
     // Output the section
-    outputSection(false);
+    outputSection(true);
+
+    // Reset the bad sync counter
+    m_badSyncCounter = 0;
 
     nextState = ExpectingSync;
     return nextState;
@@ -189,6 +202,9 @@ F3FrameToF2Section::State F3FrameToF2Section::handleUndershoot()
     }
 
     outputSection(true);
+
+    // Undershoot is a bad sync
+    m_badSyncCounter++;
 
     nextState = ExpectingSync;
     return nextState;
@@ -223,7 +239,21 @@ F3FrameToF2Section::State F3FrameToF2Section::handleOvershoot()
         }
     }
 
+    // Each missed sync is a bad sync
+    m_badSyncCounter += frameCount;
+
     nextState = ExpectingSync;
+    return nextState;
+}
+
+F3FrameToF2Section::State F3FrameToF2Section::lostSync()
+{
+    State nextState = ExpectingInitialSync;
+    if (m_showDebug) qDebug() << "F3FrameToF2Section::lostSync - Lost section sync";
+    m_lostSyncCounter++;
+    m_badSyncCounter = 0;
+    m_internalBuffer.clear();
+    m_sectionFrames.clear();
     return nextState;
 }
 
@@ -267,6 +297,7 @@ void F3FrameToF2Section::showStatistics()
     qInfo() << "    Missing sync0 frames:" << m_missingSync0;
     qInfo() << "    Undershoot sync0 frames:" << m_undershootSync0;
     qInfo() << "    Overshoot sync0 frames:" << m_overshootSync0;
+    qInfo() << "    Lost sync:" << m_lostSyncCounter;
     qInfo() << "  Frame loss:";
     qInfo() << "    Presync discarded F3 frames:" << m_presyncDiscardedF3Frames;
     qInfo() << "    Discarded F3 frames:" << m_discardedF3Frames;

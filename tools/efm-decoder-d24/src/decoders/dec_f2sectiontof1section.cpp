@@ -164,18 +164,18 @@ void F2SectionToF1Section::processQueue()
                 continue;
             }
 
-            if (m_showDebug)
-                showData(" C2 Input", index,
-                         f2Section.metadata.absoluteSectionTime().toString(), data,
-                         errorData);
+            // if (m_showDebug)
+            //     showData(" C2 Input", index,
+            //              f2Section.metadata.absoluteSectionTime().toString(), data,
+            //              errorData);
 
             // Only perform C2 decode if delay line 1 is full and delay line M is full
             m_circ.c2Decode(data, errorData, m_showDebug);
 
-            if (m_showDebug)
-                showData("C2 Output", index,
-                         f2Section.metadata.absoluteSectionTime().toString(), data,
-                         errorData);
+            // if (m_showDebug)
+            //     showData("C2 Output", index,
+            //              f2Section.metadata.absoluteSectionTime().toString(), data,
+            //              errorData);
 
             data = m_interleave.deinterleave(data);
             errorData = m_interleaveErr.deinterleave(errorData);
