@@ -195,9 +195,9 @@ F3FrameToF2Section::State F3FrameToF2Section::handleUndershoot()
         m_paddedF3Frames += padding;
         if (m_showDebug) qDebug() << "F3FrameToF2Section::handleUndershoot - Padding section with" << padding << "frames";
 
-        // TODO: If we are padding, we are introducing errors... The CIRC can correct these
+        // If we are padding, we are introducing errors... The CIRC can correct these
         // provided they are distributed across the section; so the best policy here
-        // is to interleave the padding with the section frames?
+        // is to interleave the padding with the (hopefully) valid section frames
 
         F3Frame emptyFrame;
         emptyFrame.setData(QVector<quint8>(32, 0));

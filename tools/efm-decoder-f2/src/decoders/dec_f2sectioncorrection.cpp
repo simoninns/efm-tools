@@ -241,13 +241,13 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                         << "as padding sections (i.e. the decoder thinks there is a gap in the EFM data rather than actual data loss).";
             }
 
-            if (m_showDebug && missingSections == 1)
+            if (missingSections == 1)
                 qWarning() << "F2SectionCorrection::waitingForSection(): Missing section detected, "
                             "expected absolute time is"
                         << expectedAbsoluteTime.toString() << "actual absolute time is"
                         << f2Section.metadata.absoluteSectionTime().toString();
 
-            if (m_showDebug && missingSections > 1)
+            if (missingSections > 1)
                 qWarning() << "F2SectionCorrection::waitingForSection():" << missingSections << "missing sections detected, "
                             "expected absolute time is"
                         << expectedAbsoluteTime.toString() << "actual absolute time is"
@@ -294,6 +294,10 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                 // Push 98 error frames in to the missing section
                 if (missingSections <= m_paddingWatermark) {
                     // Section is considered as missing, so mark it as error
+                    if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Inserting missing section"
+                            << "into internal buffer with absolute time:" 
+                            << missingSection.metadata.absoluteSectionTime().toString()
+                            << "- marking all data as errors";
                     for (int i = 0; i < 98; ++i) {
                         F2Frame errorFrame;
                         errorFrame.setData(QVector<quint8>(32, 0x00));
@@ -302,6 +306,10 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                     }
                 } else {
                     // Section is considered as padding, so fill it with valid data
+                    if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Inserting missing section"
+                            << "into internal buffer with absolute time:" 
+                            << missingSection.metadata.absoluteSectionTime().toString()
+                            << "- marking all data as padding";
                     for (int i = 0; i < 98; ++i) {
                         F2Frame errorFrame;
                         // Note: This data pattern will pass C1/C2 error correction resulting in a frame of zeros
