@@ -72,7 +72,7 @@ void Data24ToRawSector::processStateMachine()
             m_sectorData.append(frameBytes);
 
             // Add the error data
-            const QVector<quint8>& frameErrorData = data24Section.frame(i).errorData();
+            const QVector<bool>& frameErrorData = data24Section.frame(i).errorData();
             QByteArray frameErrorBytes = QByteArray(reinterpret_cast<const char*>(frameErrorData.constData()), frameErrorData.size());
             m_sectorErrorData.append(frameErrorBytes);
         }

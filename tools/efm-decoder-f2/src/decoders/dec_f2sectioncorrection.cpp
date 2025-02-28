@@ -301,7 +301,8 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                     for (int i = 0; i < 98; ++i) {
                         F2Frame errorFrame;
                         errorFrame.setData(QVector<quint8>(32, 0x00));
-                        errorFrame.setErrorData(QVector<quint8>(32, 0x01)); // Flag as error
+                        errorFrame.setErrorData(QVector<bool>(32, true)); // Flag as error
+                        errorFrame.setPaddedData(QVector<bool>(32, false)); // Not padded
                         missingSection.pushFrame(errorFrame);
                     }
                 } else {
@@ -316,7 +317,8 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                         QVector<quint8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF};
                         errorFrame.setData(data);
-                        errorFrame.setErrorData(QVector<quint8>(32, 0x00));
+                        errorFrame.setErrorData(QVector<bool>(32, false));
+                        errorFrame.setPaddedData(QVector<bool>(32, true)); // Padded
                         missingSection.pushFrame(errorFrame);
                     }
                 }

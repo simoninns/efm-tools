@@ -59,10 +59,15 @@ private:
     DelayLines m_delayLine2Err;
     DelayLines m_delayLineMErr;
 
+    DelayLines m_delayLine1Pad;
+    DelayLines m_delayLine2Pad;
+    DelayLines m_delayLineMPad;
+
     Interleave m_interleave;
     Inverter m_inverter;
 
     Interleave m_interleaveErr;
+    Interleave m_interleavePad;
 
     // Statistics
     quint64 m_invalidInputF2FramesCount;

@@ -46,7 +46,7 @@ QVector<qint16> Channel::data() const
 
 // Set the error data for the channel, ensuring it matches the frame size
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-void Channel::setErrorData(const QVector<qint16> &errorData)
+void Channel::setErrorData(const QVector<bool> &errorData)
 {
     if (errorData.size() != frameSize()) {
         qFatal("Channel::setErrorData(): Error data size of %d does not match frame size of %d", errorData.size(), frameSize());
@@ -56,11 +56,11 @@ void Channel::setErrorData(const QVector<qint16> &errorData)
 
 // Get the error_data for the channel, returning a zero-filled vector if empty
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-QVector<qint16> Channel::errorData() const
+QVector<bool> Channel::errorData() const
 {
     if (m_audioErrorData.isEmpty()) {
         qDebug() << "Channel::errorData(): Error frame is empty, returning zero-filled vector";
-        return QVector<qint16>(frameSize(), 0);
+        return QVector<bool>(frameSize(), false);
     }
     return m_audioErrorData;
 }
@@ -70,7 +70,7 @@ quint32 Channel::countErrors() const
 {
     quint32 errorCount = 0;
     for (int i = 0; i < frameSize(); ++i) {
-        if (m_audioErrorData[i] == 1) {
+        if (m_audioErrorData[i] == true) {
             errorCount++;
         }
     }
@@ -95,7 +95,7 @@ void Channel::showData(QString channelName)
     QString dataString;
     bool hasError = false;
     for (int i = 0; i < m_audioData.size(); ++i) {
-        if (m_audioErrorData[i] == 0) {
+        if (m_audioErrorData[i] == false) {
             dataString.append(QString("%1%2 ")
                 .arg(m_audioData[i] < 0 ? "-" : "+")
                 .arg(qAbs(m_audioData[i]), 4, 16, QChar('0')));
@@ -151,14 +151,14 @@ QVector<qint16> Audio::data() const
 
 // Set the error data for the audio frame, ensuring it matches the frame size
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-void Audio::setErrorData(const QVector<qint16> &errorData)
+void Audio::setErrorData(const QVector<bool> &errorData)
 {
     if (errorData.size() != frameSize()) {
         qFatal("Audio::setErrorData(): Error data size of %d does not match frame size of %d", errorData.size(), 12);
     }
     
-    QVector<qint16> leftChannelErrorData;
-    QVector<qint16> rightChannelErrorData;
+    QVector<bool> leftChannelErrorData;
+    QVector<bool> rightChannelErrorData;
     for (int i = 0; i < frameSize(); i+=2) {
         leftChannelErrorData.append(errorData[i]);
         rightChannelErrorData.append(errorData[i+1]);
@@ -170,14 +170,14 @@ void Audio::setErrorData(const QVector<qint16> &errorData)
 
 // Get the error_data for the audio frame, returning a zero-filled vector if empty
 // Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-QVector<qint16> Audio::errorData() const
+QVector<bool> Audio::errorData() const
 {
     if (leftChannel.isEmpty() || rightChannel.isEmpty()) {
         qDebug() << "Audio::errorData(): Channels are empty, returning zero-filled vector";
-        return QVector<qint16>(frameSize(), 0);
+        return QVector<bool>(frameSize(), false);
     }
     
-    QVector<qint16> audioErrorData;
+    QVector<bool> audioErrorData;
     for (int i = 0; i < leftChannel.frameSize(); ++i) {
         audioErrorData.append(leftChannel.errorData()[i]);
         audioErrorData.append(rightChannel.errorData()[i]);
@@ -191,8 +191,8 @@ quint32 Audio::countErrors() const
 {
     quint32 errorCount = 0;
     for (int i = 0; i < leftChannel.frameSize(); ++i) {
-        if (leftChannel.errorData()[i] == 1) errorCount++;
-        if (rightChannel.errorData()[i] == 1) errorCount++;
+        if (leftChannel.errorData()[i] == true) errorCount++;
+        if (rightChannel.errorData()[i] == true) errorCount++;
     }
     return errorCount;
 }

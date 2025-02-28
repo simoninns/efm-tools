@@ -61,17 +61,17 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
     QString sectionErrorList;
     for (int index = 0; index < 98; index++) {
         Audio audio = audioSection.frame(index);
-        QVector<int16_t> errors = audio.errorData();
+        QVector<bool> errors = audio.errorData();
 
         // Are there any errors in this section?
-        if (errors.contains(1)) {
+        if (errors.contains(true)) {
             // If the frame contains errors we need to add it to the metadata
             // the position of the error is the frame sample number * current frame
             // i.e. 0 to 1175
             for (int i = 0; i < errors.size(); i++) {
                 // Each frame is 12 samples, each section is 98 frames
                 int32_t errorLocationInSection = i + (index * 12);
-                if (errors[i] != 0)
+                if (errors[i] == true)
                     sectionErrorList += "," + QString::number(errorLocationInSection);
             }
         }

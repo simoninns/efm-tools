@@ -24,7 +24,7 @@
 
 #include "delay_lines.h"
 
-DelayLines::DelayLines(QVector<quint32> delayLengths)
+DelayLines::DelayLines(QVector<qint32> delayLengths)
 {
     m_delayLines.reserve(delayLengths.size());
     for (qint32 i = 0; i < delayLengths.size(); ++i) {
@@ -49,6 +49,22 @@ QVector<quint8> DelayLines::push(QVector<quint8> inputData)
         return QVector<quint8>{};
     }
 
+    return outputData;
+}
+
+QVector<bool> DelayLines::push(QVector<bool> inputData)
+{
+    QVector<quint8> inputBytes;
+    inputBytes.reserve(inputData.size());
+    for (qint32 i = 0; i < inputData.size(); ++i) {
+        inputBytes.append(inputData[i] ? 1 : 0);
+    }
+    QVector<quint8> outputBytes = push(inputBytes);
+    QVector<bool> outputData;
+    outputData.reserve(outputBytes.size());
+    for (qint32 i = 0; i < outputBytes.size(); ++i) {
+        outputData.append(outputBytes[i] == 1);
+    }
     return outputData;
 }
 

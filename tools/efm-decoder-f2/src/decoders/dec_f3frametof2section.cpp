@@ -201,7 +201,8 @@ F3FrameToF2Section::State F3FrameToF2Section::handleUndershoot()
 
         F3Frame emptyFrame;
         emptyFrame.setData(QVector<quint8>(32, 0));
-        emptyFrame.setErrorData(QVector<quint8>(32, 1));
+        emptyFrame.setErrorData(QVector<bool>(32, true));
+        emptyFrame.setPaddedData(QVector<bool>(32, false));
         emptyFrame.setFrameTypeAsSubcode(0);
 
         // The padding is interleaved with the section frames start

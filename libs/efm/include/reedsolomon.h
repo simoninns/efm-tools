@@ -51,8 +51,8 @@ class ReedSolomon
 {
 public:
     ReedSolomon();
-    void c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorData, bool m_showDebug);
-    void c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorData, bool m_showDebug);
+    void c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData, bool m_showDebug);
+    void c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData, bool m_showDebug);
 
     qint32 validC1s();
     qint32 fixedC1s();

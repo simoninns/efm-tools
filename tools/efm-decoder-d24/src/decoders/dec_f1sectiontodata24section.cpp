@@ -68,7 +68,8 @@ void F1SectionToData24Section::processQueue()
 
         for (int index = 0; index < 98; ++index) {
             QVector<quint8> data = f1Section.frame(index).data();
-            QVector<quint8> errorData = f1Section.frame(index).errorData();
+            QVector<bool> errorData = f1Section.frame(index).errorData();
+            QVector<bool> paddedData = f1Section.frame(index).paddedData();
 
             // ECMA-130 issue 2 page 16 - Clause 16
             // All byte pairs are swapped by the F1 Frame encoder
@@ -76,6 +77,7 @@ void F1SectionToData24Section::processQueue()
                 for (int i = 0; i < data.size() - 1; i += 2) {
                     std::swap(data[i], data[i + 1]);
                     std::swap(errorData[i], errorData[i + 1]);
+                    std::swap(paddedData[i], paddedData[i + 1]);
                 }
             } else {
                 qFatal("Data and error data size mismatch in F1 frame %d", index);
@@ -92,7 +94,7 @@ void F1SectionToData24Section::processQueue()
                 ++m_validF1FramesCount;
 
             // Check the error data (and count any flagged padding)
-            quint32 paddingCount = f1Section.frame(index).countPadding();
+            quint32 paddingCount = f1Section.frame(index).countPadded();
             m_paddedBytesCount += paddingCount;
 
             if (paddingCount > 0)
@@ -104,6 +106,7 @@ void F1SectionToData24Section::processQueue()
             Data24 data24;
             data24.setData(data);
             data24.setErrorData(errorData);
+            data24.setPaddedData(paddedData);
 
             data24Section.pushFrame(data24);
         }

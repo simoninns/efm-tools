@@ -119,17 +119,17 @@ F3Frame ChannelToF3Frame::createF3Frame(const QByteArray &tValues)
 
     // Extract the data values in bits 44-587 ignoring the merging bits
     QVector<quint8> dataValues;
-    QVector<quint8> errorValues;
+    QVector<bool> errorValues;
     for (int i = 44; i < (frameData.size() * 8) - 13; i += 17) {
         quint16 dataValue = m_efm.fourteenToEight(getBits(frameData, i, i + 13));
 
         if (dataValue < 256) {
             dataValues.append(dataValue);
-            errorValues.append(0);
+            errorValues.append(false);
             m_validEfmSymbols++;
         } else {
             dataValues.append(0);
-            errorValues.append(1);
+            errorValues.append(true);
             m_invalidEfmSymbols++;
         }
     }
@@ -137,7 +137,7 @@ F3Frame ChannelToF3Frame::createF3Frame(const QByteArray &tValues)
     // If the data values are not a multiple of 32 (due to undershoot), pad with zeros
     while (dataValues.size() < 32) {
         dataValues.append(0);
-        errorValues.append(1);
+        errorValues.append(true);
     }
 
     // Create an F3 frame...

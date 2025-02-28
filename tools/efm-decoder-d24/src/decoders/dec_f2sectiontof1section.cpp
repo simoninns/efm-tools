@@ -35,6 +35,11 @@ F2SectionToF1Section::F2SectionToF1Section() :
     m_delayLine2Err({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
     m_delayLineMErr({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
         52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
+    m_delayLine1Pad({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
+    m_delayLine2Pad({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
+    m_delayLineMPad({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
+        52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
     m_validInputF2FramesCount(0),
     m_invalidInputF2FramesCount(0),
     m_invalidOutputF1FramesCount(0),
@@ -103,7 +108,8 @@ void F2SectionToF1Section::processQueue()
 
         for (int index = 0; index < 98; index++) {
             QVector<quint8> data = f2Section.frame(index).data();
-            QVector<quint8> errorData;
+            QVector<bool> errorData = f2Section.frame(index).errorData();
+            QVector<bool> paddedData = f2Section.frame(index).paddedData();
             
             // Is the ingress section padding?
             // Note: For audio data the padding isn't really important (it's just silence)
@@ -114,9 +120,7 @@ void F2SectionToF1Section::processQueue()
                 // Mark the padded data with 0xFF so we can track it
                 // Note: Error counting and CIRC will only see an error if the error data is 1
                 // so we can't use 0xFF to mark padding without changing the error data
-                errorData = QVector<quint8>(32, 0xFF);
-            } else {
-                errorData = f2Section.frame(index).errorData();
+                paddedData = QVector<bool>(32, true);
             }
 
             // if (m_showDebug) showData(" F2 Input", index,
@@ -133,11 +137,14 @@ void F2SectionToF1Section::processQueue()
 
             data = m_delayLine1.push(data);
             errorData = m_delayLine1Err.push(errorData);
+            paddedData = m_delayLine1Pad.push(paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1Frame;
                 f1Frame.setData(QVector<quint8>(24, 0));
+                f1Frame.setErrorData(QVector<bool>(24, false));
+                f1Frame.setPaddedData(QVector<bool>(24, false));
                 f1Section.pushFrame(f1Frame);
                 m_dlLostFramesCount++;
                 continue;
@@ -154,11 +161,14 @@ void F2SectionToF1Section::processQueue()
 
             data = m_delayLineM.push(data);
             errorData = m_delayLineMErr.push(errorData);
+            paddedData = m_delayLineMPad.push(paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1Frame;
                 f1Frame.setData(QVector<quint8>(24, 0));
+                f1Frame.setErrorData(QVector<bool>(24, false));
+                f1Frame.setPaddedData(QVector<bool>(24, false));
                 f1Section.pushFrame(f1Frame);
                 m_dlLostFramesCount++;
                 continue;
@@ -179,14 +189,18 @@ void F2SectionToF1Section::processQueue()
 
             data = m_interleave.deinterleave(data);
             errorData = m_interleaveErr.deinterleave(errorData);
+            paddedData = m_interleavePad.deinterleave(paddedData);
 
             data = m_delayLine2.push(data);
             errorData = m_delayLine2Err.push(errorData);
+            paddedData = m_delayLine2Pad.push(paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
                 F1Frame f1Frame;
                 f1Frame.setData(QVector<quint8>(24, 0));
+                f1Frame.setErrorData(QVector<bool>(24, false));
+                f1Frame.setPaddedData(QVector<bool>(24, false));
                 f1Section.pushFrame(f1Frame);
                 m_dlLostFramesCount++;
                 continue;
@@ -200,13 +214,14 @@ void F2SectionToF1Section::processQueue()
             F1Frame f1Frame;
             f1Frame.setData(data);
             f1Frame.setErrorData(errorData);
+            f1Frame.setPaddedData(paddedData);
 
             // Check F1 frame for errors
             // Note: The error C2 count will differ from the overall error F1 count
             // due to the the interleaving which will distribute the errors over more
             // than on frame (potentially)
             quint32 outFrameErrors = f1Frame.countErrors();
-            quint32 outFramePadding = f1Frame.countPadding();
+            quint32 outFramePadding = f1Frame.countPadded();
 
             if (outFrameErrors == 0 && outFramePadding == 0)
                 m_validOutputF1FramesCount++;

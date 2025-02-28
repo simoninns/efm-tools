@@ -231,12 +231,12 @@ F2Frame F2Stacker::stackFrames(QVector<F2Frame> &f2Frames)
 
     // Process one byte at a time
     QVector<quint8> stackedFrameData;
-    QVector<quint8> stackedFrameErrorData;
+    QVector<bool> stackedFrameErrorData;
     for (int byteIndex = 0; byteIndex < 32; byteIndex++) {
         // Make a list of the bytes to stack (i.e. those without error flags)
         QVector<quint8> validBytes;
         for (int listIndex = 0; listIndex < f2Frames.size(); ++listIndex) {
-            if (f2Frames.at(listIndex).errorData().at(byteIndex) == 0) {
+            if (f2Frames.at(listIndex).errorData().at(byteIndex) == false) {
                 validBytes.append(f2Frames.at(listIndex).data().at(byteIndex));
             }
         }
@@ -244,7 +244,7 @@ F2Frame F2Stacker::stackFrames(QVector<F2Frame> &f2Frames)
         if (validBytes.size() == 0) {
             // All bytes are errors - can't correct
             stackedFrameData.append(f2Frames.at(0).data().at(byteIndex));
-            stackedFrameErrorData.append(1);
+            stackedFrameErrorData.append(true);
             qDebug() << "F2Stacker::stackFrames - No valid byte value for index" << byteIndex;
             m_noValidValueForByte++;
         } else {
@@ -261,7 +261,7 @@ F2Frame F2Stacker::stackFrames(QVector<F2Frame> &f2Frames)
             // two sources, use the value from the first source
             if (allBytesSame || validBytes.size() == 2) {
                 stackedFrameData.append(validBytes.at(0));
-                stackedFrameErrorData.append(0);
+                stackedFrameErrorData.append(false);
                 m_validValueForByte++;
                 continue;
             } else {
@@ -292,7 +292,7 @@ F2Frame F2Stacker::stackFrames(QVector<F2Frame> &f2Frames)
                     << mostCommonByteString << "from" << validBytesString;
 
                 stackedFrameData.append(mostCommonByte);
-                stackedFrameErrorData.append(0);                
+                stackedFrameErrorData.append(false);                
             }
         }
 

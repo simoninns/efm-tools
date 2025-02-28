@@ -40,10 +40,13 @@ public:
     virtual void setData(const QVector<quint8> &data);
     virtual QVector<quint8> data() const;
 
-    virtual void setErrorData(const QVector<quint8> &errorData);
-    virtual QVector<quint8> errorData() const;
+    virtual void setErrorData(const QVector<bool> &errorData);
+    virtual QVector<bool> errorData() const;
     virtual quint32 countErrors() const;
-    virtual quint32 countPadding() const;
+
+    virtual void setPaddedData(const QVector<bool> &errorData);
+    virtual QVector<bool> paddedData() const;
+    virtual quint32 countPadded() const;
 
     bool isFull() const;
     bool isEmpty() const;
@@ -54,7 +57,8 @@ public:
 
 protected:
     QVector<quint8> m_frameData;
-    QVector<quint8> m_frameErrorData;
+    QVector<bool> m_frameErrorData;
+    QVector<bool> m_framePaddedData;
 };
 
 class Data24 : public Frame
@@ -64,7 +68,7 @@ public:
     int frameSize() const override;
     void showData();
     void setData(const QVector<quint8> &data) override;
-    void setErrorData(const QVector<quint8> &errorData) override;
+    void setErrorData(const QVector<bool> &errorData) override;
 };
 
 class F1Frame : public Frame

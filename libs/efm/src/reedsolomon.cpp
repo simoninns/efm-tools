@@ -56,7 +56,7 @@ ReedSolomon::ReedSolomon()
 
 // Perform a C1 Reed-Solomon decoding operation on the input data
 // This is a (32,28) Reed-Solomon encode - 32 bytes in, 28 bytes out
-void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorData,
+void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
                             bool m_showDebug)
 {
     // Ensure input data is 32 bytes long
@@ -71,7 +71,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // Convert the errorData into a list of erasure positions
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] == 1)
+        if (errorData[index] == true)
             erasures.push_back(index);
     }
 
@@ -82,7 +82,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
         //     qDebug() << "ReedSolomon::c1Decode - Too many erasures to correct";
         inputData = QVector<quint8>(tmpData.begin(), tmpData.end() - 4);
         errorData.resize(inputData.size());
-        errorData.fill(1);
+        errorData.fill(true);
         ++m_errorC1s;
         return;
     }
@@ -96,10 +96,9 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
-        // Clear the error data, but keep the padding markers
+        // Clear the error data
         for (int index = 0; index < errorData.size(); ++index) {
-            if (errorData[index] == 0 || errorData[index] == 1)
-                errorData[index] = 0;
+            errorData[index] = false;
         }
         if (result == 0)
             ++m_validC1s;
@@ -113,10 +112,9 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // Make every byte in the error data 1 - i.e. all errors
 
-    // Set the error data, but keep the padding markers
+    // Set the error data
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] == 0 || errorData[index] == 1)
-            errorData[index] = 1;
+        errorData[index] = true;
     }
     ++m_errorC1s;
     return;
@@ -124,7 +122,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
 // Perform a C2 Reed-Solomon decoding operation on the input data
 // This is a (28,24) Reed-Solomon encode - 28 bytes in, 24 bytes out
-void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorData,
+void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
                             bool m_showDebug)
 {
     // Ensure input data is 28 bytes long
@@ -143,16 +141,28 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // Convert the errorData into a list of erasure positions
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] == 1)
+        if (errorData[index] == true)
             erasures.push_back(index);
     }
 
     // Since we know the erasure positions, we can correct a maximum of 4 errors.  If the number
     // of know input erasures is greater than 4, then we can't correct the data.
     if (erasures.size() > 4) {
-        // Note: This is based on the assumption that, although we have more than 4 erasures, the
-        // input data error marking may be incorrect, so we should try without erasures.
-        erasures.clear();
+        // If there are more than 4 erasures, then we can't correct the data - copy the input data
+        // to the output data and flag it with errors
+        // if (m_showDebug)
+        //     qDebug().noquote() << "ReedSolomon::c2Decode - Too many erasures to correct";
+        inputData = QVector<quint8>(tmpData.begin(), tmpData.begin() + 12)
+                + QVector<quint8>(tmpData.begin() + 16, tmpData.end());
+        errorData.resize(inputData.size());
+        
+        // Set the error data
+        for (int index = 0; index < errorData.size(); ++index) {
+            errorData[index] = true;
+        }
+
+        ++m_errorC2s;
+        return;
     }
 
     // Decode the data
@@ -171,10 +181,9 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
 
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
-        // Clear the error data, but keep the padding markers
+        // Clear the error data
         for (int index = 0; index < errorData.size(); ++index) {
-            if (errorData[index] == 0 || errorData[index] == 1)
-                errorData[index] = 0;
+            errorData[index] = false;
         }
         if (result == 0)
             ++m_validC2s;
@@ -188,10 +197,9 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<quint8> &errorDat
     //     qDebug().noquote() << "ReedSolomon::c2Decode - C2 corrupt and could not be fixed"
     //                        << result;
     
-    // Set the error data, but keep the padding markers
+    // Set the error data
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] == 0 || errorData[index] == 1)
-            errorData[index] = 1;
+        errorData[index] = true;
     }
 
     ++m_errorC2s;

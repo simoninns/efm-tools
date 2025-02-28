@@ -34,6 +34,8 @@ public:
     Interleave();
     QVector<quint8> interleave(const QVector<quint8> &inputData);
     QVector<quint8> deinterleave(const QVector<quint8> &inputData);
+    QVector<bool> interleave(const QVector<bool> &inputData);
+    QVector<bool> deinterleave(const QVector<bool> &inputData);
 };
 
 #endif // INTERLEAVE_H

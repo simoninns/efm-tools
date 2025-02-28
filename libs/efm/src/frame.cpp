@@ -48,23 +48,24 @@ QVector<quint8> Frame::data() const
 }
 
 // Set the error data for the frame, ensuring it matches the frame size
-// Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-void Frame::setErrorData(const QVector<quint8> &errorData)
+// Note: This is a vector of boolean, where false is no error and true is an error
+void Frame::setErrorData(const QVector<bool> &errorData)
 {
     if (errorData.size() != frameSize()) {
         qFatal("Frame::setErrorData(): Error data size of %d does not match frame size of %d",
                errorData.size(), frameSize());
     }
+
     m_frameErrorData = errorData;
 }
 
 // Get the error_data for the frame, returning a zero-filled vector if empty
-// Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
-QVector<quint8> Frame::errorData() const
+// Note: This is a vector of boolean, where false is no error and true is an error
+QVector<bool> Frame::errorData() const
 {
     if (m_frameErrorData.isEmpty()) {
         qDebug() << "Frame::getErrorData(): Error frame is empty, returning zero-filled vector";
-        return QVector<quint8>(frameSize(), 0);
+        return QVector<bool>(frameSize(), 0);
     }
     return m_frameErrorData;
 }
@@ -74,19 +75,42 @@ quint32 Frame::countErrors() const
 {
     quint32 errorCount = 0;
     for (int i = 0; i < m_frameErrorData.size(); ++i) {
-        if (m_frameErrorData[i] == 1) {
+        if (m_frameErrorData[i] == true) {
             errorCount++;
         }
     }
     return errorCount;
 }
 
+// Set the padded data for the frame, ensuring it matches the frame size
+// Note: This is a vector of boolean, where false is no padding and true is padding
+void Frame::setPaddedData(const QVector<bool> &paddedData)
+{
+    if (paddedData.size() != frameSize()) {
+        qFatal("Frame::setPaddedData(): Padded data size of %d does not match frame size of %d",
+            paddedData.size(), frameSize());
+    }
+
+    m_framePaddedData = paddedData;
+}
+
+// Get the padded data for the frame, returning a zero-filled vector if empty
+// Note: This is a vector of boolean, where false is no padding and true is padding
+QVector<bool> Frame::paddedData() const
+{
+    if (m_framePaddedData.isEmpty()) {
+        qDebug() << "Frame::paddedData(): Padded data is empty, returning zero-filled vector";
+        return QVector<bool>(frameSize(), 0);
+    }
+    return m_framePaddedData;
+}
+
 // Count the number of padded bytes in the frame
-quint32 Frame::countPadding() const
+quint32 Frame::countPadded() const
 {
     quint32 paddingCount = 0;
-    for (int i = 0; i < m_frameErrorData.size(); ++i) {
-        if (m_frameErrorData[i] == 0xFF) {
+    for (int i = 0; i < m_framePaddedData.size(); ++i) {
+        if (m_framePaddedData[i] == true) {
             paddingCount++;
         }
     }
@@ -111,6 +135,8 @@ QDataStream& operator<<(QDataStream& out, const Frame& frame)
     out << frame.m_frameData;
     // Write error data
     out << frame.m_frameErrorData;
+    // Write padding data
+    out << frame.m_framePaddedData;
     return out;
 }
 
@@ -120,6 +146,8 @@ QDataStream& operator>>(QDataStream& in, Frame& frame)
     in >> frame.m_frameData;
     // Read error data
     in >> frame.m_frameErrorData;
+    // Read padded data
+    in >> frame.m_framePaddedData;
     return in;
 }
 
@@ -128,7 +156,9 @@ Data24::Data24()
 {
     m_frameData.resize(frameSize());
     m_frameErrorData.resize(frameSize());
-    m_frameErrorData.fill(0);
+    m_frameErrorData.fill(false);
+    m_framePaddedData.resize(frameSize());
+    m_framePaddedData.fill(false);
 }
 
 // We override the set_data function to ensure the data is 24 bytes
@@ -146,15 +176,15 @@ void Data24::setData(const QVector<quint8> &data)
     }
 }
 
-void Data24::setErrorData(const QVector<quint8> &errorData)
+void Data24::setErrorData(const QVector<bool> &errorData)
 {
     m_frameErrorData = errorData;
 
-    // If there are less than 24 bytes, pad data with zeros to 24 bytes
+    // If there are less than 24 values, pad data with false to 24 values
     if (m_frameErrorData.size() < 24) {
         m_frameErrorData.resize(24);
         for (int i = m_frameErrorData.size(); i < 24; ++i) {
-            m_frameErrorData[i] = 0;
+            m_frameErrorData[i] = false;
         }
     }
 }
@@ -170,11 +200,15 @@ void Data24::showData()
     QString dataString;
     bool hasError = false;
     for (int i = 0; i < m_frameData.size(); ++i) {
-        if (m_frameErrorData[i] == 0) {
+        if (m_frameErrorData[i] == false && m_framePaddedData[i] == false) {
             dataString.append(QString("%1 ").arg(m_frameData[i], 2, 16, QChar('0')));
         } else {
-            dataString.append(QString("XX "));
-            hasError = true;
+            if (m_framePaddedData[i] == true) {
+                dataString.append(QString("PP "));
+            } else {
+                dataString.append(QString("XX "));
+                hasError = true;
+            }
         }
     }
     if (hasError) {
@@ -189,7 +223,9 @@ F1Frame::F1Frame()
 {
     m_frameData.resize(frameSize());
     m_frameErrorData.resize(frameSize());
-    m_frameErrorData.fill(0);
+    m_frameErrorData.fill(false);
+    m_framePaddedData.resize(frameSize());
+    m_framePaddedData.fill(false);
 }
 
 // Get the frame size for F1Frame
@@ -203,11 +239,15 @@ void F1Frame::showData()
     QString dataString;
     bool hasError = false;
     for (int i = 0; i < m_frameData.size(); ++i) {
-        if (m_frameErrorData[i] == 0) {
+        if (m_frameErrorData[i] == false && m_framePaddedData[i] == false) {
             dataString.append(QString("%1 ").arg(m_frameData[i], 2, 16, QChar('0')));
         } else {
-            dataString.append(QString("XX "));
-            hasError = true;
+            if (m_framePaddedData[i] == true) {
+                dataString.append(QString("PP "));
+            } else {
+                dataString.append(QString("XX "));
+                hasError = true;
+            }
         }
     }
     if (hasError) {
@@ -222,7 +262,9 @@ F2Frame::F2Frame()
 {
     m_frameData.resize(frameSize());
     m_frameErrorData.resize(frameSize());
-    m_frameErrorData.fill(0);
+    m_frameErrorData.fill(false);
+    m_framePaddedData.resize(frameSize());
+    m_framePaddedData.fill(false);
 }
 
 // Get the frame size for F2Frame
@@ -236,11 +278,15 @@ void F2Frame::showData()
     QString dataString;
     bool hasError = false;
     for (int i = 0; i < m_frameData.size(); ++i) {
-        if (m_frameErrorData[i] == 0) {
+        if (m_frameErrorData[i] == false && m_framePaddedData[i] == false) {
             dataString.append(QString("%1 ").arg(m_frameData[i], 2, 16, QChar('0')));
         } else {
-            dataString.append(QString("XX "));
-            hasError = true;
+            if (m_framePaddedData[i] == true) {
+                dataString.append(QString("PP "));
+            } else {
+                dataString.append(QString("XX "));
+                hasError = true;
+            }
         }
     }
     if (hasError) {
@@ -317,7 +363,7 @@ void F3Frame::showData()
     QString dataString;
     bool hasError = false;
     for (int i = 0; i < m_frameData.size(); ++i) {
-        if (m_frameErrorData[i] == 0) {
+        if (m_frameErrorData[i] == false) {
             dataString.append(QString("%1 ").arg(m_frameData[i], 2, 16, QChar('0')));
         } else {
             dataString.append(QString("XX "));

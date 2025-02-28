@@ -68,7 +68,7 @@ void Data24ToAudio::processQueue()
 
         for (int index = 0; index < 98; ++index) {
             QVector<quint8> data24Data = data24Section.frame(index).data();
-            QVector<quint8> data24ErrorData = data24Section.frame(index).errorData();
+            QVector<bool> data24ErrorData = data24Section.frame(index).errorData();
 
             if (data24Section.frame(index).countErrors() != 0) {
                 ++m_invalidData24FramesCount;
@@ -78,17 +78,17 @@ void Data24ToAudio::processQueue()
 
             // Convert the 24 bytes of data into 12 16-bit audio samples
             QVector<qint16> audioData;
-            QVector<qint16> audioErrorData;
+            QVector<bool> audioErrorData;
             for (int i = 0; i < 24; i += 2) {
                 qint16 sample = (data24Data[i + 1] << 8) | data24Data[i];
                 audioData.append(sample);
 
                 // Set an error flag if either byte of the sample is an error
                 if (data24ErrorData[i + 1] != 0 || data24ErrorData[i] != 0) {
-                    audioErrorData.append(1);
+                    audioErrorData.append(true);
                     ++m_invalidSamplesCount;
                 } else {
-                    audioErrorData.append(0);
+                    audioErrorData.append(false);
                     ++m_validSamplesCount;
                 }
             }

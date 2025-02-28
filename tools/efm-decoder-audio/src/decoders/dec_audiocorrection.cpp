@@ -87,9 +87,9 @@ void AudioCorrection::processQueue()
 
             // Sample correction
             QVector<qint16> correctedLeftSamples;
-            QVector<qint16> correctedLeftErrorSamples;
+            QVector<bool> correctedLeftErrorSamples;
             QVector<qint16> correctedRightSamples;
-            QVector<qint16> correctedRightErrorSamples;
+            QVector<bool> correctedRightErrorSamples;
 
             for (int sIdx = 0; sIdx < 6; ++sIdx) {
                 // Get the preceding, correcting and following left samples
@@ -117,13 +117,13 @@ void AudioCorrection::processQueue()
 
                 if (correctingLeftSampleError != 0) {
                     // Do we have a valid preceding and following sample?
-                    if (precedingLeftSampleError != 0 && followingLeftSampleError != 0) {
+                    if (precedingLeftSampleError || followingLeftSampleError) {
                         // Silence the sample
                         qDebug().noquote().nospace() << "AudioCorrection::processQueue() -  Left  Silencing: "
                             << "Section address " << m_correctionBuffer.at(1).metadata.absoluteSectionTime().toString()
                             << " - Frame " << fIdx << ", sample " << sIdx;
                         correctedLeftSamples.append(0);
-                        correctedLeftErrorSamples.append(1);
+                        correctedLeftErrorSamples.append(true);
                         ++m_silencedSamplesCount;
                     } else {
                         // Conceal the sample
@@ -133,13 +133,13 @@ void AudioCorrection::processQueue()
                             << " - Preceding = " << precedingLeftSample << ", Following = " << followingLeftSample
                             << ", Average = " << (precedingLeftSample + followingLeftSample) / 2;
                         correctedLeftSamples.append((precedingLeftSample + followingLeftSample) / 2);
-                        correctedLeftErrorSamples.append(1);
+                        correctedLeftErrorSamples.append(true);
                         ++m_concealedSamplesCount;
                     }
                 } else {
                     // The sample is valid - just copy it
                     correctedLeftSamples.append(correctingLeftSample);
-                    correctedLeftErrorSamples.append(0);
+                    correctedLeftErrorSamples.append(false);
                     ++m_validSamplesCount;
                 }
 
@@ -170,13 +170,13 @@ void AudioCorrection::processQueue()
 
                 if (correctingRightSampleError != 0) {
                     // Do we have a valid preceding and following sample?
-                    if (precedingRightSampleError != 0 && followingRightSampleError != 0) {
+                    if (precedingRightSampleError || followingRightSampleError) {
                         // Silence the sample
                         qDebug().noquote().nospace() << "AudioCorrection::processQueue() - Right  Silencing: "
                             << "Section address " << m_correctionBuffer.at(1).metadata.absoluteSectionTime().toString()
                             << " - Frame " << fIdx << ", sample " << sIdx;
                         correctedRightSamples.append(0);
-                        correctedRightErrorSamples.append(1);
+                        correctedRightErrorSamples.append(true);
                         ++m_silencedSamplesCount;
                     } else {
                         // Conceal the sample
@@ -186,13 +186,13 @@ void AudioCorrection::processQueue()
                             << " - Preceding = " << precedingRightSample << ", Following = " << followingRightSample
                             << ", Average = " << (precedingRightSample + followingRightSample) / 2;
                         correctedRightSamples.append((precedingRightSample + followingRightSample) / 2);
-                        correctedRightErrorSamples.append(1);
+                        correctedRightErrorSamples.append(true);
                         ++m_concealedSamplesCount;
                     }
                 } else {
                     // The sample is valid - just copy it
                     correctedRightSamples.append(correctingRightSample);
-                    correctedRightErrorSamples.append(0);
+                    correctedRightErrorSamples.append(false);
                     ++m_validSamplesCount;
                 }
             }

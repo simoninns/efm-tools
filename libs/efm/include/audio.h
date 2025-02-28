@@ -35,8 +35,8 @@ class Channel
 public:
     void setData(const QVector<qint16> &data);
     QVector<qint16> data() const;
-    void setErrorData(const QVector<qint16> &errorData);
-    QVector<qint16> errorData() const;
+    void setErrorData(const QVector<bool> &errorData);
+    QVector<bool> errorData() const;
     quint32 countErrors() const;
 
     bool isFull() const;
@@ -47,7 +47,7 @@ public:
 
 private:
     QVector<qint16> m_audioData;
-    QVector<qint16> m_audioErrorData;
+    QVector<bool> m_audioErrorData;
 };
 
 // Audio class
@@ -56,8 +56,8 @@ class Audio
 public:
     void setData(const QVector<qint16> &data);
     QVector<qint16> data() const;
-    void setErrorData(const QVector<qint16> &errorData);
-    QVector<qint16> errorData() const;
+    void setErrorData(const QVector<bool> &errorData);
+    QVector<bool> errorData() const;
     quint32 countErrors() const;
 
     bool isFull() const;
