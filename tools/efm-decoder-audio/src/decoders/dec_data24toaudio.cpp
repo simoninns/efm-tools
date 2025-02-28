@@ -84,7 +84,7 @@ void Data24ToAudio::processQueue()
                 audioData.append(sample);
 
                 // Set an error flag if either byte of the sample is an error
-                if (data24ErrorData[i + 1] == 1 || data24ErrorData[i] == 1) {
+                if (data24ErrorData[i + 1] != 0 || data24ErrorData[i] != 0) {
                     audioErrorData.append(1);
                     ++m_invalidSamplesCount;
                 } else {

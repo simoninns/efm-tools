@@ -29,13 +29,33 @@
 #include <QtGlobal>
 #include <QDebug>
 
+// Channel class
+class Channel
+{   
+public:
+    void setData(const QVector<qint16> &data);
+    QVector<qint16> data() const;
+    void setErrorData(const QVector<qint16> &errorData);
+    QVector<qint16> errorData() const;
+    quint32 countErrors() const;
+
+    bool isFull() const;
+    bool isEmpty() const;
+
+    void showData(QString channelName);
+    int frameSize() const;
+
+private:
+    QVector<qint16> m_audioData;
+    QVector<qint16> m_audioErrorData;
+};
+
 // Audio class
 class Audio
 {
 public:
     void setData(const QVector<qint16> &data);
     QVector<qint16> data() const;
-
     void setErrorData(const QVector<qint16> &errorData);
     QVector<qint16> errorData() const;
     quint32 countErrors() const;
@@ -44,12 +64,11 @@ public:
     bool isEmpty() const;
 
     void showData();
-
     int frameSize() const;
 
-private:
-    QVector<qint16> m_audioData;
-    QVector<qint16> m_audioErrorData;
+    // Channel accessors (public if caller wants to access directly)
+    Channel leftChannel;
+    Channel rightChannel;
 };
 
 #endif // AUDIO_H
