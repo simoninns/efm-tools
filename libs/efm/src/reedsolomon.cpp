@@ -57,12 +57,15 @@ ReedSolomon::ReedSolomon()
 // Perform a C1 Reed-Solomon decoding operation on the input data
 // This is a (32,28) Reed-Solomon encode - 32 bytes in, 28 bytes out
 void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
-                            bool m_showDebug)
+    QVector<bool> &paddedData, bool m_showDebug)
 {
     // Ensure input data is 32 bytes long
     if (inputData.size() != 32) {
         qFatal("ReedSolomon::c1Decode - Input data must be 32 bytes long");
     }
+
+    // Just reformat the padded data
+    paddedData = QVector<bool>(paddedData.begin(), paddedData.end() - 4);
 
     // Convert the QVector to a std::vector for the ezpwd library
     std::vector<quint8> tmpData(inputData.begin(), inputData.end());
@@ -123,7 +126,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
 // Perform a C2 Reed-Solomon decoding operation on the input data
 // This is a (28,24) Reed-Solomon encode - 28 bytes in, 24 bytes out
 void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
-                            bool m_showDebug)
+    QVector<bool> &paddedData, bool m_showDebug)
 {
     // Ensure input data is 28 bytes long
     if (inputData.size() != 28) {
@@ -133,6 +136,10 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
     if (errorData.size() != 28) {
         qFatal("ReedSolomon::c2Decode - Error data must be 28 bytes long");
     }
+
+    // Just reformat the padded data
+    paddedData = QVector<bool>(paddedData.begin(), paddedData.begin() + 12)
+        + QVector<bool>(paddedData.begin() + 16, paddedData.end());
 
     // Convert the QVector to a std::vector for the ezpwd library
     std::vector<quint8> tmpData(inputData.begin(), inputData.end());

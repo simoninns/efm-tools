@@ -95,7 +95,6 @@ void ReaderF2Section::close()
     qDebug() << "ReaderF2Section::close(): Closed the data file" << m_file.fileName();
 }
 
-// This is not really optimal... TODO: Implement a better way to get the number of F2Sections
 qint64 ReaderF2Section::size()
 {
     return m_fileSizeInSections;

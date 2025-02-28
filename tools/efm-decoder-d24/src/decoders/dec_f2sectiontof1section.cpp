@@ -157,7 +157,7 @@ void F2SectionToF1Section::processQueue()
             // if (m_showDebug) showData(" C1 Input", index,
             // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);
 
-            m_circ.c1Decode(data, errorData, m_showDebug);
+            m_circ.c1Decode(data, errorData, paddedData, m_showDebug);
 
             data = m_delayLineM.push(data);
             errorData = m_delayLineMErr.push(errorData);
@@ -180,7 +180,7 @@ void F2SectionToF1Section::processQueue()
             //              errorData);
 
             // Only perform C2 decode if delay line 1 is full and delay line M is full
-            m_circ.c2Decode(data, errorData, m_showDebug);
+            m_circ.c2Decode(data, errorData, paddedData, m_showDebug);
 
             // if (m_showDebug)
             //     showData("C2 Output", index,
@@ -189,11 +189,11 @@ void F2SectionToF1Section::processQueue()
 
             data = m_interleave.deinterleave(data);
             errorData = m_interleaveErr.deinterleave(errorData);
-            paddedData = m_interleavePad.deinterleave(paddedData);
+            //paddedData = m_interleavePad.deinterleave(paddedData);
 
             data = m_delayLine2.push(data);
             errorData = m_delayLine2Err.push(errorData);
-            paddedData = m_delayLine2Pad.push(paddedData);
+            //paddedData = m_delayLine2Pad.push(paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
