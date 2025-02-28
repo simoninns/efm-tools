@@ -202,6 +202,9 @@ void F2SectionToF1Section::processQueue()
             f1Frame.setErrorData(errorData);
 
             // Check F1 frame for errors
+            // Note: The error C2 count will differ from the overall error F1 count
+            // due to the the interleaving which will distribute the errors over more
+            // than on frame (potentially)
             quint32 outFrameErrors = f1Frame.countErrors();
             quint32 outFramePadding = f1Frame.countPadding();
 
