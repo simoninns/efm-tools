@@ -180,31 +180,41 @@ F3FrameToF2Section::State F3FrameToF2Section::handleValid()
 F3FrameToF2Section::State F3FrameToF2Section::handleUndershoot()
 {
     State nextState = HandleUndershoot;
-
-    // Pad the being of the section buffer with empty frames
-    int padding = 98 - m_sectionFrames.size();
-    m_paddedF3Frames += padding;
-
-    if (m_showDebug) qDebug() << "F3FrameToF2Section::handleUndershoot - Padding section with" << padding << "frames";
-
-    F3Frame emptyFrame;
-    emptyFrame.setData(QVector<quint8>(32, 0));
-    emptyFrame.setErrorData(QVector<quint8>(32, 1));
-
-    for (int i = 0; i < padding; ++i) {
-        if (i == 0)
-            emptyFrame.setFrameTypeAsSync0();
-        else if (i == 1)
-            emptyFrame.setFrameTypeAsSync1();
-        else
-            emptyFrame.setFrameTypeAsSubcode(0);
-        m_sectionFrames.prepend(emptyFrame);
-    }
-
-    outputSection(true);
-
-    // Undershoot is a bad sync
     m_badSyncCounter++;
+
+    // How much undershoot do we have?
+    int padding = 98 - m_sectionFrames.size();
+
+    if (padding > 4) {
+        if (m_showDebug) qDebug() << "F3FrameToF2Section::handleUndershoot - Undershoot is" << padding << "frames; ignoring sync0 frame";
+        // Put the section frames back into the internal buffer
+        m_internalBuffer.append(m_sectionFrames);
+        m_sectionFrames.clear();
+        nextState = ExpectingSync;
+    } else {
+        m_paddedF3Frames += padding;
+        if (m_showDebug) qDebug() << "F3FrameToF2Section::handleUndershoot - Padding section with" << padding << "frames";
+
+        // TODO: If we are padding, we are introducing errors... The CIRC can correct these
+        // provided they are distributed across the section; so the best policy here
+        // is to interleave the padding with the section frames?
+
+        F3Frame emptyFrame;
+        emptyFrame.setData(QVector<quint8>(32, 0));
+        emptyFrame.setErrorData(QVector<quint8>(32, 1));
+
+        for (int i = 0; i < padding; ++i) {
+            if (i == 0)
+                emptyFrame.setFrameTypeAsSync0();
+            else if (i == 1)
+                emptyFrame.setFrameTypeAsSync1();
+            else
+                emptyFrame.setFrameTypeAsSubcode(0);
+            m_sectionFrames.prepend(emptyFrame);
+        }
+
+        outputSection(true);
+    }
 
     nextState = ExpectingSync;
     return nextState;
