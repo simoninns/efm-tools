@@ -202,15 +202,12 @@ F3FrameToF2Section::State F3FrameToF2Section::handleUndershoot()
         F3Frame emptyFrame;
         emptyFrame.setData(QVector<quint8>(32, 0));
         emptyFrame.setErrorData(QVector<quint8>(32, 1));
+        emptyFrame.setFrameTypeAsSubcode(0);
 
+        // The padding is interleaved with the section frames start
+        // at position 4 (to avoid the sync0 and sync1 frames)
         for (int i = 0; i < padding; ++i) {
-            if (i == 0)
-                emptyFrame.setFrameTypeAsSync0();
-            else if (i == 1)
-                emptyFrame.setFrameTypeAsSync1();
-            else
-                emptyFrame.setFrameTypeAsSubcode(0);
-            m_sectionFrames.prepend(emptyFrame);
+            m_sectionFrames.insert(4 + i, emptyFrame);
         }
 
         outputSection(true);
