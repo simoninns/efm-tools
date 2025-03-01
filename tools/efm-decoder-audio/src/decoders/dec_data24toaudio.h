@@ -45,10 +45,11 @@ private:
     QQueue<AudioSection> m_outputBuffer;
 
     // Statistics
-    quint32 m_invalidData24FramesCount;
-    quint32 m_validData24FramesCount;
-    quint32 m_invalidSamplesCount;
-    quint32 m_validSamplesCount;
+    qint64 m_invalidData24FramesCount;
+    qint64 m_validData24FramesCount;
+    qint64 m_invalidSamplesCount;
+    qint64 m_validSamplesCount;
+    qint64 m_invalidByteCount;
 
     SectionTime m_startTime;
     SectionTime m_endTime;

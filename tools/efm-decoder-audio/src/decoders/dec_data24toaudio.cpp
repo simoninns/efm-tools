@@ -24,13 +24,14 @@
 
 #include "dec_data24toaudio.h"
 
-Data24ToAudio::Data24ToAudio()
-    : m_startTime(SectionTime(59, 59, 74)),
-      m_endTime(SectionTime(0, 0, 0)),
-      m_invalidData24FramesCount(0),
-      m_validData24FramesCount(0),
-      m_invalidSamplesCount(0),
-      m_validSamplesCount(0)
+Data24ToAudio::Data24ToAudio() :
+    m_startTime(SectionTime(59, 59, 74)),
+    m_endTime(SectionTime(0, 0, 0)),
+    m_invalidData24FramesCount(0),
+    m_validData24FramesCount(0),
+    m_invalidSamplesCount(0),
+    m_validSamplesCount(0),
+    m_invalidByteCount(0)
 {}
 
 void Data24ToAudio::pushSection(const Data24Section &data24Section)
@@ -81,13 +82,19 @@ void Data24ToAudio::processQueue()
             QVector<bool> audioErrorData;
             for (int i = 0; i < 24; i += 2) {
                 qint16 sample = (data24Data[i + 1] << 8) | data24Data[i];
-                audioData.append(sample);
+
+                if (data24ErrorData[i]) m_invalidByteCount++;
+                if (data24ErrorData[i + 1]) m_invalidByteCount++;  
 
                 // Set an error flag if either byte of the sample is an error
-                if (data24ErrorData[i + 1] != 0 || data24ErrorData[i] != 0) {
+                if (data24ErrorData[i + 1] || data24ErrorData[i]) {
+                    // Error in the sample
+                    audioData.append(0);
                     audioErrorData.append(true);
                     ++m_invalidSamplesCount;
                 } else {
+                    // No error in the sample
+                    audioData.append(sample);
                     audioErrorData.append(false);
                     ++m_validSamplesCount;
                 }
@@ -124,12 +131,13 @@ void Data24ToAudio::showStatistics()
                       << m_validData24FramesCount + m_invalidData24FramesCount;
     qInfo().nospace() << "    Valid Frames: " << m_validData24FramesCount;
     qInfo().nospace() << "    Invalid Frames: " << m_invalidData24FramesCount;
+    qInfo().nospace() << "    Invalid Bytes: " << m_invalidByteCount;
 
     qInfo() << "  Audio Samples:";
-    qInfo().nospace() << "    Total stereo samples: "
-                      << (m_validSamplesCount + m_invalidSamplesCount) / 2;
-    qInfo().nospace() << "    Valid stereo samples: " << m_validSamplesCount / 2;
-    qInfo().nospace() << "    Corrupt stereo samples: " << m_invalidSamplesCount / 2;
+    qInfo().nospace() << "    Total samples: "
+                      << m_validSamplesCount + m_invalidSamplesCount;
+    qInfo().nospace() << "    Valid samples: " << m_validSamplesCount;
+    qInfo().nospace() << "    Invalid samples: " << m_invalidSamplesCount ;
 
     qInfo() << "  Section time information:";
     qInfo().noquote() << "    Start time:" << m_startTime.toString();
