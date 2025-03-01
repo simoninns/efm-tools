@@ -267,16 +267,6 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                 missingSection.metadata.setAbsoluteSectionTime(expectedAbsoluteTime + i);
                 missingSection.metadata.setValid(true);
 
-                // If there are more than m_paddingWatermark missing sections, it's likely that there is a gap in the EFM data
-                // so we should flag this as a padding section (this is used downstream to give a better 
-                // indication of what is really in error).
-                if (missingSections > m_paddingWatermark) {
-                    missingSection.setIsPadding(true);
-                    m_paddingSections++;
-                } else {
-                    m_missingSections++;
-                }
-
                 // To-do: Perhaps this could be improved if spanning a track boundary?
                 // might not be required though...
                 missingSection.metadata.setSectionType(f2Section.metadata.sectionType());
@@ -291,9 +281,14 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                         "setting section time to 00:00:00";
                 }
 
+                // If there are more than m_paddingWatermark missing sections, it's likely that there is a gap in the EFM data
+                // so we should flag this as a padding section (this is used downstream to give a better 
+                // indication of what is really in error).
+
                 // Push 98 error frames in to the missing section
                 if (missingSections <= m_paddingWatermark) {
                     // Section is considered as missing, so mark it as error
+                    m_missingSections++;
                     if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Inserting missing section"
                             << "into internal buffer with absolute time:" 
                             << missingSection.metadata.absoluteSectionTime().toString()
@@ -307,6 +302,7 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
                     }
                 } else {
                     // Section is considered as padding, so fill it with valid data
+                    m_paddingSections++;
                     if (m_showDebug) qDebug() << "F2SectionCorrection::waitingForSection(): Inserting missing section"
                             << "into internal buffer with absolute time:" 
                             << missingSection.metadata.absoluteSectionTime().toString()

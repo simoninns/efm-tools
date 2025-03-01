@@ -100,18 +100,6 @@ void F2SectionToF1Section::processQueue()
             QVector<quint8> data = f2Section.frame(index).data();
             QVector<bool> errorData = f2Section.frame(index).errorData();
             QVector<bool> paddedData = f2Section.frame(index).paddedData();
-            
-            // Is the ingress section padding?
-            // Note: For audio data the padding isn't really important (it's just silence)
-            // but for data sections it's important to know if the section is padded because
-            // it will look like we have valid data but, when we try to decode it into sections,
-            // we will get errors due to missing syncs and so on.
-            if (f2Section.isPadding()) {
-                // Mark the padded data with 0xFF so we can track it
-                // Note: Error counting and CIRC will only see an error if the error data is 1
-                // so we can't use 0xFF to mark padding without changing the error data
-                paddedData = QVector<bool>(32, true);
-            }
 
             // Check F2 frame for errors (counts only when errorData = 1)
             quint32 inFrameErrors = f2Section.frame(index).countErrors();
@@ -202,9 +190,6 @@ void F2SectionToF1Section::processQueue()
 
         // All frames in the section are processed
         f1Section.metadata = f2Section.metadata;
-
-        // Preserve the padding flag
-        f1Section.setIsPadding(f2Section.isPadding());
 
         // Add the section to the output buffer
         m_outputBuffer.enqueue(f1Section);

@@ -174,22 +174,21 @@ F2Section F2Stacker::stackSections(const QVector<F2Section> &f2Sections)
         qFatal("F2Stacker::stackSections - No valid metadata found in the input sections");
     }
 
-    // Check if the section is padding rather than valid data
-    qint32 paddingCount = 0;
-    for (int sectionIndex = 0; sectionIndex < f2Sections.size(); sectionIndex++) {
-        if (f2Sections[sectionIndex].isPadding()) {
-            paddingCount++;
-        }
-    }
-
-    if (paddingCount > 0) {
-        qDebug().noquote() << "F2Stacker::stackSections - Padding sections:" << paddingCount << "of" << f2Sections.size();
-    }
-
-    // Remove any sections that are just padding
+    // Check if the section's frames contain only padding rather than valid data
+    // and Remove any sections that are just padding
     QVector<F2Section> validF2Sections;
     for (int sectionIndex = 0; sectionIndex < f2Sections.size(); sectionIndex++) {
-        if (!f2Sections[sectionIndex].isPadding()) {
+        bool isPadding = true;
+        for (int frameIndex = 0; frameIndex < 98; frameIndex++) {
+            if (f2Sections[sectionIndex].frame(frameIndex).paddedData().contains(false)) {
+                isPadding = false;
+                break;
+            }
+        }
+
+        if (isPadding) {
+            qDebug().noquote() << "F2Stacker::stackSections - Section" << sectionIndex << "is just padding";
+        } else {
             validF2Sections.append(f2Sections[sectionIndex]);
         }
     }

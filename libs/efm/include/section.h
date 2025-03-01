@@ -41,8 +41,6 @@ public:
     bool isComplete() const;
     void clear();
     void showData();
-    bool isPadding() const;
-    void setIsPadding(bool padding);
 
     friend QDataStream& operator<<(QDataStream& stream, const F2Section& section);
     friend QDataStream& operator>>(QDataStream& stream, F2Section& section);
@@ -64,8 +62,6 @@ public:
     bool isComplete() const;
     void clear();
     void showData();
-    bool isPadding() const;
-    void setIsPadding(bool padding);
 
     SectionMetadata metadata;
 
@@ -84,8 +80,6 @@ public:
     bool isComplete() const;
     void clear();
     void showData();
-    bool isPadding() const;
-    void setIsPadding(bool padding);
 
     friend QDataStream& operator<<(QDataStream& stream, const Data24Section& section);
     friend QDataStream& operator>>(QDataStream& stream, Data24Section& section);
@@ -94,7 +88,6 @@ public:
 
 private:
     QVector<Data24> m_frames;
-    bool m_isPadding;
 };
 
 class AudioSection
