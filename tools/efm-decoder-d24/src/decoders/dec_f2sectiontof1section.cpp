@@ -113,9 +113,6 @@ void F2SectionToF1Section::processQueue()
                 paddedData = QVector<bool>(32, true);
             }
 
-            // if (m_showDebug) showData(" F2 Input", index,
-            // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);
-
             // Check F2 frame for errors (counts only when errorData = 1)
             quint32 inFrameErrors = f2Section.frame(index).countErrors();
             if (inFrameErrors == 0)
@@ -142,9 +139,6 @@ void F2SectionToF1Section::processQueue()
             // Note: We will only get valid data if the delay lines are all full
             m_inverter.invertParity(data);
 
-            // if (m_showDebug) showData(" C1 Input", index,
-            // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);
-
             m_circ.c1Decode(data, errorData, paddedData, m_showDebug);
 
             m_delayLineM.push(data, errorData, paddedData);
@@ -160,22 +154,10 @@ void F2SectionToF1Section::processQueue()
                 continue;
             }
 
-            // if (m_showDebug)
-            //     showData(" C2 Input", index,
-            //              f2Section.metadata.absoluteSectionTime().toString(), data,
-            //              errorData);
-
             // Only perform C2 decode if delay line 1 is full and delay line M is full
             m_circ.c2Decode(data, errorData, paddedData, m_showDebug);
 
-            // if (m_showDebug)
-            //     showData("C2 Output", index,
-            //              f2Section.metadata.absoluteSectionTime().toString(), data,
-            //              errorData);
-
-            data = m_interleave.deinterleave(data);
-            errorData = m_interleaveErr.deinterleave(errorData);
-            //paddedData = m_interleavePad.deinterleave(paddedData);
+            m_interleave.deinterleave(data, errorData, paddedData);
 
             m_delayLine2.push(data, errorData, paddedData);
             if (data.isEmpty()) {
@@ -190,11 +172,8 @@ void F2SectionToF1Section::processQueue()
                 continue;
             }
 
-            // if (m_showDebug) showData("F2 Output", index,
-            // f2Section.metadata.absoluteSectionTime().toString(), data, errorData);
-
-            // Put the resulting data (and error data) into an F1 frame and push it to the output
-            // buffer
+            // Put the resulting data (and error data) into an F1 frame and
+            // push it to the output buffer
             F1Frame f1Frame;
             f1Frame.setData(data);
             f1Frame.setErrorData(errorData);

@@ -58,9 +58,6 @@ private:
     Interleave m_interleave;
     Inverter m_inverter;
 
-    Interleave m_interleaveErr;
-    Interleave m_interleavePad;
-
     // Statistics
     quint64 m_invalidInputF2FramesCount;
     quint64 m_validInputF2FramesCount;
