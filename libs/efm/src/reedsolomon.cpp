@@ -74,7 +74,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
 
     // Convert the errorData into a list of erasure positions
     for (int index = 0; index < errorData.size(); ++index) {
-        if (errorData[index] == true)
+        if (errorData[index])
             erasures.push_back(index);
     }
 
@@ -92,6 +92,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
 
     // Decode the data
     int result = c1rs.decode(tmpData, erasures, &position);
+    if (result > 2) result = -1;
 
     // Convert the std::vector back to a QVector and strip the parity bytes
     inputData = QVector<quint8>(tmpData.begin(), tmpData.end() - 4);
@@ -99,7 +100,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
 
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
-        // Clear the error data
+        // Mark all the data as correct
         errorData.fill(false);
 
         if (result == 0)
@@ -112,7 +113,7 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
     // If result < 0, the Reed-Solomon decode completely failed and the data is corrupt
     // if (m_showDebug) qDebug() << "ReedSolomon::c1Decode - C1 corrupt and could not be fixed";
 
-    // Make every byte in the error data 1 - i.e. all errors
+    // Mark all the data as corrupt
     errorData.fill(true);
     ++m_errorC1s;
 
@@ -168,11 +169,7 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
 
     // Decode the data
     int result = c2rs.decode(tmpData, erasures, &position);
-    if (result > 3) {
-        // if (m_showDebug)
-        //     qDebug().noquote() << "ReedSolomon::c2Decode - Too many errors to correct" << result;
-        result = -1;
-    }
+    if (result > 3) result = -1;
 
     // Convert the std::vector back to a QVector and remove the parity bytes
     // by copying bytes 0-11 and 16-27 to the output data

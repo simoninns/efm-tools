@@ -75,9 +75,9 @@ void F1SectionToData24Section::processQueue()
             // All byte pairs are swapped by the F1 Frame encoder
             if (data.size() == errorData.size()) {
                 for (int i = 0; i < data.size() - 1; i += 2) {
-                    std::swap(data[i], data[i + 1]);
-                    std::swap(errorData[i], errorData[i + 1]);
-                    std::swap(paddedData[i], paddedData[i + 1]);
+                    qSwap(data[i], data[i + 1]);
+                    qSwap(errorData[i], errorData[i + 1]);
+                    qSwap(paddedData[i], paddedData[i + 1]);
                 }
             } else {
                 qFatal("Data and error data size mismatch in F1 frame %d", index);
@@ -111,9 +111,7 @@ void F1SectionToData24Section::processQueue()
             data24Section.pushFrame(data24);
         }
 
-        // We don't need to preserve the padding flag as it's now marked
-        // in the data24 frames error data
-        // Just keep the metadata
+        // Transfer the metadata
         data24Section.metadata = f1Section.metadata;
 
         // Add the section to the output buffer
