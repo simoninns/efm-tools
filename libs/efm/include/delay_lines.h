@@ -34,23 +34,29 @@ class DelayLine
 {
 public:
     DelayLine(qint32 _delayLength);
-    quint8 push(quint8 inputDatum);
+    void push(quint8& datum, bool& datumError, bool& datumPadded);
     bool isReady();
     void flush();
 
 private:
-    quint8 *m_buffer;
+    struct DelayContents_t {
+        quint8 datum;
+        bool error;
+        bool padded;
+    };
+
+    QVector<DelayContents_t> m_buffer;
+
     bool m_ready;
     qint32 m_pushCount;
     qint32 m_delayLength;
-};
+}; // Added semicolon here;
 
 class DelayLines
 {
 public:
     DelayLines(QVector<qint32> _delayLengths);
-    QVector<quint8> push(QVector<quint8> inputData);
-    QVector<bool> push(QVector<bool> inputData);
+    void push(QVector<quint8>& data, QVector<bool>& errorData, QVector<bool>& paddedData);
     bool isReady();
     void flush();
 

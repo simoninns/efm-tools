@@ -55,14 +55,6 @@ private:
     DelayLines m_delayLine2;
     DelayLines m_delayLineM;
 
-    DelayLines m_delayLine1Err;
-    DelayLines m_delayLine2Err;
-    DelayLines m_delayLineMErr;
-
-    DelayLines m_delayLine1Pad;
-    DelayLines m_delayLine2Pad;
-    DelayLines m_delayLineMPad;
-
     Interleave m_interleave;
     Inverter m_inverter;
 

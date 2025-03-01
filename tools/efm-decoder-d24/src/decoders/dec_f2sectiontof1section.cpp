@@ -30,16 +30,6 @@ F2SectionToF1Section::F2SectionToF1Section() :
     m_delayLine2({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
     m_delayLineM({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
         52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
-    m_delayLine1Err({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
-    m_delayLine2Err({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
-    m_delayLineMErr({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
-        52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
-    m_delayLine1Pad({ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 }),
-    m_delayLine2Pad({ 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2 }),
-    m_delayLineMPad({ 108, 104, 100, 96, 92, 88, 84, 80, 76, 72, 68, 64, 60, 56,
-        52,  48,  44,  40, 36, 32, 28, 24, 20, 16, 12, 8,  4,  0 }),
     m_validInputF2FramesCount(0),
     m_invalidInputF2FramesCount(0),
     m_invalidOutputF1FramesCount(0),
@@ -135,9 +125,7 @@ void F2SectionToF1Section::processQueue()
                 m_inputByteErrors += inFrameErrors;
             }
 
-            data = m_delayLine1.push(data);
-            errorData = m_delayLine1Err.push(errorData);
-            paddedData = m_delayLine1Pad.push(paddedData);
+            m_delayLine1.push(data, errorData, paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
@@ -159,9 +147,7 @@ void F2SectionToF1Section::processQueue()
 
             m_circ.c1Decode(data, errorData, paddedData, m_showDebug);
 
-            data = m_delayLineM.push(data);
-            errorData = m_delayLineMErr.push(errorData);
-            paddedData = m_delayLineMPad.push(paddedData);
+            m_delayLineM.push(data, errorData, paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
@@ -191,9 +177,7 @@ void F2SectionToF1Section::processQueue()
             errorData = m_interleaveErr.deinterleave(errorData);
             //paddedData = m_interleavePad.deinterleave(paddedData);
 
-            data = m_delayLine2.push(data);
-            errorData = m_delayLine2Err.push(errorData);
-            //paddedData = m_delayLine2Pad.push(paddedData);
+            m_delayLine2.push(data, errorData, paddedData);
             if (data.isEmpty()) {
                 // Output an empty F1 frame (ensures the section is complete)
                 // Note: This isn't an error frame, it's just an empty frame
