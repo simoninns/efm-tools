@@ -50,7 +50,7 @@ private:
     bool m_ready;
     qint32 m_pushCount;
     qint32 m_delayLength;
-}; // Added semicolon here;
+};
 
 class DelayLines
 {

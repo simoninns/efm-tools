@@ -90,21 +90,22 @@ void DelayLine::push(quint8& datum, bool& datumError, bool& datumPadded)
     quint8 tempInput = datum;
     bool tempInputError = datumError;
     bool tempInputPadded = datumPadded;
-    
-    // Return output through the reference parameter
-    datum = m_buffer[0].datum;
-    datumError = m_buffer[0].error;
-    datumPadded = m_buffer[0].padded;
 
-    // Shift values in the buffers
-    for (qint32 i = 0; i < m_delayLength - 1; ++i) {
-        m_buffer[i] = m_buffer[i + 1];
-    }
+    DelayContents_t temp;
+    
+    // Return output through the reference parameters
+
+    // Get the first value
+    temp = m_buffer.takeFirst();
+    datum = temp.datum;
+    datumError = temp.error;
+    datumPadded = temp.padded;
 
     // Store new values at the end
-    m_buffer[m_delayLength - 1].datum = tempInput;
-    m_buffer[m_delayLength - 1].error = tempInputError;
-    m_buffer[m_delayLength - 1].padded = tempInputPadded;
+    temp.datum = tempInput;
+    temp.error = tempInputError;
+    temp.padded = tempInputPadded;
+    m_buffer.append(temp);
 
     // Check if the delay line is ready
     if (m_pushCount >= m_delayLength) {
@@ -122,11 +123,12 @@ bool DelayLine::isReady()
 void DelayLine::flush()
 {
     if (m_delayLength > 0) {
-        for (int i = 0; i < m_delayLength; ++i) {
-            m_buffer[i].datum = 0;
-            m_buffer[i].error = false;
-            m_buffer[i].padded = false;
-        }
+        DelayContents_t temp;
+        temp.datum = 0;
+        temp.error = false;
+        temp.padded = false;
+        m_buffer.fill(temp);
+        
         m_ready = false;
     } else {
         m_ready = true;
