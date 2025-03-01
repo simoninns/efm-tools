@@ -100,9 +100,8 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
         // Clear the error data
-        for (int index = 0; index < errorData.size(); ++index) {
-            errorData[index] = false;
-        }
+        errorData.fill(false);
+
         if (result == 0)
             ++m_validC1s;
         else
@@ -114,12 +113,9 @@ void ReedSolomon::c1Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
     // if (m_showDebug) qDebug() << "ReedSolomon::c1Decode - C1 corrupt and could not be fixed";
 
     // Make every byte in the error data 1 - i.e. all errors
-
-    // Set the error data
-    for (int index = 0; index < errorData.size(); ++index) {
-        errorData[index] = true;
-    }
+    errorData.fill(true);
     ++m_errorC1s;
+
     return;
 }
 
@@ -164,9 +160,7 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
         errorData.resize(inputData.size());
         
         // Set the error data
-        for (int index = 0; index < errorData.size(); ++index) {
-            errorData[index] = true;
-        }
+        errorData.fill(true);
 
         ++m_errorC2s;
         return;
@@ -189,9 +183,8 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
     // If result >= 0, then the Reed-Solomon decode was successful
     if (result >= 0) {
         // Clear the error data
-        for (int index = 0; index < errorData.size(); ++index) {
-            errorData[index] = false;
-        }
+        errorData.fill(false);
+
         if (result == 0)
             ++m_validC2s;
         else
@@ -205,9 +198,7 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
     //                        << result;
     
     // Set the error data
-    for (int index = 0; index < errorData.size(); ++index) {
-        errorData[index] = true;
-    }
+    errorData.fill(true);
 
     ++m_errorC2s;
     return;
