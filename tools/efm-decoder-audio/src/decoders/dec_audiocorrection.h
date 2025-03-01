@@ -44,14 +44,10 @@ private:
     QQueue<AudioSection> m_inputBuffer;
     QQueue<AudioSection> m_outputBuffer;
 
-    QVector<AudioSection> m_correctionBuffer;
-
-    bool m_firstSectionFlag;
-
     // Statistics
-    quint32 m_concealedSamplesCount;
-    quint32 m_silencedSamplesCount;
-    quint32 m_validSamplesCount;
+    quint64 m_silencedSamplesCount;
+    quint64 m_validSamplesCount;
+    quint64 m_invalidSamplesCount;
 };
 
 #endif // DEC_AUDIOCORRECTION_H

@@ -81,7 +81,7 @@ void Data24ToAudio::processQueue()
             QVector<qint16> audioData;
             QVector<bool> audioErrorData;
             for (int i = 0; i < 24; i += 2) {
-                qint16 sample = (data24Data[i + 1] << 8) | data24Data[i];
+                qint16 sample = static_cast<qint16>(static_cast<quint16>(data24Data[i + 1] << 8) | static_cast<quint16>(data24Data[i]));
 
                 if (data24ErrorData[i]) m_invalidByteCount++;
                 if (data24ErrorData[i + 1]) m_invalidByteCount++;  
@@ -89,7 +89,7 @@ void Data24ToAudio::processQueue()
                 // Set an error flag if either byte of the sample is an error
                 if (data24ErrorData[i + 1] || data24ErrorData[i]) {
                     // Error in the sample
-                    audioData.append(0);
+                    audioData.append(sample);
                     audioErrorData.append(true);
                     ++m_invalidSamplesCount;
                 } else {

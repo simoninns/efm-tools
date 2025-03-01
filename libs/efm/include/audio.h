@@ -29,27 +29,6 @@
 #include <QtGlobal>
 #include <QDebug>
 
-// Channel class
-class Channel
-{   
-public:
-    void setData(const QVector<qint16> &data);
-    QVector<qint16> data() const;
-    void setErrorData(const QVector<bool> &errorData);
-    QVector<bool> errorData() const;
-    quint32 countErrors() const;
-
-    bool isFull() const;
-    bool isEmpty() const;
-
-    void showData(QString channelName);
-    int frameSize() const;
-
-private:
-    QVector<qint16> m_audioData;
-    QVector<bool> m_audioErrorData;
-};
-
 // Audio class
 class Audio
 {
@@ -66,9 +45,9 @@ public:
     void showData();
     int frameSize() const;
 
-    // Channel accessors (public if caller wants to access directly)
-    Channel leftChannel;
-    Channel rightChannel;
+private:
+    QVector<qint16> m_audioData;
+    QVector<bool> m_audioErrorData;
 };
 
 #endif // AUDIO_H
