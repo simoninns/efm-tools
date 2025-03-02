@@ -34,6 +34,20 @@ void Audio::setData(const QVector<qint16> &data)
     m_audioData = data;
 }
 
+// Set the left and right channel data for the audio, ensuring they match the frame size
+void Audio::setDataLeftRight(const QVector<qint16> &dataLeft, const QVector<qint16> &dataRight)
+{
+    if (dataLeft.size() + dataRight.size() != frameSize()) {
+        qFatal("Audio::setDataLeftRight(): Data size of %d does not match frame size of %d", dataLeft.size() + dataRight.size(), frameSize());
+    }
+    
+    m_audioData.clear();
+    for (int i = 0; i < frameSize(); i += 2) {
+        m_audioData.append(dataLeft[i]);
+        m_audioData.append(dataRight[i]);
+    }
+}
+
 // Get the data for the audio, returning a zero-filled vector if empty
 QVector<qint16> Audio::data() const
 {
@@ -44,8 +58,37 @@ QVector<qint16> Audio::data() const
     return m_audioData;
 }
 
+// Get the left channel data for the audio, returning a zero-filled vector if empty
+QVector<qint16> Audio::dataLeft() const
+{
+    if (m_audioData.isEmpty()) {
+        qDebug() << "Audio::dataLeft(): Frame is empty, returning zero-filled vector";
+        return QVector<qint16>(frameSize(), 0);
+    }
+    
+    QVector<qint16> dataLeft;
+    for (int i = 0; i < frameSize(); i += 2) {
+        dataLeft.append(m_audioData[i]);
+    }
+    return dataLeft;
+}
+
+// Get the right channel data for the audio, returning a zero-filled vector if empty
+QVector<qint16> Audio::dataRight() const
+{
+    if (m_audioData.isEmpty()) {
+        qDebug() << "Audio::dataRight(): Frame is empty, returning zero-filled vector";
+        return QVector<qint16>(frameSize(), 0);
+    }
+    
+    QVector<qint16> dataRight;
+    for (int i = 1; i < frameSize(); i += 2) {
+        dataRight.append(m_audioData[i]);
+    }
+    return dataRight;
+}
+
 // Set the error data for the audio, ensuring it matches the frame size
-// Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
 void Audio::setErrorData(const QVector<bool> &errorData)
 {
     if (errorData.size() != frameSize()) {
@@ -54,8 +97,21 @@ void Audio::setErrorData(const QVector<bool> &errorData)
     m_audioErrorData = errorData;
 }
 
+// Set the left and right channel error data for the audio, ensuring they match the frame size
+void Audio::setErrorDataLeftRight(const QVector<bool> &errorDataLeft, const QVector<bool> &errorDataRight)
+{
+    if (errorDataLeft.size() + errorDataRight.size() != frameSize()) {
+        qFatal("Audio::setErrorDataLeftRight(): Error data size of %d does not match frame size of %d", errorDataLeft.size() + errorDataRight.size(), frameSize());
+    }
+    
+    m_audioErrorData.clear();
+    for (int i = 0; i < frameSize(); i += 2) {
+        m_audioErrorData.append(errorDataLeft[i]);
+        m_audioErrorData.append(errorDataRight[i]);
+    }
+}
+
 // Get the error_data for the audio, returning a zero-filled vector if empty
-// Note: This is a vector of 0s and 1s, where 0 is no error and 1 is an error
 QVector<bool> Audio::errorData() const
 {
     if (m_audioErrorData.isEmpty()) {
@@ -63,6 +119,36 @@ QVector<bool> Audio::errorData() const
         return QVector<bool>(frameSize(), false);
     }
     return m_audioErrorData;
+}
+
+// Get the left channel error data for the audio, returning a zero-filled vector if empty
+QVector<bool> Audio::errorDataLeft() const
+{
+    if (m_audioErrorData.isEmpty()) {
+        qDebug() << "Audio::errorDataLeft(): Error frame is empty, returning zero-filled vector";
+        return QVector<bool>(frameSize(), false);
+    }
+    
+    QVector<bool> errorDataLeft;
+    for (int i = 0; i < frameSize(); i += 2) {
+        errorDataLeft.append(m_audioErrorData[i]);
+    }
+    return errorDataLeft;
+}
+
+// Get the right channel error data for the audio, returning a zero-filled vector if empty
+QVector<bool> Audio::errorDataRight() const
+{
+    if (m_audioErrorData.isEmpty()) {
+        qDebug() << "Audio::errorDataRight(): Error frame is empty, returning zero-filled vector";
+        return QVector<bool>(frameSize(), false);
+    }
+    
+    QVector<bool> errorDataRight;
+    for (int i = 1; i < frameSize(); i += 2) {
+        errorDataRight.append(m_audioErrorData[i]);
+    }
+    return errorDataRight;
 }
 
 // Count the number of errors in the audio

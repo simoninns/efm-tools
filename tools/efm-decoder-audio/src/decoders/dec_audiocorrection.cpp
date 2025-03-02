@@ -59,24 +59,45 @@ void AudioCorrection::processQueue()
     AudioSection correctedAudioSection;
     correctedAudioSection.metadata = audioSection.metadata;
 
-    for (int i=0; i < 98; ++i) {
-        Audio audio = audioSection.frame(i);
+    for (int frameOffset=0; frameOffset < 98; ++frameOffset) {
+        Audio audio = audioSection.frame(frameOffset);
 
         QVector<qint16> correctedAudioData;
         QVector<bool> correctedAudioErrorData;
 
-        for (int j=0; j < 12; ++j) {
-            qint16 sample = audio.data().at(j);
-            bool error = audio.errorData().at(j);
+        QVector<qint16> audioData = audio.data();
+        QVector<bool> audioErrorData = audio.errorData();
 
-            if (error) {
+        for (int sampleOffset=0; sampleOffset < 12; ++sampleOffset) {
+            if (audioErrorData.at(sampleOffset)) {
+                if (m_showDebug) {
+                    // Calculate the sample number (according to Audacity)
+                    qint64 minutes = audioSection.metadata.absoluteSectionTime().minutes();
+                    qint64 seconds = audioSection.metadata.absoluteSectionTime().seconds();
+                    qint64 frames = audioSection.metadata.absoluteSectionTime().frameNumber();
+
+                    // Function to convert CDDA timestamp to sample number (Fixed at 44.1 kHz)
+                    qint64 sampleNumberMono = ((minutes * 60 + seconds) * 44100 * 2) + 
+                        (12 * frameOffset + sampleOffset) + 
+                        ((frames - 1) * 1176);
+                    qint64 sampleNumberStereo = sampleNumberMono / 2; // Audaicty uses stereo sample pairs when counting samples
+
+                    // If sampleOffset is even, then the sample is the left channel
+                    // If sampleOffset is odd, then the sample is the right channel
+                    if (sampleOffset % 2 == 0) {
+                        qDebug().nospace() << "AudioCorrection::processQueue(): Silencing " << minutes << ":" << seconds << ":" << frames << " # " << sampleNumberStereo << " L";
+                    } else {
+                        qDebug().nospace() << "AudioCorrection::processQueue(): Silencing " << minutes << ":" << seconds << ":" << frames << " # " << sampleNumberStereo << " R";
+                    }
+                }
+
                 // Error in the sample
                 correctedAudioData.append(0);
                 correctedAudioErrorData.append(true);
                 ++m_invalidSamplesCount;
             } else {
                 // No error in the sample
-                correctedAudioData.append(sample);
+                correctedAudioData.append(audioData.at(sampleOffset));
                 correctedAudioErrorData.append(false);
                 ++m_validSamplesCount;
             }

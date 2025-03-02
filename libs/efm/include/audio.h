@@ -34,9 +34,15 @@ class Audio
 {
 public:
     void setData(const QVector<qint16> &data);
+    void setDataLeftRight(const QVector<qint16> &dataLeft, const QVector<qint16> &dataRight);
     QVector<qint16> data() const;
+    QVector<qint16> dataLeft() const;
+    QVector<qint16> dataRight() const;
     void setErrorData(const QVector<bool> &errorData);
+    void setErrorDataLeftRight(const QVector<bool> &errorDataLeft, const QVector<bool> &errorDataRight);
     QVector<bool> errorData() const;
+    QVector<bool> errorDataLeft() const;
+    QVector<bool> errorDataRight() const;
     quint32 countErrors() const;
 
     bool isFull() const;
