@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
     // Group of options for specifying output data file type
     QList<QCommandLineOption> outputTypeOptions = {
         QCommandLineOption(
-                "output-wav-metadata",
-                QCoreApplication::translate("main", "Output audio decoding data as a WAV file with metadata")),
+                "audacity-labels",
+                QCoreApplication::translate("main", "Output WAV metadata as Audacity labels")),
         QCommandLineOption(
                 "no-audio-concealment",
                 QCoreApplication::translate("main", "Do not conceal errors in the audio data")),
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     processStandardDebugOptions(parser);
 
     // Check for output data type options
-    bool outputWavMetadata = parser.isSet("output-wav-metadata");
+    bool outputWavMetadata = parser.isSet("audacity-labels");
     bool noAudioConcealment = parser.isSet("no-audio-concealment");
 
     // Check for frame data options

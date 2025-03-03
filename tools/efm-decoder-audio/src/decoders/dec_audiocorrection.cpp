@@ -59,8 +59,11 @@ void AudioCorrection::processQueue()
     AudioSection correctedAudioSection;
     correctedAudioSection.metadata = audioSection.metadata;
 
-    for (int frameOffset=0; frameOffset < 98; ++frameOffset) {
-        Audio audio = audioSection.frame(frameOffset);
+    SectionMetadata metadata = audioSection.metadata;
+    SectionTime absoluteSectionTime = metadata.absoluteSectionTime();
+
+    for (int subSection=0; subSection < 98; ++subSection) {
+        Audio audio = audioSection.frame(subSection);
 
         QVector<qint16> correctedAudioData;
         QVector<bool> correctedAudioErrorData;
@@ -72,23 +75,17 @@ void AudioCorrection::processQueue()
             if (audioErrorData.at(sampleOffset)) {
                 if (m_showDebug) {
                     // Calculate the sample number (according to Audacity)
-                    qint64 minutes = audioSection.metadata.absoluteSectionTime().minutes();
-                    qint64 seconds = audioSection.metadata.absoluteSectionTime().seconds();
-                    qint64 frames = audioSection.metadata.absoluteSectionTime().frameNumber();
+                    qint64 minutes = absoluteSectionTime.minutes();
+                    qint64 seconds = absoluteSectionTime.seconds();
+                    qint64 frames = absoluteSectionTime.frameNumber();
 
                     // Function to convert CDDA timestamp to sample number (Fixed at 44.1 kHz)
                     qint64 sampleNumberMono = ((minutes * 60 + seconds) * 44100 * 2) + 
-                        (12 * frameOffset + sampleOffset) + 
+                        (12 * subSection + sampleOffset) + 
                         ((frames - 1) * 1176);
                     qint64 sampleNumberStereo = sampleNumberMono / 2; // Audaicty uses stereo sample pairs when counting samples
-
-                    // Function to convert CDDA timestamp to seconds+milliseconds
-                    // Calculate precise time in seconds
-                    double timeInSeconds = (minutes * 60.0) + seconds + 
-                        (frames - 1) / 75.0 + 
-                        (frameOffset * 12.0 + sampleOffset) / (75.0 * 98.0 * 12.0);
                     
-                    QString subSection = QString("%1-%2").arg(frameOffset, 2, 10, QChar('0')).arg(sampleOffset/2, 2, 10, QChar('0'));
+                    QString subSectionStr = QString("%1-%2").arg(subSection, 2, 10, QChar('0')).arg(sampleOffset, 2, 10, QChar('0'));
 
                     // If sampleOffset is even, then the sample is the left channel
                     // If sampleOffset is odd, then the sample is the right channel
@@ -96,12 +93,12 @@ void AudioCorrection::processQueue()
                     if (sampleOffset % 2 == 0) channel = "L";
 
                     qDebug().nospace().noquote() << "AudioCorrection::processQueue(): Silencing "
-                        << audioSection.metadata.absoluteSectionTime().toString() << " (" << subSection << ") #"
+                        << absoluteSectionTime.toString() << " (" << subSectionStr << ") #"
                         << sampleNumberStereo << " " << channel;
                 }
 
                 // Error in the sample
-                correctedAudioData.append(32767);
+                correctedAudioData.append(0);
                 correctedAudioErrorData.append(true);
                 ++m_invalidSamplesCount;
             } else {

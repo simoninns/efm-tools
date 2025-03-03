@@ -58,7 +58,16 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
     }
 
     SectionMetadata metadata = audioSection.metadata;
-    SectionTime sectionTime = metadata.absoluteSectionTime();
+    SectionTime absoluteSectionTime = metadata.absoluteSectionTime();
+
+    // Do we have the start time already?
+    if (!m_haveStartTime) {
+        m_startTime = absoluteSectionTime;
+        m_haveStartTime = true;
+    }
+
+    // Get the relative time from the start time
+    SectionTime relativeSectionTime = absoluteSectionTime - m_startTime;
 
     for (int subSection = 0; subSection < 98; ++subSection) {
         Audio audio = audioSection.frame(subSection);
@@ -70,15 +79,28 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
             
             if (hasError && !m_inErrorRange) {
                 // Start of new error range
-                m_rangeStart = convertToAudacityTimestamp(sectionTime.minutes(), sectionTime.seconds(),
-                    sectionTime.frameNumber(), subSection, sampleOffset);
+                m_rangeStart = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                relativeSectionTime.frameNumber(), subSection, sampleOffset);
                 m_inErrorRange = true;
             } else if (!hasError && m_inErrorRange) {
                 // End of error range
-                QString rangeEnd = convertToAudacityTimestamp(sectionTime.minutes(), sectionTime.seconds(),
-                    sectionTime.frameNumber(), subSection, sampleOffset - 1);
+                QString rangeEnd;
+                if (sampleOffset == 0) {
+                    // Handle wrap to previous subsection
+                    if (subSection > 0) {
+                        rangeEnd = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                            relativeSectionTime.frameNumber(), subSection - 1, 11);
+                    } else {
+                        // If we're at the first subsection, just use the current position
+                        rangeEnd = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                            relativeSectionTime.frameNumber(), subSection, sampleOffset);
+                    }
+                } else {
+                    rangeEnd = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                        relativeSectionTime.frameNumber(), subSection, sampleOffset - 1);
+                }
 
-                QString sampleTimeStamp = QString("%1 [%2-%3]").arg(sectionTime.toString()).arg(subSection).arg(sampleOffset);
+                QString sampleTimeStamp = QString("%1").arg(absoluteSectionTime.toString());
                 QString outputString = m_rangeStart + "\t" + rangeEnd + "\tError: " + sampleTimeStamp + "\n";
                 m_file.write(outputString.toUtf8());
                 m_inErrorRange = false;
@@ -124,7 +146,7 @@ QString WriterWavMetadata::convertToAudacityTimestamp(qint32 minutes, qint32 sec
     double total_seconds = (minutes * 60.0) + seconds;
     
     // Convert frames to seconds
-    total_seconds += (frames-1) / FRAME_RATE;
+    total_seconds += (frames) / FRAME_RATE;
     
     // Convert subsection to fractional time
     total_seconds += subsection / (FRAME_RATE * SUBSECTIONS_PER_FRAME);

@@ -48,6 +48,9 @@ private:
     bool m_inErrorRange;
     QString m_rangeStart;
 
+    bool m_haveStartTime;
+    SectionTime m_startTime;
+
     QString convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames,
         qint32 subsection, qint32 sample);
 };
