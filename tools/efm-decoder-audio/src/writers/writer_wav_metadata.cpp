@@ -28,7 +28,9 @@
 // This is used when the output is stereo audio data
 
 WriterWavMetadata::WriterWavMetadata() :
-    m_inErrorRange(false)
+    m_inErrorRange(false),
+    m_haveStartTime(false),
+    m_trackNumber(-1)
 {}
 
 WriterWavMetadata::~WriterWavMetadata()
@@ -69,6 +71,20 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
     // Get the relative time from the start time
     SectionTime relativeSectionTime = absoluteSectionTime - m_startTime;
 
+    // Output track number metadata
+    if (m_trackNumber != metadata.trackNumber()) {
+        m_trackNumber = metadata.trackNumber();
+
+        QString trackChangeTime = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                relativeSectionTime.frameNumber(), 0, 0);
+
+        QString trackNumber = QString("%1").arg(m_trackNumber, 2, 10, QChar('0'));
+
+        QString outputString = trackChangeTime + "\t" + trackChangeTime + "\tTrack: " + trackNumber + "\n";
+        m_file.write(outputString.toUtf8());
+    }
+
+    // Output metadata about errors
     for (int subSection = 0; subSection < 98; ++subSection) {
         Audio audio = audioSection.frame(subSection);
         QVector<qint16> audioData = audio.data();
@@ -80,7 +96,7 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
             if (hasError && !m_inErrorRange) {
                 // Start of new error range
                 m_rangeStart = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
-                relativeSectionTime.frameNumber(), subSection, sampleOffset);
+                    relativeSectionTime.frameNumber(), subSection, sampleOffset);
                 m_inErrorRange = true;
             } else if (!hasError && m_inErrorRange) {
                 // End of error range

@@ -51,6 +51,8 @@ private:
     bool m_haveStartTime;
     SectionTime m_startTime;
 
+    qint32 m_trackNumber;
+
     QString convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames,
         qint32 subsection, qint32 sample);
 };
