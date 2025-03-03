@@ -169,7 +169,7 @@ void ReedSolomon::c2Decode(QVector<quint8> &inputData, QVector<bool> &errorData,
 
     // Decode the data
     int result = c2rs.decode(tmpData, erasures, &position);
-    if (result > 3) result = -1;
+    if (result > 2) result = -1;
 
     // Convert the std::vector back to a QVector and remove the parity bytes
     // by copying bytes 0-11 and 16-27 to the output data
