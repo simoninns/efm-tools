@@ -46,6 +46,9 @@ public:
 private:
     QFile m_file;
     qint32 m_currentTrack;
+
+    QString convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames,
+        qint32 subsection, qint32 sample);
 };
 
 #endif // WRITER_WAV_METADATA_H

@@ -46,9 +46,9 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     if (m_outputWavMetadata) {
         QString metadataFilename = outputFilename;
         if (metadataFilename.endsWith(".wav")) {
-            metadataFilename.replace(".wav", ".metadata");
+            metadataFilename.replace(".wav", ".txt");
         } else {
-            metadataFilename.append(".metadata");
+            metadataFilename.append(".txt");
         }
         m_writerWavMetadata.open(metadataFilename);
     }

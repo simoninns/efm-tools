@@ -40,6 +40,7 @@ public:
 
 private:
     void processQueue();
+    QString convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames, qint32 subsection, qint32 sample);
 
     QQueue<AudioSection> m_inputBuffer;
     QQueue<AudioSection> m_outputBuffer;
