@@ -28,7 +28,7 @@
 // This is used when the output is stereo audio data
 
 WriterWavMetadata::WriterWavMetadata() :
-    m_currentTrack(-1)
+    m_inErrorRange(false)
 {}
 
 WriterWavMetadata::~WriterWavMetadata()
@@ -57,77 +57,46 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
         return;
     }
 
-    // Write an Audacity text label entry for:
-    //   1. The start of a new track
-    //   2. Any errors in the audio data, errors can be:
-    //      - Point errors (a single sample)
-    //      - Region errors (a continuous range of samples)
-
-    // Sample positions are denoted by the timeline position in the audio data
-    // Start time <TAB> End time <TAB> Label text <NEWLINE>
-    // The start and end times are in seconds and milliseconds, so sample 106472627 (L/R) is 2414.345283 seconds
-
     SectionMetadata metadata = audioSection.metadata;
-    SectionTime sectionTime = metadata.sectionTime();
+    SectionTime sectionTime = metadata.absoluteSectionTime();
 
     for (int subSection = 0; subSection < 98; ++subSection) {
         Audio audio = audioSection.frame(subSection);
         QVector<qint16> audioData = audio.data();
         QVector<bool> errors = audio.errorData();
+        
         for (int sampleOffset = 0; sampleOffset < 12; sampleOffset += 2) {
-            if (errors.at(sampleOffset) || errors.at(sampleOffset+1)) {
-                QString timeStamp = convertToAudacityTimestamp(sectionTime.minutes(), sectionTime.seconds(),
+            bool hasError = errors.at(sampleOffset) || errors.at(sampleOffset+1);
+            
+            if (hasError && !m_inErrorRange) {
+                // Start of new error range
+                m_rangeStart = convertToAudacityTimestamp(sectionTime.minutes(), sectionTime.seconds(),
                     sectionTime.frameNumber(), subSection, sampleOffset);
+                m_inErrorRange = true;
+            } else if (!hasError && m_inErrorRange) {
+                // End of error range
+                QString rangeEnd = convertToAudacityTimestamp(sectionTime.minutes(), sectionTime.seconds(),
+                    sectionTime.frameNumber(), subSection, sampleOffset - 1);
 
-                QString outputString = timeStamp + "\t" + timeStamp + "\tError\n";
-
+                QString sampleTimeStamp = QString("%1 [%2-%3]").arg(sectionTime.toString()).arg(subSection).arg(sampleOffset);
+                QString outputString = m_rangeStart + "\t" + rangeEnd + "\tError: " + sampleTimeStamp + "\n";
                 m_file.write(outputString.toUtf8());
+                m_inErrorRange = false;
             }
         }
     }
-
-
-    // // Each Audio section contains 98 frames that we need to write metadata for in the output file
-    // QString sectionErrorList;
-    // for (int index = 0; index < 98; index++) {
-    //     Audio audio = audioSection.frame(index);
-    //     QVector<bool> errors = audio.errorData();
-
-    //     // Are there any errors in this section?
-    //     if (errors.contains(true)) {
-    //         // If the frame contains errors we need to add it to the metadata
-    //         // the position of the error is the frame sample number * current frame
-    //         // i.e. 0 to 1175
-    //         for (int i = 0; i < errors.size(); i++) {
-    //             // Each frame is 12 samples, each section is 98 frames
-    //             int32_t errorLocationInSection = i + (index * 12);
-    //             if (errors[i] == true)
-    //                 sectionErrorList += "," + QString::number(errorLocationInSection);
-    //         }
-    //     }
-    // }
-
-    // // Only write metadata is the section contains errors or the track number has changed
-    // if (!sectionErrorList.isEmpty() || m_currentTrack != audioSection.metadata.trackNumber()) {
-    //     // Write a metadata entry for the section
-    //     QString frameEntry = audioSection.metadata.absoluteSectionTime().toString() + ","
-    //             + QString::number(audioSection.metadata.trackNumber()) + ","
-    //             + audioSection.metadata.sectionTime().toString();
-
-    //     // Write the metadata to the metadata file
-    //     frameEntry += sectionErrorList;
-    //     frameEntry += "\n";
-    //     m_file.write(frameEntry.toUtf8());
-    // }
-
-    // // Save the current track
-    // m_currentTrack = audioSection.metadata.trackNumber();
 }
 
 void WriterWavMetadata::close()
 {
     if (!m_file.isOpen()) {
         return;
+    }
+
+    // If we're still in an error range when closing, write the final range
+    if (m_inErrorRange) {
+        QString outputString = m_rangeStart + "\t" + m_rangeStart + "\tError: Incomplete range\n";
+        m_file.write(outputString.toUtf8());
     }
 
     m_file.close();

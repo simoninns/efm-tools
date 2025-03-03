@@ -45,7 +45,8 @@ public:
 
 private:
     QFile m_file;
-    qint32 m_currentTrack;
+    bool m_inErrorRange;
+    QString m_rangeStart;
 
     QString convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames,
         qint32 subsection, qint32 sample);

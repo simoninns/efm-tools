@@ -90,19 +90,18 @@ void AudioCorrection::processQueue()
                     
                     QString subSection = QString("%1-%2").arg(frameOffset, 2, 10, QChar('0')).arg(sampleOffset/2, 2, 10, QChar('0'));
 
-                    QString timeStamp = convertToAudacityTimestamp(minutes, seconds, frames, frameOffset, sampleOffset);
-
                     // If sampleOffset is even, then the sample is the left channel
                     // If sampleOffset is odd, then the sample is the right channel
                     QString channel = "R";
                     if (sampleOffset % 2 == 0) channel = "L";
 
                     qDebug().nospace().noquote() << "AudioCorrection::processQueue(): Silencing "
-                        << audioSection.metadata.absoluteSectionTime().toString() << " (" << subSection << ") #" << sampleNumberStereo << " " << channel << " at " << timeStamp;
+                        << audioSection.metadata.absoluteSectionTime().toString() << " (" << subSection << ") #"
+                        << sampleNumberStereo << " " << channel;
                 }
 
                 // Error in the sample
-                correctedAudioData.append(0);
+                correctedAudioData.append(32767);
                 correctedAudioErrorData.append(true);
                 ++m_invalidSamplesCount;
             } else {
@@ -130,26 +129,4 @@ void AudioCorrection::showStatistics()
     qInfo().nospace() << "  Silenced mono samples: " << m_silencedSamplesCount;
     qInfo().nospace() << "  Valid mono samples: " << m_validSamplesCount;
     qInfo().nospace() << "  Invalid mono samples: " << m_invalidSamplesCount;
-}
-
-QString AudioCorrection::convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames, qint32 subsection, qint32 sample) {
-    // Constants for calculations
-    constexpr double FRAME_RATE = 75.0;      // 75 frames per second
-    constexpr double SUBSECTIONS_PER_FRAME = 98.0; // 98 subsections per frame
-    constexpr double SAMPLES_PER_SUBSECTION = 6.0; // 6 stereo samples per subsection
-
-    // Convert minutes and seconds to total seconds
-    double total_seconds = (minutes * 60.0) + seconds;
-    
-    // Convert frames to seconds
-    total_seconds += (frames-1) / FRAME_RATE;
-    
-    // Convert subsection to fractional time
-    total_seconds += subsection / (FRAME_RATE * SUBSECTIONS_PER_FRAME);
-    
-    // Convert sample to fractional time
-    total_seconds += (sample/2) / (FRAME_RATE * SUBSECTIONS_PER_FRAME * SAMPLES_PER_SUBSECTION);
-
-    // Format the output string with 6 decimal places
-    return QString::asprintf("%.6f", total_seconds);
 }
