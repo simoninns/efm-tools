@@ -44,6 +44,11 @@ public:
     QVector<bool> errorDataLeft() const;
     QVector<bool> errorDataRight() const;
     quint32 countErrors() const;
+    quint32 countErrorsLeft() const;
+    quint32 countErrorsRight() const;
+
+    void setConcealedData(const QVector<bool> &paddingData);
+    QVector<bool> concealedData() const;
 
     bool isFull() const;
     bool isEmpty() const;
@@ -54,6 +59,7 @@ public:
 private:
     QVector<qint16> m_audioData;
     QVector<bool> m_audioErrorData;
+    QVector<bool> m_audioConcealedData;
 };
 
 #endif // AUDIO_H

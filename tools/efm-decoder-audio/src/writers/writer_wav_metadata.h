@@ -37,7 +37,7 @@ public:
     WriterWavMetadata();
     ~WriterWavMetadata();
 
-    bool open(const QString &filename);
+    bool open(const QString &filename, bool noAudioConcealment);
     void write(const AudioSection &audioSection);
     void close();
     qint64 size() const;
@@ -45,8 +45,13 @@ public:
 
 private:
     QFile m_file;
+    bool m_noAudioConcealment;
+
     bool m_inErrorRange;
-    QString m_rangeStart;
+    QString m_errorRangeStart;
+
+    bool m_inConcealedRange;
+    QString m_concealedRangeStart;
 
     bool m_haveStartTime;
     SectionTime m_startTime;

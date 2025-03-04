@@ -29,8 +29,10 @@
 
 WriterWavMetadata::WriterWavMetadata() :
     m_inErrorRange(false),
+    m_inConcealedRange(false),
     m_haveStartTime(false),
-    m_trackNumber(-1)
+    m_trackNumber(-1),
+    m_noAudioConcealment(false)
 {}
 
 WriterWavMetadata::~WriterWavMetadata()
@@ -40,7 +42,7 @@ WriterWavMetadata::~WriterWavMetadata()
     }
 }
 
-bool WriterWavMetadata::open(const QString &filename)
+bool WriterWavMetadata::open(const QString &filename, bool noAudioConcealment)
 {
     m_file.setFileName(filename);
     if (!m_file.open(QIODevice::WriteOnly)) {
@@ -48,6 +50,9 @@ bool WriterWavMetadata::open(const QString &filename)
         return false;
     }
     qDebug() << "WriterWavMetadata::open() - Opened file" << filename << "for data writing";
+
+    // If we're not concealing audio, we use "error" metadata instead of "silenced"
+    m_noAudioConcealment = noAudioConcealment;
 
     return true;
 }
@@ -89,13 +94,15 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
         Audio audio = audioSection.frame(subSection);
         QVector<qint16> audioData = audio.data();
         QVector<bool> errors = audio.errorData();
+        QVector<bool> concealed = audio.concealedData();
         
         for (int sampleOffset = 0; sampleOffset < 12; sampleOffset += 2) {
+            // Errors/Silenced
             bool hasError = errors.at(sampleOffset) || errors.at(sampleOffset+1);
             
             if (hasError && !m_inErrorRange) {
                 // Start of new error range
-                m_rangeStart = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                m_errorRangeStart = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
                     relativeSectionTime.frameNumber(), subSection, sampleOffset);
                 m_inErrorRange = true;
             } else if (!hasError && m_inErrorRange) {
@@ -117,9 +124,43 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
                 }
 
                 QString sampleTimeStamp = QString("%1").arg(absoluteSectionTime.toString());
-                QString outputString = m_rangeStart + "\t" + rangeEnd + "\tError: " + sampleTimeStamp + "\n";
+                QString outputString = m_errorRangeStart + "\t" + rangeEnd + "\tError: " + sampleTimeStamp + "\n";
+                if (!m_noAudioConcealment) outputString = m_errorRangeStart + "\t" + rangeEnd + "\tSilenced: " + sampleTimeStamp + "\n";
+
                 m_file.write(outputString.toUtf8());
                 m_inErrorRange = false;
+            }
+
+            // Concealed
+            bool hasConcealed = concealed.at(sampleOffset) || concealed.at(sampleOffset+1);
+            
+            if (hasConcealed && !m_inConcealedRange) {
+                // Start of new error range
+                m_concealedRangeStart = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                    relativeSectionTime.frameNumber(), subSection, sampleOffset);
+                    m_inConcealedRange = true;
+            } else if (!hasError && m_inConcealedRange) {
+                // End of error range
+                QString rangeEnd;
+                if (sampleOffset == 0) {
+                    // Handle wrap to previous subsection
+                    if (subSection > 0) {
+                        rangeEnd = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                            relativeSectionTime.frameNumber(), subSection - 1, 11);
+                    } else {
+                        // If we're at the first subsection, just use the current position
+                        rangeEnd = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                            relativeSectionTime.frameNumber(), subSection, sampleOffset);
+                    }
+                } else {
+                    rangeEnd = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                        relativeSectionTime.frameNumber(), subSection, sampleOffset - 1);
+                }
+
+                QString sampleTimeStamp = QString("%1").arg(absoluteSectionTime.toString());
+                QString outputString = m_concealedRangeStart + "\t" + rangeEnd + "\tConcealed: " + sampleTimeStamp + "\n";
+                m_file.write(outputString.toUtf8());
+                m_inConcealedRange = false;
             }
         }
     }
@@ -133,7 +174,7 @@ void WriterWavMetadata::close()
 
     // If we're still in an error range when closing, write the final range
     if (m_inErrorRange) {
-        QString outputString = m_rangeStart + "\t" + m_rangeStart + "\tError: Incomplete range\n";
+        QString outputString = m_errorRangeStart + "\t" + m_errorRangeStart + "\tError: Incomplete range\n";
         m_file.write(outputString.toUtf8());
     }
 

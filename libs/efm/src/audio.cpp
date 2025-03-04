@@ -163,6 +163,30 @@ quint32 Audio::countErrors() const
     return errorCount;
 }
 
+// Count the number of errors in the left channel of the audio
+quint32 Audio::countErrorsLeft() const
+{
+    quint32 errorCount = 0;
+    for (int i = 0; i < frameSize(); i += 2) {
+        if (m_audioErrorData[i] == true) {
+            errorCount++;
+        }
+    }
+    return errorCount;
+}
+
+// Count the number of errors in the right channel of the audio
+quint32 Audio::countErrorsRight() const
+{
+    quint32 errorCount = 0;
+    for (int i = 1; i < frameSize(); i += 2) {
+        if (m_audioErrorData[i] == true) {
+            errorCount++;
+        }
+    }
+    return errorCount;
+}
+
 // Check if the audio is full (i.e., has data)
 bool Audio::isFull() const
 {
@@ -197,4 +221,21 @@ void Audio::showData()
 int Audio::frameSize() const
 {
     return 12;
+}
+
+void Audio::setConcealedData(const QVector<bool> &concealedData)
+{
+    if (concealedData.size() != frameSize()) {
+        qFatal("Audio::setConcealedData(): Concealed data size of %d does not match frame size of %d", concealedData.size(), frameSize());
+    }
+    m_audioConcealedData = concealedData;
+}
+
+QVector<bool> Audio::concealedData() const
+{
+    if (m_audioConcealedData.isEmpty()) {
+        qDebug() << "Audio::concealedData(): Concealed data is empty, returning zero-filled vector";
+        return QVector<bool>(frameSize(), false);
+    }
+    return m_audioConcealedData;
 }

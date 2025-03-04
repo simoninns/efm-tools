@@ -50,7 +50,7 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         } else {
             metadataFilename.append(".txt");
         }
-        m_writerWavMetadata.open(metadataFilename);
+        m_writerWavMetadata.open(metadataFilename, m_noAudioConcealment);
     }
 
     // Process the Data24 Section data

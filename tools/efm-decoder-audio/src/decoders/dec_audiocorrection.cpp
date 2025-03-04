@@ -27,7 +27,8 @@
 AudioCorrection::AudioCorrection() :
     m_silencedSamplesCount(0),
     m_validSamplesCount(0),
-    m_invalidSamplesCount(0)
+    m_concealedSamplesCount(0),
+    m_firstSectionFlag(true)
 {}
 
 void AudioCorrection::pushSection(const AudioSection &audioSection)
@@ -53,77 +54,200 @@ bool AudioCorrection::isReady() const
 
 void AudioCorrection::processQueue()
 {
-    // Pop the input buffer
-    AudioSection audioSection = m_inputBuffer.dequeue();
+    // TODO: this will never correct the very first and last sections
 
-    AudioSection correctedAudioSection;
-    correctedAudioSection.metadata = audioSection.metadata;
+    // Pop a section from the input buffer
+    m_correctionBuffer.append(m_inputBuffer.dequeue());
 
-    SectionMetadata metadata = audioSection.metadata;
-    SectionTime absoluteSectionTime = metadata.absoluteSectionTime();
+    // Perform correction on the section in the middle of the correction buffer
+    if (m_correctionBuffer.size() == 3) {
+        AudioSection correctedSection;
 
-    for (int subSection=0; subSection < 98; ++subSection) {
-        Audio audio = audioSection.frame(subSection);
+        // Process all 98 frames in the section
+        for (int subSection = 0; subSection < 98; ++subSection) {
+            Audio correctedFrame;
 
-        QVector<qint16> correctedAudioData;
-        QVector<bool> correctedAudioErrorData;
+            // Get the preceding, correcting and following frames
+            Audio precedingFrame, correctingFrame, followingFrame;
+            if (subSection == 0) {
+                // If this is the first frame, use the first frame in the section as the preceding frame
+                precedingFrame = m_correctionBuffer.at(0).frame(97);
+            } else {
+                precedingFrame = m_correctionBuffer.at(1).frame(subSection - 1);
+            }
 
-        QVector<qint16> audioData = audio.data();
-        QVector<bool> audioErrorData = audio.errorData();
+            correctingFrame = m_correctionBuffer.at(1).frame(subSection);
 
-        for (int sampleOffset=0; sampleOffset < 12; ++sampleOffset) {
-            if (audioErrorData.at(sampleOffset)) {
-                if (m_showDebug) {
-                    // Calculate the sample number (according to Audacity)
-                    qint64 minutes = absoluteSectionTime.minutes();
-                    qint64 seconds = absoluteSectionTime.seconds();
-                    qint64 frames = absoluteSectionTime.frameNumber();
+            if (correctingFrame.countErrors() == 0) {
+                // No errors in this frame - just copy it
+                correctedSection.pushFrame(correctingFrame);
+                continue;
+            }
 
-                    // Function to convert CDDA timestamp to sample number (Fixed at 44.1 kHz)
-                    qint64 sampleNumberMono = ((minutes * 60 + seconds) * 44100 * 2) + 
-                        (12 * subSection + sampleOffset) + 
-                        ((frames - 1) * 1176);
-                    qint64 sampleNumberStereo = sampleNumberMono / 2; // Audaicty uses stereo sample pairs when counting samples
-                    
-                    QString subSectionStr = QString("%1-%2").arg(subSection, 2, 10, QChar('0')).arg(sampleOffset, 2, 10, QChar('0'));
+            if (subSection == 97) {
+                // If this is the last frame, use the last frame in the section as the following frame
+                followingFrame = m_correctionBuffer.at(2).frame(0);
+            } else {
+                followingFrame = m_correctionBuffer.at(1).frame(subSection + 1);
+            }
 
-                    // If sampleOffset is even, then the sample is the left channel
-                    // If sampleOffset is odd, then the sample is the right channel
-                    QString channel = "R";
-                    if (sampleOffset % 2 == 0) channel = "L";
+            // Sample correction
+            QVector<qint16> correctedLeftSamples;
+            QVector<bool> correctedLeftErrorSamples;
+            QVector<bool> correctedLeftPaddedSamples;
+            QVector<qint16> correctedRightSamples;
+            QVector<bool> correctedRightErrorSamples;
+            QVector<bool> correctedRightPaddedSamples;
 
-                    qDebug().nospace().noquote() << "AudioCorrection::processQueue(): Silencing "
-                        << absoluteSectionTime.toString() << " (" << subSectionStr << ") #"
-                        << sampleNumberStereo << " " << channel;
+            for (int sampleOffset = 0; sampleOffset < 6; ++sampleOffset) {
+                // Left channel
+                // Get the preceding, correcting and following left samples
+                qint16 precedingLeftSample, correctingLeftSample, followingLeftSample;
+                qint16 precedingLeftSampleError, correctingLeftSampleError, followingLeftSampleError;
+
+                if (sampleOffset == 0) {
+                    precedingLeftSample = precedingFrame.dataLeft().at(5);
+                    precedingLeftSampleError = precedingFrame.errorDataLeft().at(5);
+                } else {
+                    precedingLeftSample = correctingFrame.dataLeft().at(sampleOffset - 1);
+                    precedingLeftSampleError = correctingFrame.errorDataLeft().at(sampleOffset - 1);
                 }
 
-                // Error in the sample
-                correctedAudioData.append(0);
-                correctedAudioErrorData.append(true);
-                ++m_invalidSamplesCount;
-            } else {
-                // No error in the sample
-                correctedAudioData.append(audioData.at(sampleOffset));
-                correctedAudioErrorData.append(false);
-                ++m_validSamplesCount;
+                correctingLeftSample = correctingFrame.dataLeft().at(sampleOffset);
+                correctingLeftSampleError = correctingFrame.errorDataLeft().at(sampleOffset);
+
+                if (sampleOffset == 5) {
+                    followingLeftSample = followingFrame.dataLeft().at(0);
+                    followingLeftSampleError = followingFrame.errorDataLeft().at(0);
+                } else {
+                    followingLeftSample = correctingFrame.dataLeft().at(sampleOffset + 1);
+                    followingLeftSampleError = correctingFrame.errorDataLeft().at(sampleOffset + 1);
+                }
+
+                if (correctingLeftSampleError != 0) {
+                    // Do we have a valid preceding and following sample?
+                    if (precedingLeftSampleError || followingLeftSampleError) {
+                        // Silence the sample
+                        qDebug().noquote().nospace() << "AudioCorrection::processQueue() -  Left  Silencing: "
+                            << "Section address " << m_correctionBuffer.at(1).metadata.absoluteSectionTime().toString()
+                            << " - Frame " << subSection << ", sample " << sampleOffset;
+                        correctedLeftSamples.append(0);
+                        correctedLeftErrorSamples.append(true);
+                        correctedLeftPaddedSamples.append(false);
+                        ++m_silencedSamplesCount;
+                    } else {
+                        // Conceal the sample
+                        qDebug().noquote().nospace() << "AudioCorrection::processQueue() -  Left Concealing: "
+                            << "Section address " << m_correctionBuffer.at(1).metadata.absoluteSectionTime().toString()
+                            << " - Frame " << subSection << ", sample " << sampleOffset
+                            << " - Preceding = " << precedingLeftSample << ", Following = " << followingLeftSample
+                            << ", Average = " << (precedingLeftSample + followingLeftSample) / 2;
+                        correctedLeftSamples.append((precedingLeftSample + followingLeftSample) / 2);
+                        correctedLeftErrorSamples.append(false);
+                        correctedLeftPaddedSamples.append(true);
+                        ++m_concealedSamplesCount;
+                    }
+                } else {
+                    // The sample is valid - just copy it
+                    correctedLeftSamples.append(correctingLeftSample);
+                    correctedLeftErrorSamples.append(false);
+                    correctedLeftPaddedSamples.append(false);
+                    ++m_validSamplesCount;
+                }
+
+                // Right channel
+                // Get the preceding, correcting and following right samples
+                qint16 precedingRightSample, correctingRightSample, followingRightSample;
+                qint16 precedingRightSampleError, correctingRightSampleError, followingRightSampleError;
+
+                if (sampleOffset == 0) {
+                    precedingRightSample = precedingFrame.dataRight().at(5);
+                    precedingRightSampleError = precedingFrame.errorDataRight().at(5);
+                } else {
+                    precedingRightSample = correctingFrame.dataRight().at(sampleOffset - 1);
+                    precedingRightSampleError = correctingFrame.errorDataRight().at(sampleOffset - 1);
+                }
+
+                correctingRightSample = correctingFrame.dataRight().at(sampleOffset);
+                correctingRightSampleError = correctingFrame.errorDataRight().at(sampleOffset);
+
+                if (sampleOffset == 5) {
+                    followingRightSample = followingFrame.dataRight().at(0);
+                    followingRightSampleError = followingFrame.errorDataRight().at(0);
+                } else {
+                    followingRightSample = correctingFrame.dataRight().at(sampleOffset + 1);
+                    followingRightSampleError = correctingFrame.errorDataRight().at(sampleOffset + 1);
+                }
+
+                if (correctingRightSampleError != 0) {
+                    // Do we have a valid preceding and following sample?
+                    if (precedingRightSampleError || followingRightSampleError) {
+                        // Silence the sample
+                        qDebug().noquote().nospace() << "AudioCorrection::processQueue() - Right  Silencing: "
+                            << "Section address " << m_correctionBuffer.at(1).metadata.absoluteSectionTime().toString()
+                            << " - Frame " << subSection << ", sample " << sampleOffset;
+                        correctedRightSamples.append(0);
+                        correctedRightErrorSamples.append(true);
+                        correctedRightPaddedSamples.append(false);
+                        ++m_silencedSamplesCount;
+                    } else {
+                        // Conceal the sample
+                        qDebug().noquote().nospace() << "AudioCorrection::processQueue() - Right Concealing: "
+                            << "Section address " << m_correctionBuffer.at(1).metadata.absoluteSectionTime().toString()
+                            << " - Frame " << subSection << ", sample " << sampleOffset
+                            << " - Preceding = " << precedingRightSample << ", Following = " << followingRightSample
+                            << ", Average = " << (precedingRightSample + followingRightSample) / 2;
+                        correctedRightSamples.append((precedingRightSample + followingRightSample) / 2);
+                        correctedRightErrorSamples.append(false);
+                        correctedRightPaddedSamples.append(true);
+                        ++m_concealedSamplesCount;
+                    }
+                } else {
+                    // The sample is valid - just copy it
+                    correctedRightSamples.append(correctingRightSample);
+                    correctedRightErrorSamples.append(false);
+                    correctedRightPaddedSamples.append(false);
+                    ++m_validSamplesCount;
+                }
             }
+
+            // Combine the left and right channel data (and error data)
+            QVector<qint16> correctedSamples;
+            QVector<bool> correctedErrorSamples;
+            QVector<bool> correctedPaddedSamples;
+
+            for (int i = 0; i < 6; ++i) {
+                correctedSamples.append(correctedLeftSamples.at(i));
+                correctedSamples.append(correctedRightSamples.at(i));
+                correctedErrorSamples.append(correctedLeftErrorSamples.at(i));
+                correctedErrorSamples.append(correctedRightErrorSamples.at(i));
+                correctedPaddedSamples.append(correctedLeftPaddedSamples.at(i));
+                correctedPaddedSamples.append(correctedRightPaddedSamples.at(i));
+            }
+
+            // Write the channel data back to the correction buffer's frame
+            correctedFrame.setData(correctedSamples);
+            correctedFrame.setErrorData(correctedErrorSamples);
+            correctedFrame.setConcealedData(correctedPaddedSamples);
+
+            correctedSection.pushFrame(correctedFrame);
         }
 
-        Audio correctedAudio;
-        correctedAudio.setData(correctedAudioData);
-        correctedAudio.setErrorData(correctedAudioErrorData);
+        correctedSection.metadata = m_correctionBuffer.at(1).metadata;
+        m_correctionBuffer[1] = correctedSection;
 
-        correctedAudioSection.pushFrame(correctedAudio);
+        // Write the first section in the correction buffer to the output buffer
+        m_outputBuffer.enqueue(m_correctionBuffer.at(0));
+        m_correctionBuffer.removeFirst();
     }
-    
-    // Put the corrected audio in the output buffer
-    m_outputBuffer.enqueue(correctedAudioSection);
 }
 
 void AudioCorrection::showStatistics()
 {
     qInfo().nospace() << "Audio correction statistics:";
-    qInfo().nospace() << "  Silenced mono samples: " << m_silencedSamplesCount;
+    qInfo().nospace() << "  Total mono samples: "
+                      << m_validSamplesCount + m_concealedSamplesCount + m_silencedSamplesCount;
     qInfo().nospace() << "  Valid mono samples: " << m_validSamplesCount;
-    qInfo().nospace() << "  Invalid mono samples: " << m_invalidSamplesCount;
+    qInfo().nospace() << "  Concealed mono samples: " << m_concealedSamplesCount;
+    qInfo().nospace() << "  Silenced mono samples: " << m_silencedSamplesCount;
 }
