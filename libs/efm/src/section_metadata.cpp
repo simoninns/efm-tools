@@ -172,16 +172,26 @@ QDataStream &operator<<(QDataStream &out, const SectionTime &time)
 
 // Section metadata class
 // -----------------------------------------------------------------------------------------------
-void SectionMetadata::setSectionType(const SectionType &sectionType)
+void SectionMetadata::setSectionType(const SectionType &sectionType, quint8 trackNumber)
 {
+    m_trackNumber = trackNumber;
     m_sectionType = sectionType;
 
     // Ensure track number is sane
-    if (m_sectionType.type() == SectionType::LeadIn)
-        m_trackNumber = 0;
-    if (m_sectionType.type() == SectionType::LeadOut)
-        m_trackNumber = 0;
+    if (m_sectionType.type() == SectionType::LeadIn) {
+        if (m_trackNumber != 0) {
+            qDebug() << "SectionMetadata::setSectionType(): Setting track number to 0 for LeadIn section (was" << m_trackNumber << ")";
+            m_trackNumber = 0;
+        }
+    }
+    if (m_sectionType.type() == SectionType::LeadOut) {
+        if (m_trackNumber != 0) {
+            qDebug() << "SectionMetadata::setSectionType(): Setting track number to 0 for LeadOut section (was" << m_trackNumber << ")";
+            m_trackNumber = 0;
+        }
+    }
     if ((m_sectionType.type() == SectionType::UserData) && (m_trackNumber < 1 || m_trackNumber > 98)) {
+        qDebug() << "SectionMetadata::setSectionType(): Setting track number to 1 for UserData section (was" << m_trackNumber << ")";
         m_trackNumber = 1;
     }
 }
@@ -191,11 +201,20 @@ void SectionMetadata::setTrackNumber(quint8 trackNumber)
     m_trackNumber = trackNumber;
 
     // Ensure track number is sane
-    if (m_sectionType.type() == SectionType::LeadIn)
-        m_trackNumber = 0;
-    if (m_sectionType.type() == SectionType::LeadOut)
-        m_trackNumber = 0;
+    if (m_sectionType.type() == SectionType::LeadIn) {
+        if (m_trackNumber != 0) {
+            qDebug() << "SectionMetadata::setSectionType(): Setting track number to 0 for LeadIn section (was" << m_trackNumber << ")";
+            m_trackNumber = 0;
+        }
+    }
+    if (m_sectionType.type() == SectionType::LeadOut) {
+        if (m_trackNumber != 0) {
+            qDebug() << "SectionMetadata::setSectionType(): Setting track number to 0 for LeadOut section (was" << m_trackNumber << ")";
+            m_trackNumber = 0;
+        }
+    }
     if ((m_sectionType.type() == SectionType::UserData) && (m_trackNumber < 1 || m_trackNumber > 98)) {
+        qDebug() << "SectionMetadata::setSectionType(): Setting track number to 1 for UserData section (was" << m_trackNumber << ")";
         m_trackNumber = 1;
     }
 }

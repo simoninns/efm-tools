@@ -196,16 +196,15 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
             // If the track number is 0xAA, then this is a lead-out frame
             // If the track number is 1-99, then this is a user data frame
             if (trackNumber == 0) {
-                sectionMetadata.setSectionType(SectionType(SectionType::LeadIn));
+                sectionMetadata.setSectionType(SectionType(SectionType::LeadIn), 0);
+                qDebug() << "Subcode::fromData(): Q-Mode 1/4 has track number 0 - this is a lead-in frame";
             } else if (trackNumber == 0xAA) {
-                sectionMetadata.setSectionType(SectionType(SectionType::LeadOut));
+                sectionMetadata.setSectionType(SectionType(SectionType::LeadOut), 0);
+                qDebug() << "Subcode::fromData(): Q-Mode 1/4 has track number 0xAA - this is a lead-out frame";
             } else {
-                sectionMetadata.setSectionType(SectionType(SectionType::UserData));
+                sectionMetadata.setSectionType(SectionType(SectionType::UserData), trackNumber);
             }
-
-            // Now set the track number
-            sectionMetadata.setTrackNumber(trackNumber);
-
+            
             // Set the frame time q_data_channel[3-5]
             sectionMetadata.setSectionTime(SectionTime(
                     bcd2ToInt(qChannelData[3]), bcd2ToInt(qChannelData[4]), bcd2ToInt(qChannelData[5])));
@@ -235,8 +234,7 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
             }
 
             // Only the absolute frame number is included for Q mode 2
-            sectionMetadata.setTrackNumber(1);
-            sectionMetadata.setSectionType(SectionType(SectionType::UserData));
+            sectionMetadata.setSectionType(SectionType(SectionType::UserData), 1);
             sectionMetadata.setSectionTime(SectionTime(0, 0, 0));
             sectionMetadata.setAbsoluteSectionTime(SectionTime(0, 0, bcd2ToInt(qChannelData[9])));
         } else if (sectionMetadata.qMode() == SectionMetadata::QMode3) {
@@ -245,8 +243,7 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
             qFatal("Subcode::fromData(): Please submit this data for testing - ask in Discord/IRC");
 
             // Only the absolute frame number is included for Q mode 3
-            sectionMetadata.setTrackNumber(1);
-            sectionMetadata.setSectionType(SectionType(SectionType::UserData));
+            sectionMetadata.setSectionType(SectionType(SectionType::UserData), 1);
             sectionMetadata.setSectionTime(SectionTime(0, 0, 0));
             sectionMetadata.setAbsoluteSectionTime(SectionTime(0, 0, bcd2ToInt(qChannelData[9])));
         } else {
@@ -625,6 +622,12 @@ quint8 Subcode::bcd2ToInt(quint8 bcd)
 {
     quint16 value = 0;
     quint16 factor = 1;
+
+    // Check for the lead out track exception of 0xAA
+    // (See ECMA-130 22.3.3.1)
+    if (bcd == 0xAA) {
+        return 0xAA;
+    }
 
     while (bcd > 0) {
         value += (bcd & 0x0F) * factor;

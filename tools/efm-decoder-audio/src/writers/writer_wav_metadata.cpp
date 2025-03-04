@@ -78,15 +78,21 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
 
     // Output track number metadata
     if (m_trackNumber != metadata.trackNumber()) {
-        m_trackNumber = metadata.trackNumber();
+        if (metadata.trackNumber() < m_trackNumber) {
+            qWarning() << "WriterWavMetadata::write() - Track number decreased from" << m_trackNumber << "to" << metadata.trackNumber() << "- ignoring";
+        } else {
+            qDebug() << "WriterWavMetadata::write() - Track number changed from" << m_trackNumber << "to" << metadata.trackNumber();
 
-        QString trackChangeTime = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
-                relativeSectionTime.frameNumber(), 0, 0);
+            m_trackNumber = metadata.trackNumber();
 
-        QString trackNumber = QString("%1").arg(m_trackNumber, 2, 10, QChar('0'));
+            QString trackChangeTime = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
+                    relativeSectionTime.frameNumber(), 0, 0);
 
-        QString outputString = trackChangeTime + "\t" + trackChangeTime + "\tTrack: " + trackNumber + "\n";
-        m_file.write(outputString.toUtf8());
+            QString trackNumber = QString("%1").arg(m_trackNumber, 2, 10, QChar('0'));
+
+            QString outputString = trackChangeTime + "\t" + trackChangeTime + "\tTrack: " + trackNumber + "\n";
+            m_file.write(outputString.toUtf8());
+        }
     }
 
     // Output metadata about errors

@@ -154,7 +154,7 @@ public:
     }
 
     SectionType sectionType() const { return m_sectionType; }
-    void setSectionType(const SectionType &sectionType);
+    void setSectionType(const SectionType &sectionType, quint8 trackNumber);
 
     SectionTime sectionTime() const { return m_sectionTime; }
     void setSectionTime(const SectionTime &sectionTime) { m_sectionTime = sectionTime; }

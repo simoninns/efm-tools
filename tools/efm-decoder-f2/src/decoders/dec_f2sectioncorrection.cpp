@@ -269,8 +269,7 @@ void F2SectionCorrection::waitingForSection(F2Section &f2Section)
 
                 // To-do: Perhaps this could be improved if spanning a track boundary?
                 // might not be required though...
-                missingSection.metadata.setSectionType(f2Section.metadata.sectionType());
-                missingSection.metadata.setTrackNumber(f2Section.metadata.trackNumber());
+                missingSection.metadata.setSectionType(f2Section.metadata.sectionType(), f2Section.metadata.trackNumber());
 
                 // Ensure we don't end up with negative time...
                 if (f2Section.metadata.sectionTime().frames() - (i + 1) >= 0) {
@@ -567,14 +566,17 @@ void F2SectionCorrection::outputSections()
     // Do we have a new track?
     if (!m_trackNumbers.contains(trackNumber)) {
         // Append the new track to the statistics
-        m_trackNumbers.append(trackNumber);
-        m_trackStartTimes.append(sectionTime);
-        m_trackEndTimes.append(sectionTime);
+        if (trackNumber != 0 && trackNumber != 0xAA) {
+            m_trackNumbers.append(trackNumber);
+            m_trackStartTimes.append(sectionTime);
+            m_trackEndTimes.append(sectionTime);
+        }
 
         if (m_showDebug)
             qDebug() << "F2SectionCorrection::outputSections(): New track" << trackNumber
                     << "detected with start time" << sectionTime.toString();
-        if (trackNumber == 0) {
+
+        if (trackNumber == 0 || trackNumber == 0xAA) {
             if (section.metadata.sectionType().type() == SectionType::LeadIn) {
                 // This is a lead-in track
                 if (m_showDebug)
@@ -596,12 +598,10 @@ void F2SectionCorrection::outputSections()
             } else {
                 // This is an unknown track
                 if (m_showDebug)
-                    qDebug() << "F2SectionCorrection::outputSections(): UNKNOWN track detected "
+                    qDebug() << "F2SectionCorrection::outputSections(): UNKNOWN track type detected "
                                 "with start time"
                             << sectionTime.toString();
             }
-            qFatal("F2SectionCorrection::outputSections(): Exiting due to track 0 detected in "
-                "output sections.");
         }
     } else {
         // Update the end time for the existing track
