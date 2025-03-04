@@ -145,7 +145,7 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
                 m_concealedRangeStart = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
                     relativeSectionTime.frameNumber(), subSection, sampleOffset);
                     m_inConcealedRange = true;
-            } else if (!hasError && m_inConcealedRange) {
+            } else if (!hasConcealed && m_inConcealedRange) {
                 // End of error range
                 QString rangeEnd;
                 if (sampleOffset == 0) {
