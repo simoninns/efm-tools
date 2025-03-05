@@ -31,7 +31,6 @@ WriterWavMetadata::WriterWavMetadata() :
     m_inErrorRange(false),
     m_inConcealedRange(false),
     m_haveStartTime(false),
-    m_trackNumber(-1),
     m_noAudioConcealment(false)
 {}
 
@@ -65,33 +64,42 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
     }
 
     SectionMetadata metadata = audioSection.metadata;
-    SectionTime absoluteSectionTime = metadata.absoluteSectionTime();
+    m_absoluteSectionTime = metadata.absoluteSectionTime();
+    m_sectionTime = metadata.sectionTime();
 
     // Do we have the start time already?
     if (!m_haveStartTime) {
-        m_startTime = absoluteSectionTime;
+        m_startTime = m_absoluteSectionTime;
         m_haveStartTime = true;
     }
 
     // Get the relative time from the start time
-    SectionTime relativeSectionTime = absoluteSectionTime - m_startTime;
+    SectionTime relativeSectionTime = m_absoluteSectionTime - m_startTime;
 
-    // Output track number metadata
-    if (m_trackNumber != metadata.trackNumber()) {
-        if (metadata.trackNumber() < m_trackNumber) {
-            qWarning() << "WriterWavMetadata::write() - Track number decreased from" << m_trackNumber << "to" << metadata.trackNumber() << "- ignoring";
+    // Do we have a new track?
+    if (!m_trackNumbers.contains(metadata.trackNumber())) {
+        // Check that the new track number is greater than the previous track numbers
+        if (!m_trackNumbers.isEmpty() && metadata.trackNumber() < m_trackNumbers.last()) {
+            qWarning() << "WriterWavMetadata::write() - Track number decreased from" << m_trackNumbers.last() << "to" << metadata.trackNumber() << "- ignoring";
         } else {
-            qDebug() << "WriterWavMetadata::write() - Track number changed from" << m_trackNumber << "to" << metadata.trackNumber();
+            // Append the new track to the statistics
+            if (metadata.trackNumber() != 0 && metadata.trackNumber() != 0xAA) {
+                m_trackNumbers.append(metadata.trackNumber());
+                
+                m_trackAbsStartTimes.append(m_absoluteSectionTime);
+                m_trackStartTimes.append(m_sectionTime);
 
-            m_trackNumber = metadata.trackNumber();
-
-            QString trackChangeTime = convertToAudacityTimestamp(relativeSectionTime.minutes(), relativeSectionTime.seconds(),
-                    relativeSectionTime.frameNumber(), 0, 0);
-
-            QString trackNumber = QString("%1").arg(m_trackNumber, 2, 10, QChar('0'));
-
-            QString outputString = trackChangeTime + "\t" + trackChangeTime + "\tTrack: " + trackNumber + "\n";
-            m_file.write(outputString.toUtf8());
+                if (m_trackAbsStartTimes.size() == 1) {
+                    // This is the first track, so we don't have an end time yet
+                } else {
+                    // Set the end time of the previous track
+                    m_trackAbsEndTimes.append(m_prevAbsoluteSectionTime);
+                    m_trackEndTimes.append(m_prevSectionTime);
+                }
+            }
+    
+            qDebug() << "WriterWavMetadata::write() - New track" << metadata.trackNumber()
+                << "detected with start time" << m_absoluteSectionTime.toString();
         }
     }
 
@@ -129,7 +137,7 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
                         relativeSectionTime.frameNumber(), subSection, sampleOffset - 1);
                 }
 
-                QString sampleTimeStamp = QString("%1").arg(absoluteSectionTime.toString());
+                QString sampleTimeStamp = QString("%1").arg(m_absoluteSectionTime.toString());
                 QString outputString = m_errorRangeStart + "\t" + rangeEnd + "\tError: " + sampleTimeStamp + "\n";
                 if (!m_noAudioConcealment) outputString = m_errorRangeStart + "\t" + rangeEnd + "\tSilenced: " + sampleTimeStamp + "\n";
 
@@ -163,12 +171,52 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
                         relativeSectionTime.frameNumber(), subSection, sampleOffset - 1);
                 }
 
-                QString sampleTimeStamp = QString("%1").arg(absoluteSectionTime.toString());
+                QString sampleTimeStamp = QString("%1").arg(m_absoluteSectionTime.toString());
                 QString outputString = m_concealedRangeStart + "\t" + rangeEnd + "\tConcealed: " + sampleTimeStamp + "\n";
                 m_file.write(outputString.toUtf8());
                 m_inConcealedRange = false;
             }
         }
+    }
+
+    if (metadata.trackNumber() != 0 && metadata.trackNumber() != 0xAA) {
+        // Update the previous times
+        m_prevAbsoluteSectionTime = m_absoluteSectionTime;
+        m_prevSectionTime = m_sectionTime;
+    }
+}
+
+void WriterWavMetadata::flush()
+{
+    if (!m_file.isOpen()) {
+        return;
+    }
+
+    // Set the end time of the previous track
+    m_trackAbsEndTimes.append(m_prevAbsoluteSectionTime);
+    m_trackEndTimes.append(m_prevSectionTime);
+
+    // Only write the metadata if we have more than one track
+    if (m_trackNumbers.size() > 1) {
+        // Write the track metadata
+        for (int i = 0; i < m_trackNumbers.size(); ++i) {
+            QString trackAbsStartTime = convertToAudacityTimestamp(m_trackAbsStartTimes[i].minutes(), m_trackAbsStartTimes[i].seconds(),
+                m_trackAbsStartTimes[i].frameNumber(), 0, 0);
+
+            QString trackAbsEndTime = convertToAudacityTimestamp(m_trackAbsEndTimes[i].minutes(), m_trackAbsEndTimes[i].seconds(),
+                m_trackAbsEndTimes[i].frameNumber(), 0, 0);
+
+            QString trackNumber = QString("%1").arg(m_trackNumbers.at(i), 2, 10, QChar('0'));
+            QString trackTime = "[" + m_trackStartTimes[i].toString() + "-" + m_trackEndTimes[i].toString() + "]";
+
+            QString outputString = trackAbsStartTime + "\t" + trackAbsEndTime + "\tTrack: " + trackNumber + " " + trackTime + "\n";
+            m_file.write(outputString.toUtf8());
+
+            QString debugString = m_trackAbsStartTimes[i].toString() + " " + m_trackAbsEndTimes[i].toString() + " Track: " + trackNumber + " " + trackTime;
+            qDebug() << "WriterWavMetadata::flush(): Wrote track metadata:" << debugString;
+        }
+    } else {
+        qDebug() << "WriterWavMetadata::flush(): Only 1 track present - not writing track metadata";
     }
 }
 
@@ -177,6 +225,9 @@ void WriterWavMetadata::close()
     if (!m_file.isOpen()) {
         return;
     }
+
+    // Finish writing the metadata
+    flush();
 
     // If we're still in an error range when closing, write the final range
     if (m_inErrorRange) {

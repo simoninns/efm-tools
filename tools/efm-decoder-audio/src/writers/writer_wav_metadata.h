@@ -53,11 +53,21 @@ private:
     bool m_inConcealedRange;
     QString m_concealedRangeStart;
 
+    SectionTime m_absoluteSectionTime;
+    SectionTime m_sectionTime;
+    SectionTime m_prevAbsoluteSectionTime;
+    SectionTime m_prevSectionTime;
+
     bool m_haveStartTime;
     SectionTime m_startTime;
 
-    qint32 m_trackNumber;
+    QVector<quint8> m_trackNumbers;
+    QVector<SectionTime> m_trackAbsStartTimes;
+    QVector<SectionTime> m_trackAbsEndTimes;
+    QVector<SectionTime> m_trackStartTimes;
+    QVector<SectionTime> m_trackEndTimes;
 
+    void flush();
     QString convertToAudacityTimestamp(qint32 minutes, qint32 seconds, qint32 frames,
         qint32 subsection, qint32 sample);
 };
