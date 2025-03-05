@@ -435,10 +435,7 @@ void TvaluesToChannel::attemptToFixUndershootFrame(quint32 startIndex, quint32 e
         }
 
         if (startIndex > 0) {
-            QByteArray rframeData = m_internalBuffer.mid(startIndex -1, endIndex);
-            qInfo() << "frameData" << frameData.size();
-            qInfo() << "rframeData" << rframeData.size();
-            
+            QByteArray rframeData = m_internalBuffer.mid(startIndex -1, endIndex);          
             qint32 rbitCount = countBits(rframeData);
 
             if (rbitCount == 588) {
