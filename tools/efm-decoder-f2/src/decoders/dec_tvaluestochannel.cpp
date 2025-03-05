@@ -148,23 +148,24 @@ TvaluesToChannel::State TvaluesToChannel::expectingSync()
 
         // If the frame data is 550 to 600 bits, we have a valid frame
         if (bitCount > 550 && bitCount < 600) {
-            if (bitCount != 588 && m_showDebug)
-                qDebug() << "TvaluesToChannel::expectingSync() - Got frame with" << bitCount << "bits - Treating as valid";
+            if (bitCount != 588) {
+                if (m_showDebug) qDebug() << "TvaluesToChannel::expectingSync() - Got frame with" << bitCount << "bits - Treating as valid";
+                if (bitCount > 588) attemptToFixOvershootFrame(frameData);
+            }
 
             // We have a valid frame
             // Place the frame data into the output buffer
             m_outputBuffer.enqueue(frameData);
-            if (m_showDebug && countBits(frameData) != 588)
-                qDebug() << "TvaluesToChannel::expectingSync() - Queuing frame of" << countBits(frameData) << "bits";
+            
             m_consumedTValues += frameData.size();
             m_channelFrameCount++;
             m_perfectSyncs++;
 
             if (bitCount == 588)
                 m_perfectFrames++;
-            if (bitCount < 588)
-                m_longFrames++;
             if (bitCount > 588)
+                m_longFrames++;
+            if (bitCount < 588)
                 m_shortFrames++;
 
             // Remove the frame data from the internal buffer
@@ -226,17 +227,21 @@ TvaluesToChannel::State TvaluesToChannel::handleUndershoot()
                 qDebug() << "TvaluesToChannel::handleUndershoot() - Undershoot frame - Value from first to third sync_header =" << fttBitCount << "bits - treating as valid";
             // Valid frame between the first and third sync headers
             QByteArray frameData = m_internalBuffer.left(thirdSyncIndex);
+            qint32 bitCount = countBits(frameData);
+            if (bitCount != 588) {
+                if (m_showDebug) qDebug() << "TvaluesToChannel::handleUndershoot1() - Got frame with" << sttBitCount << "bits - Treating as valid";
+                if (bitCount > 588) attemptToFixOvershootFrame(frameData);
+            }
             m_outputBuffer.enqueue(frameData);
-            if (m_showDebug && countBits(frameData) != 588)
-                qDebug() << "TvaluesToChannel::handleUndershoot1() - Queuing frame of" << countBits(frameData) << "bits";
+            
             m_consumedTValues += frameData.size();
             m_channelFrameCount++;
 
             if (fttBitCount == 588)
                 m_perfectFrames++;
-            if (fttBitCount < 588)
-                m_longFrames++;
             if (fttBitCount > 588)
+                m_longFrames++;
+            if (fttBitCount < 588)
                 m_shortFrames++;
 
             // Remove the frame data from the internal buffer
@@ -247,17 +252,21 @@ TvaluesToChannel::State TvaluesToChannel::handleUndershoot()
                 qDebug() << "TvaluesToChannel::handleUndershoot() - Undershoot frame - Value from second to third sync_header =" << sttBitCount << "bits - treating as valid";
             // Valid frame between the second and third sync headers
             QByteArray frameData = m_internalBuffer.mid(secondSyncIndex, thirdSyncIndex - secondSyncIndex);
+            qint32 bitCount = countBits(frameData);
+            if (bitCount != 588) {
+                if (m_showDebug) qDebug() << "TvaluesToChannel::handleUndershoot2() - Got frame with" << sttBitCount << "bits - Treating as valid";
+                if (bitCount > 588) attemptToFixOvershootFrame(frameData);
+            }
             m_outputBuffer.enqueue(frameData);
-            if (m_showDebug && countBits(frameData) != 588)
-                qDebug() << "TvaluesToChannel::handleUndershoot2() - Queuing frame of" << countBits(frameData) << "bits";
+
             m_consumedTValues += frameData.size();
             m_channelFrameCount++;
 
             if (sttBitCount == 588)
                 m_perfectFrames++;
-            if (sttBitCount < 588)
-                m_longFrames++;
             if (sttBitCount > 588)
+                m_longFrames++;
+            if (sttBitCount < 588)
                 m_shortFrames++;
 
             // Remove the frame data from the internal buffer
@@ -380,6 +389,30 @@ TvaluesToChannel::State TvaluesToChannel::handleOvershoot()
     }
 
     return nextState;
+}
+
+// This function tries some basic tricks to fix a frame that is not 588 bits long
+void TvaluesToChannel::attemptToFixOvershootFrame(QByteArray &frameData)
+{
+    qint32 bitCount = countBits(frameData);
+
+    if (bitCount > 588) {
+        // We have too many bits, so we'll try to remove some
+        // We'll remove the first T-value in the frame
+        QByteArray lframeData = frameData.left(frameData.size() - 1);
+        // ... and the last T-value in the frame
+        QByteArray rframeData = frameData.right(frameData.size() - 1);
+        qint32 lbitCount = countBits(lframeData);
+        qint32 rbitCount = countBits(rframeData);
+
+        if (lbitCount == 588) {
+            frameData = lframeData;
+            if (m_showDebug) qDebug() << "TvaluesToChannel::attemptToFixOvershootFrame() - Removed first T-value to fix frame";
+        } else if (rbitCount == 588) {
+            frameData = rframeData;
+            if (m_showDebug) qDebug() << "TvaluesToChannel::attemptToFixOvershootFrame() - Removed last T-value to fix frame";
+        }
+    }
 }
 
 // Count the number of bits in the array of T-values

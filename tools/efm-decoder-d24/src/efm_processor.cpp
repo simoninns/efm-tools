@@ -51,8 +51,8 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         m_generalPipelineStats.f2SectionToF1SectionTime += pipelineTimer.nsecsElapsed();
         processGeneralPipeline();
 
-        // Every 500 sections show progress
-        if (index % 500 == 0) {
+        // Every 1000 sections show progress
+        if (index % 1000 == 0) {
             // Calculate the percentage complete
             float percentageComplete = (index / static_cast<float>(m_readerF2Section.size())) * 100.0;
             qInfo().nospace().noquote() << "Decoding F2 Section " << index << " of " << m_readerF2Section.size() << " (" << QString::number(percentageComplete, 'f', 2) << "%)";

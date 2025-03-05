@@ -145,6 +145,10 @@ void F2SectionToF1Section::processQueue()
             // Only perform C2 decode if delay line 1 is full and delay line M is full
             m_circ.c2Decode(data, errorData, paddedData, m_showDebug);
 
+            if (m_showDebug && errorData.contains(true)) {
+                qDebug().noquote().nospace() << "F2SectionToF1Section - F2 Frame [" << index << "]: C2 Failed in section " << f2Section.metadata.absoluteSectionTime().toString();
+            }
+
             m_interleave.deinterleave(data, errorData, paddedData);
 
             m_delayLine2.push(data, errorData, paddedData);

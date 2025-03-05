@@ -40,6 +40,7 @@ public:
 
 private:
     void processStateMachine();
+    void attemptToFixOvershootFrame(QByteArray &frameData);
     quint32 countBits(const QByteArray &data, qint32 startPosition = 0, qint32 endPosition = -1);
 
     // State machine states
