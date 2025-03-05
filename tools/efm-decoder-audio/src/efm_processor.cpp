@@ -53,11 +53,45 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
         m_writerWavMetadata.open(metadataFilename, m_noAudioConcealment);
     }
 
+    // Get the first section
+    Data24Section currentSection = m_readerData24Section.read();
+
+    // If zero padding is required, perform it
+    if (m_zeroPad) {
+        qint32 requiredPadding = currentSection.metadata.absoluteSectionTime().frames();
+        if (requiredPadding > 0) {
+            qInfo() << "Zero padding enabled, start time is" << currentSection.metadata.absoluteSectionTime().toString() << 
+                "and requires" << requiredPadding << "frames of padding";
+
+            SectionTime currentTime = SectionTime(0, 0, 0);
+            Data24Section zeroSection;
+            zeroSection.metadata = currentSection.metadata;
+            zeroSection.metadata.setAbsoluteSectionTime(currentTime);
+            zeroSection.metadata.setSectionTime(currentTime);
+
+            for (int j = 0; j < 98; ++j) {
+                Data24 data24Zero;
+                data24Zero.setData(QVector<quint8>(24, 0));
+                data24Zero.setErrorData(QVector<bool>(24, false));
+                data24Zero.setPaddedData(QVector<bool>(24, true));
+                zeroSection.pushFrame(data24Zero);
+            }
+
+            for (int i = 0; i < requiredPadding; ++i) {
+                zeroSection.metadata.setAbsoluteSectionTime(currentTime);
+                zeroSection.metadata.setSectionTime(currentTime);
+                m_data24ToAudio.pushSection(zeroSection);
+                processAudioPipeline();
+                currentTime++;
+            }
+        }
+    }
+
     // Process the Data24 Section data
     QElapsedTimer audioPipelineTimer;
     for (int index = 0; index < m_readerData24Section.size(); ++index) {
         audioPipelineTimer.restart();
-        m_data24ToAudio.pushSection(m_readerData24Section.read());
+        m_data24ToAudio.pushSection(currentSection);
         m_audioPipelineStats.data24ToAudioTime += audioPipelineTimer.nsecsElapsed();
         processAudioPipeline();
 
@@ -67,6 +101,8 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
             float percentageComplete = (index / static_cast<float>(m_readerData24Section.size())) * 100.0;
             qInfo().nospace().noquote() << "Decoding Data24 Section " << index << " of " << m_readerData24Section.size() << " (" << QString::number(percentageComplete, 'f', 2) << "%)";
         }
+
+        currentSection = m_readerData24Section.read();
     }
 
     // We are out of data flush the pipeline and process it one last time
@@ -148,10 +184,11 @@ void EfmProcessor::setShowData(bool showAudio)
 }
 
 // Set the output data type (true for WAV, false for raw)
-void EfmProcessor::setOutputType(bool outputWavMetadata, bool noAudioConcealment)
+void EfmProcessor::setOutputType(bool outputWavMetadata, bool noAudioConcealment, bool zeroPad)
 {
     m_outputWavMetadata = outputWavMetadata;
     m_noAudioConcealment = noAudioConcealment;
+    m_zeroPad = zeroPad;
 }
 
 void EfmProcessor::setDebug(bool audio, bool audioCorrection)

@@ -46,7 +46,7 @@ public:
 
     bool process(const QString &inputFilename, const QString &outputFilename);
     void setShowData(bool showAudio);
-    void setOutputType(bool outputWavMetadata, bool noAudioConcealment);
+    void setOutputType(bool outputWavMetadata, bool noAudioConcealment, bool zeroPad);
     void setDebug(bool audio, bool audioCorrection);
     void showStatistics() const;
 
@@ -57,6 +57,7 @@ private:
     // Output options
     bool m_outputWavMetadata;
     bool m_noAudioConcealment;
+    bool m_zeroPad;
 
     // IEC 60909-1999 Decoders
     Data24ToAudio m_data24ToAudio;

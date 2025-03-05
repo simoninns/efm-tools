@@ -68,6 +68,9 @@ int main(int argc, char *argv[])
         QCommandLineOption(
                 "no-audio-concealment",
                 QCoreApplication::translate("main", "Do not conceal errors in the audio data")),
+        QCommandLineOption(
+                "zero-pad",
+                QCoreApplication::translate("main", "Zero pad the audio data from 00:00:00")),
     };
     parser.addOptions(outputTypeOptions);
 
@@ -105,6 +108,7 @@ int main(int argc, char *argv[])
     // Check for output data type options
     bool outputWavMetadata = parser.isSet("audacity-labels");
     bool noAudioConcealment = parser.isSet("no-audio-concealment");
+    bool zeroPad = parser.isSet("zero-pad");
 
     // Check for frame data options
     bool showAudio = parser.isSet("show-audio");
@@ -136,7 +140,7 @@ int main(int argc, char *argv[])
     EfmProcessor efmProcessor;
 
     efmProcessor.setShowData(showAudio);
-    efmProcessor.setOutputType(outputWavMetadata, noAudioConcealment);
+    efmProcessor.setOutputType(outputWavMetadata, noAudioConcealment, zeroPad);
     efmProcessor.setDebug(showAudioDebug, showAudioCorrectionDebug);
 
     if (!efmProcessor.process(inputFilename, outputFilename)) {

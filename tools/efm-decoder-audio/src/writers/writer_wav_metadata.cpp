@@ -31,7 +31,11 @@ WriterWavMetadata::WriterWavMetadata() :
     m_inErrorRange(false),
     m_inConcealedRange(false),
     m_haveStartTime(false),
-    m_noAudioConcealment(false)
+    m_noAudioConcealment(false),
+    m_absoluteSectionTime(0, 0, 0),
+    m_sectionTime(0, 0, 0),
+    m_prevAbsoluteSectionTime(0, 0, 0),
+    m_prevSectionTime(0, 0, 0)
 {}
 
 WriterWavMetadata::~WriterWavMetadata()
@@ -99,7 +103,7 @@ void WriterWavMetadata::write(const AudioSection &audioSection)
             }
     
             qDebug() << "WriterWavMetadata::write() - New track" << metadata.trackNumber()
-                << "detected with start time" << m_absoluteSectionTime.toString();
+                << "detected with disc start time" << m_absoluteSectionTime.toString() << "and track start time" << m_sectionTime.toString();
         }
     }
 
@@ -191,6 +195,13 @@ void WriterWavMetadata::flush()
     if (!m_file.isOpen()) {
         return;
     }
+
+    // Note: For track 1 the track time metadata might be wrong.  On some discs the first track includes unmarked lead-in.
+    // Basically, at absolute disc time of 00:00:00 the track time might be positive (e.g 00:01:74 or 2 seconds) and then
+    // it will count down to 00:00:00 - at which point the track starts and time starts counting up again.
+    //
+    // This isn't handled by the metadata writer, so the first track might have an incorrect track start time (but the
+    // absolute time will be correct). 
 
     // Set the end time of the previous track
     m_trackAbsEndTimes.append(m_prevAbsoluteSectionTime);
