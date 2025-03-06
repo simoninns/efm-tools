@@ -163,10 +163,21 @@ F2Section F2Stacker::stackSections(const QVector<F2Section> &f2Sections)
     // Pick the first section from the list with valid metadata
     bool gotValidMetadata = false;
     for (int sectionIndex = 0; sectionIndex < f2Sections.size(); sectionIndex++) {
-        if (f2Sections[sectionIndex].metadata.isValid()) {
+        if (f2Sections[sectionIndex].metadata.isValid() && !f2Sections[sectionIndex].metadata.isRepaired()) {
             stackedMetadata = f2Sections[sectionIndex].metadata;
             gotValidMetadata = true;
             break;
+        }
+    }
+
+    // If we didn't get anything valid, try again and include repaired metadata
+    if (!gotValidMetadata) {
+        for (int sectionIndex = 0; sectionIndex < f2Sections.size(); sectionIndex++) {
+            if (f2Sections[sectionIndex].metadata.isValid()) {
+                stackedMetadata = f2Sections[sectionIndex].metadata;
+                gotValidMetadata = true;
+                break;
+            }
         }
     }
 
