@@ -55,6 +55,7 @@ private:
     // Sector data buffer
     QByteArray m_sectorData;
     QByteArray m_sectorErrorData;
+    QByteArray m_sectorPaddedData;
 
     // State machine state processing functions
     State waitingForSync();

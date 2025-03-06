@@ -105,14 +105,17 @@ public:
     RawSector();
     void pushData(const QByteArray &inData);
     void pushErrorData(const QByteArray &inData);
+    void pushPaddedData(const QByteArray &inData);
     QByteArray data() const;
     QByteArray errorData() const;
+    QByteArray paddedData() const;
     quint32 size() const;
     void showData();
 
 private:
     QByteArray m_data;
     QByteArray m_errorData;
+    QByteArray m_paddedData;
 
     quint8 bcdToInt(quint8 bcd);
 };
@@ -123,8 +126,10 @@ public:
     Sector();
     void pushData(const QByteArray &inData);
     void pushErrorData(const QByteArray &inData);
+    void pushPaddedData(const QByteArray &inData);
     QByteArray data() const;
     QByteArray errorData() const;
+    QByteArray paddedData() const;
     quint32 size() const;
     void showData();
 
@@ -136,10 +141,10 @@ public:
     void dataValid(bool isValid) { m_validData = isValid; }
     bool isDataValid() const { return m_validData; }
 
-
 private:
     QByteArray m_data;
     QByteArray m_errorData;
+    QByteArray m_paddedData;
 
     SectorAddress m_address;
     qint32 m_mode;

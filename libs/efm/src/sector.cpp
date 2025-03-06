@@ -125,6 +125,11 @@ void RawSector::pushErrorData(const QByteArray &inData)
     m_errorData = inData;
 }
 
+void RawSector::pushPaddedData(const QByteArray &inData)
+{
+    m_paddedData = inData;
+}
+
 QByteArray RawSector::data() const
 {
     return m_data;
@@ -133,6 +138,11 @@ QByteArray RawSector::data() const
 QByteArray RawSector::errorData() const
 {
     return m_errorData;
+}
+
+QByteArray RawSector::paddedData() const
+{
+    return m_paddedData;
 }
 
 quint32 RawSector::size() const
@@ -197,6 +207,11 @@ void Sector::pushErrorData(const QByteArray &inData)
     m_errorData = inData;
 }
 
+void Sector::pushPaddedData(const QByteArray &inData)
+{
+    m_paddedData = inData;
+}
+
 QByteArray Sector::data() const
 {
     return m_data;
@@ -205,6 +220,11 @@ QByteArray Sector::data() const
 QByteArray Sector::errorData() const
 {
     return m_errorData;
+}
+
+QByteArray Sector::paddedData() const
+{
+    return m_paddedData;
 }
 
 quint32 Sector::size() const

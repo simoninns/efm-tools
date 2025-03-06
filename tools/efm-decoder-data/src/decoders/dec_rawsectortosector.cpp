@@ -64,7 +64,7 @@ void RawSectorToSector::processQueue()
         RawSector rawSector = m_inputBuffer.dequeue();
         bool rawSectorValid = false;
 
-        // Verify the sector data size
+        // Verify the data sizes (sanity check)
         if (rawSector.data().size() != 2352) {
             if (m_showDebug) {
                 qDebug() << "RawSectorToSector::processQueue(): Sector data size is incorrect. Expected 2352 bytes, got" << rawSector.data().size() << "bytes";
@@ -76,6 +76,13 @@ void RawSectorToSector::processQueue()
             if (m_showDebug) {
                 qDebug() << "RawSectorToSector::processQueue(): Sector error data size is incorrect. Expected 2352 bytes, got" << rawSector.errorData().size() << "bytes";
                 qFatal("RawSectorToSector::processQueue(): Sector error data size is incorrect");
+            }
+        }
+
+        if (rawSector.paddedData().size() != 2352) {
+            if (m_showDebug) {
+                qDebug() << "RawSectorToSector::processQueue(): Sector padded data size is incorrect. Expected 2352 bytes, got" << rawSector.paddedData().size() << "bytes";
+                qFatal("RawSectorToSector::processQueue(): Sector padded data size is incorrect");
             }
         }
 

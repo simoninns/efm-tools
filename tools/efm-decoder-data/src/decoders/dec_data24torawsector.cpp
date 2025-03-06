@@ -64,6 +64,7 @@ void Data24ToRawSector::processStateMachine()
         // Add the data24 section's data to the sector data buffer
         m_sectorData.reserve(m_sectorData.size() + 2352);
         m_sectorErrorData.reserve(m_sectorErrorData.size() + 2352);
+        m_sectorPaddedData.reserve(m_sectorPaddedData.size() + 2352);
 
         for (int i = 0; i < 98; i++) {
             // Data
@@ -75,6 +76,11 @@ void Data24ToRawSector::processStateMachine()
             const QVector<bool>& frameErrorData = data24Section.frame(i).errorData();
             QByteArray frameErrorBytes = QByteArray(reinterpret_cast<const char*>(frameErrorData.constData()), frameErrorData.size());
             m_sectorErrorData.append(frameErrorBytes);
+
+            // Add the padding data
+            const QVector<bool>& framePaddedData = data24Section.frame(i).paddedData();
+            QByteArray framePaddedBytes = QByteArray(reinterpret_cast<const char*>(framePaddedData.constData()), framePaddedData.size());
+            m_sectorPaddedData.append(framePaddedBytes);
         }
 
         switch (m_currentState) {
@@ -94,6 +100,16 @@ void Data24ToRawSector::processStateMachine()
 Data24ToRawSector::State Data24ToRawSector::waitingForSync()
 {
     State nextState = WaitingForSync;
+
+    // Is there enough data in the buffer to form a sector?
+    if (m_sectorData.size() < 2352) {
+        // Not enough data
+        if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Not enough data in sectorData to form a sector, waiting for more data";
+
+        // Get more data and try again
+        nextState = WaitingForSync;
+        return nextState;
+    }
 
     // Does the sector data contain the sync pattern?
     quint32 syncPatternPosition = m_sectorData.indexOf(m_syncPattern);
@@ -115,6 +131,7 @@ Data24ToRawSector::State Data24ToRawSector::waitingForSync()
         m_discardedBytes += syncPatternPosition;
         m_sectorData = m_sectorData.right(m_sectorData.size() - syncPatternPosition);
         m_sectorErrorData = m_sectorErrorData.right(m_sectorErrorData.size() - syncPatternPosition);
+        m_sectorPaddedData = m_sectorPaddedData.right(m_sectorPaddedData.size() - syncPatternPosition);
         if (m_showDebug) qDebug() << "Data24ToRawSector::waitingForSync(): Possible sync pattern found in sectorData at position:" << syncPatternPosition << "discarding" << syncPatternPosition << "bytes";
 
         // Do we really have a valid sector or is this a false positive?
@@ -123,10 +140,10 @@ Data24ToRawSector::State Data24ToRawSector::waitingForSync()
         qint32 errorByteCount = 0;
         qint32 paddingByteCount = 0;
         for (int i = 0; i < 2352; i++) {
-            if (static_cast<quint8>(m_sectorErrorData[i]) == 0x01) {
+            if (static_cast<quint8>(m_sectorErrorData[i]) == 1) {
                 errorByteCount++;
             }
-            if (static_cast<quint8>(m_sectorErrorData[i]) == 0xFF) {
+            if (static_cast<quint8>(m_sectorPaddedData[i]) == 1) {
                 paddingByteCount++;
             }
         }
@@ -162,10 +179,10 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
             qint32 errorByteCount = 0;
             qint32 paddingByteCount = 0;
             for (int i = 0; i < 2352; i++) {
-                if (static_cast<quint8>(m_sectorErrorData[i]) == 0x01) {
+                if (static_cast<quint8>(m_sectorErrorData[i]) == 1) {
                     errorByteCount++;
                 }
-                if (static_cast<quint8>(m_sectorErrorData[i]) == 0xFF) {
+                if (static_cast<quint8>(m_sectorPaddedData[i]) == 1) {
                     paddingByteCount++;
                 }
             }
@@ -213,18 +230,29 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
         QByteArray rawDataIn = m_sectorData.left(2352);
         QByteArray rawDataOut = QByteArray(2352, 0);
 
+        QByteArray rawErrorDataIn = m_sectorErrorData.left(2352);
+        QByteArray rawErrorDataOut = QByteArray(2352, 0);
+
+        QByteArray rawPaddedDataIn = m_sectorPaddedData.left(2352);
+        QByteArray rawPaddedDataOut = QByteArray(2352, 0);
+
         for (qint32 i = 0; i < 2352; i++) {
             if (i < 12) {
                 rawDataOut[i] = rawDataIn[i];
+                rawErrorDataOut[i] = rawErrorDataIn[i];
+                rawPaddedDataOut[i] = rawPaddedDataIn[i];
             } else {
                 rawDataOut[i] = rawDataIn[i] ^ m_unscrambleTable[i];
+                rawErrorDataOut[i] = rawErrorDataIn[i];
+                rawPaddedDataOut[i] = rawPaddedDataIn[i];
             }
         }
 
         // Create a new sector
         RawSector rawSector;
         rawSector.pushData(rawDataOut);
-        rawSector.pushErrorData(m_sectorErrorData.left(2352));
+        rawSector.pushErrorData(rawErrorDataOut);
+        rawSector.pushPaddedData(rawPaddedDataOut);
 
         m_outputBuffer.enqueue(rawSector);
         m_validSectorCount++;
@@ -232,6 +260,7 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
         // Remove 2352 bytes of processed data from the buffers
         m_sectorData = m_sectorData.right(m_sectorData.size() - 2352);
         m_sectorErrorData = m_sectorErrorData.right(m_sectorErrorData.size() - 2352);
+        m_sectorPaddedData = m_sectorErrorData.right(m_sectorPaddedData.size() - 2352);
     }
 
     return nextState;
