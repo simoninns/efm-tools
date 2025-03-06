@@ -174,7 +174,7 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
         return nextState;
     } else {
         // Are there any error bytes or padding in the first 12 bytes?
-        if (m_sectorErrorData.left(12).contains(0x01) || m_sectorErrorData.left(12).contains(0xFF)) {
+        if (m_sectorErrorData.left(12).contains(1) || m_sectorPaddedData.left(12).contains(1)) {
             // Is the sector broken?  Count the total number of error bytes and padding bytes in the sector
             qint32 errorByteCount = 0;
             qint32 paddingByteCount = 0;
@@ -207,10 +207,8 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
             } else {
                 if (m_showDebug) {
                     QString foundPattern = m_sectorData.left(12).toHex(' ').toUpper();
-                    QString expectedPattern = m_syncPattern.toHex(' ').toUpper();
                     qDebug() << "Data24ToRawSector::inSync(): Sync pattern mismatch:"
                         << "Found:" << foundPattern
-                        << "Expected:" << expectedPattern
                         << "Sector count:" << m_validSectorCount
                         << "Missed sync patterns:" << m_missedSyncPatternCount;
                 }
@@ -227,24 +225,19 @@ Data24ToRawSector::State Data24ToRawSector::inSync()
         }
 
         // Unscramble the sector (bytes 12 to 2351)
-        QByteArray rawDataIn = m_sectorData.left(2352);
-        QByteArray rawDataOut = QByteArray(2352, 0);
-
-        QByteArray rawErrorDataIn = m_sectorErrorData.left(2352);
-        QByteArray rawErrorDataOut = QByteArray(2352, 0);
-
-        QByteArray rawPaddedDataIn = m_sectorPaddedData.left(2352);
-        QByteArray rawPaddedDataOut = QByteArray(2352, 0);
+        QByteArray rawDataOut = m_sectorData.left(2352);
+        QByteArray rawErrorDataOut = m_sectorErrorData.left(2352);
+        QByteArray rawPaddedDataOut = m_sectorErrorData.left(2352);
 
         for (qint32 i = 0; i < 2352; i++) {
             if (i < 12) {
-                rawDataOut[i] = rawDataIn[i];
-                rawErrorDataOut[i] = rawErrorDataIn[i];
-                rawPaddedDataOut[i] = rawPaddedDataIn[i];
+                // Replace the sync pattern (or the EDC will always be wrong)
+                rawDataOut[i] = m_syncPattern[i];
+                rawErrorDataOut[i] = 0;
+                rawPaddedDataOut[i] = 0;
             } else {
-                rawDataOut[i] = rawDataIn[i] ^ m_unscrambleTable[i];
-                rawErrorDataOut[i] = rawErrorDataIn[i];
-                rawPaddedDataOut[i] = rawPaddedDataIn[i];
+                // Only bytes 12 to 2351 are scrambled
+                rawDataOut[i] = rawDataOut[i] ^ m_unscrambleTable[i];
             }
         }
 
