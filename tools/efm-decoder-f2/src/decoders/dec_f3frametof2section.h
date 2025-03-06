@@ -50,6 +50,7 @@ private:
     QVector<F3Frame> m_sectionFrames;
 
     qint32 m_badSyncCounter;
+    SectionMetadata m_lastSectionMetadata;
 
     // State machine states
     enum State { ExpectingInitialSync, ExpectingSync, HandleValid, HandleOvershoot, HandleUndershoot, LostSync };

@@ -35,7 +35,8 @@ F3FrameToF2Section::F3FrameToF2Section() :
     m_paddedF3Frames(0),
     m_missingSync0(0),
     m_badSyncCounter(0),
-    m_lostSyncCounter(0)
+    m_lostSyncCounter(0),
+    m_lastSectionMetadata(SectionMetadata())
 {}
 
 void F3FrameToF2Section::pushFrame(const F3Frame &data)
@@ -289,7 +290,18 @@ void F3FrameToF2Section::outputSection(bool showAddress)
         f2Section.pushFrame(f2Frame);
     }
 
+    // There is an edge case where a repaired Q-channel will pass CRC, but the data is still invalid
+    // This is a sanity check for that case
+    if (sectionMetadata.isRepaired()) {
+        // Check the absolute time is within 10 frames of the last section
+        if (sectionMetadata.absoluteSectionTime().frames() - m_lastSectionMetadata.absoluteSectionTime().frames() > 10) {
+            qWarning() << "F3FrameToF2Section::outputSection - Repaired section has a large time difference from the last section - marking as invalid";
+            sectionMetadata.setValid(false);
+        }
+    }
+
     f2Section.metadata = sectionMetadata;
+    m_lastSectionMetadata = sectionMetadata;
     m_outputBuffer.enqueue(f2Section);
 
     if (m_showDebug && showAddress) qDebug() << "F3FrameToF2Section::outputSection - Outputing F2 section with address"

@@ -136,22 +136,22 @@ class SectionMetadata
 public:
     enum QMode { QMode1, QMode2, QMode3, QMode4 };
 
-    SectionMetadata()
-        : m_sectionType(SectionType::UserData),
-          m_sectionTime(SectionTime()),
-          m_absoluteSectionTime(SectionTime()),
-          m_trackNumber(0),
-          m_isValid(false),
-          m_isAudio(true),
-          m_isCopyProhibited(true),
-          m_hasPreemphasis(false),
-          m_is2Channel(true),
-          m_pFlag(true),
-          m_qMode(QMode1),
-          m_upcEanCode(0),
-          m_isrcCode(0)
-    {
-    }
+    SectionMetadata() :
+        m_sectionType(SectionType::UserData),
+        m_sectionTime(SectionTime()),
+        m_absoluteSectionTime(SectionTime()),
+        m_trackNumber(0),
+        m_isValid(false),
+        m_isAudio(true),
+        m_isCopyProhibited(true),
+        m_hasPreemphasis(false),
+        m_is2Channel(true),
+        m_pFlag(true),
+        m_qMode(QMode1),
+        m_upcEanCode(0),
+        m_isrcCode(0),
+        m_isRepaired(false)
+    {}
 
     SectionType sectionType() const { return m_sectionType; }
     void setSectionType(const SectionType &sectionType, quint8 trackNumber);
@@ -191,6 +191,9 @@ public:
     bool isValid() const { return m_isValid; }
     void setValid(bool valid) { m_isValid = valid; }
 
+    bool isRepaired() const { return m_isRepaired; }
+    void setRepaired(bool repaired) { m_isRepaired = repaired; }
+
     friend QDataStream &operator>>(QDataStream &in, SectionMetadata &metadata);
     friend QDataStream &operator<<(QDataStream &out, const SectionMetadata &metadata);
 
@@ -205,6 +208,7 @@ private:
     SectionTime m_absoluteSectionTime;
     quint8 m_trackNumber;
     bool m_isValid;
+    bool m_isRepaired;
 
     // Q-Channel control metadata
     bool m_isAudio;

@@ -72,9 +72,8 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
 
     // Set the q-channel
     // If the q-channel CRC is not valid, attempt to repair the data
-    bool repaired = false;
     if (!isCrcValid(qChannelData))
-        repaired = repairData(qChannelData);
+        sectionMetadata.setRepaired(repairData(qChannelData));
 
     if (isCrcValid(qChannelData)) {
         // Set the q-channel data from the subcode data
@@ -298,7 +297,7 @@ SectionMetadata Subcode::fromData(const QByteArray &data)
                    sectionMetadata.trackNumber());
     }
 
-    if (repaired) {
+    if (sectionMetadata.isRepaired()) {
         if (m_showDebug)
             qDebug().noquote()
                     << "Subcode::fromData(): Q-channel repaired for section with absolute time:"
