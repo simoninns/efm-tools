@@ -1,6 +1,6 @@
 /************************************************************************
 
-    adfs_verifier.h
+    bad_sectors.h
 
     vfs-verifier - Acorn VFS (Domesday) image verifier
     Copyright (C) 2025 Simon Inns
@@ -22,29 +22,27 @@
 
 ************************************************************************/
 
-#ifndef ADFS_VERIFIER_H
-#define ADFS_VERIFIER_H
+#ifndef BAD_SECTORS_H
+#define BAD_SECTORS_H
 
-#include <QString>
 #include <QDebug>
 #include <QFile>
+#include <QVector>
 
-#include "adfs_image.h"
-#include "adfs_fsm.h"
-#include "adfs_directory.h"
-#include "adfs_filecheck.h"
-#include "bad_sectors.h"
-
-class AdfsVerifier
+class BadSectors
 {
 public:
-    AdfsVerifier();
-    
-    bool process(const QString &filename, const QString &bsmFilename);
+    BadSectors();
+
+    bool open(QString filename);
+    void close();
+
+    bool isSectorBad(quint32 sector) const;
 
 private:
-    AdfsImage m_image;
-    void hexDump(QByteArray &data, qint32 startSector) const;
+    QVector<quint32> m_badSectors;
+    QFile m_file;
+    bool m_isOpen;
 };
 
-#endif // ADFS_VERIFIER_H
+#endif // BAD_SECTORS_H

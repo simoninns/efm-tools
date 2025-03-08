@@ -43,7 +43,7 @@ bool WriterSectorMetadata::open(const QString &filename)
         qCritical() << "WriterSectorMetadata::open() - Could not open file" << filename << "for writing";
         return false;
     }
-    qDebug() << "WriterSectorMetadata::open() - Opened file" << filename << "for data writing";
+    qDebug() << "WriterSectorMetadata::open() - Opened file" << filename << "for metadata writing";
 
     return true;
 }
@@ -58,8 +58,7 @@ void WriterSectorMetadata::write(const Sector &sector)
     // If the sector is not valid, write a metadata entry for it
     if (!sector.isDataValid()) {
         // Write a metadata entry for the sector
-        QString metadata = QString::number(sector.address().address()) + ","
-            + QString::number(sector.mode()) + "\n";
+        QString metadata = QString::number(sector.address().address()) + "\n";
         m_file.write(metadata.toUtf8());
     }
 }
@@ -71,7 +70,7 @@ void WriterSectorMetadata::close()
     }
 
     m_file.close();
-    qDebug() << "WriterSectorMetadata::close(): Closed the sector metadata file" << m_file.fileName();
+    qDebug() << "WriterSectorMetadata::close(): Closed the bad sector map metadata file" << m_file.fileName();
 }
 
 qint64 WriterSectorMetadata::size() const

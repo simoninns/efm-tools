@@ -79,7 +79,7 @@ AdfsDirectoryEntry::AdfsDirectoryEntry(QByteArray data)
     m_execAddress = get32(data, 0x0E);
 
     // Length
-    m_length = get32(data, 0x12);
+    m_byteLength = get32(data, 0x12);
 
     // Start sector
     m_startSector = get24(data, 0x16);
@@ -108,8 +108,8 @@ void AdfsDirectoryEntry::show()
         paddedObjectName += " ";
     }
 
-    qDebug().nospace().noquote() << "  " << paddedObjectName << " " << flags << " (" << QString("%1").arg(m_sequenceNumber, 2, 10, QChar('0')) << ") " << toString32bits(m_loadAddress) 
-        << " " << toString32bits(m_execAddress) << " " << toString32bits(m_length) << " "
+    qInfo().nospace().noquote() << "  " << paddedObjectName << " " << flags << " (" << QString("%1").arg(m_sequenceNumber, 2, 10, QChar('0')) << ") " << toString32bits(m_loadAddress) 
+        << " " << toString32bits(m_execAddress) << " " << toString32bits(m_byteLength) << " "
         << toString24bits(m_startSector);
 }
 
@@ -181,6 +181,11 @@ AdfsDirectory::AdfsDirectory(QByteArray sectors)
 
     // The final directory entry is followed by a &00 byte, in a full directory
     // this &00 byte is the byte at &4CB/&7D7.
+}
+
+QVector<AdfsDirectoryEntry> AdfsDirectory::entries() const
+{
+    return m_adfsDirectoryEntries;
 }
 
 void AdfsDirectory::show()

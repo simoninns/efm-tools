@@ -71,9 +71,8 @@ QByteArray AdfsImage::readSectors(quint64 sector, quint64 count, bool verifyChec
         // Verify the checksums of the read sectors
         for (quint64 i = 0; i < count; ++i) {
             if (static_cast<quint16>(buffer.at((i * 256) + 255)) != calculateChecksum(buffer.mid(i * 256, 256))) {
-                qCritical() << "AdfsImage::readSectors() - Checksum failed for sector" << sector
+                qCritical() << "AdfsImage::readSectors() - Checksum failed for sector" << sector + i
                     << "checksum" << static_cast<quint16>(buffer.at((i * 256) + 255)) << "expected" << calculateChecksum(buffer.mid(i * 256, 256));
-                return buffer;
             }
         }
     }
@@ -128,4 +127,13 @@ void AdfsImage::findSector0()
         qDebug() << "AdfsImage::findSector0() - Could not find ADFS signature Hugo in file" << m_file->fileName() << "- input file is not a valid ADFS image";
         m_isValid = false;
     }
+}
+
+quint32 AdfsImage::adfsSectorToEfmSector(quint32 adfsSector)
+{
+    // ADFS sectors are 256 bytes, EFM sectors are 2048 bytes
+    // EFM sector 0 is at the beginning of the file, so we
+    // have to offset by the sector 0 position
+    return ((adfsSector * 256) + m_sector0Position) / 2048;
+
 }

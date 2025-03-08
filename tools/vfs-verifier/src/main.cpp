@@ -62,7 +62,9 @@ int main(int argc, char *argv[])
 
     // -- Positional arguments --
     parser.addPositionalArgument("input",
-                                 QCoreApplication::translate("main", "Specify input EFM file"));
+        QCoreApplication::translate("main", "Specify input EFM file"));
+    parser.addPositionalArgument("bad-sector-map",
+        QCoreApplication::translate("main", "Specify bad sector map metadata file"));
 
     // Process the command line options and arguments given by the user
     parser.process(app);
@@ -72,19 +74,21 @@ int main(int argc, char *argv[])
 
     // Get the filename arguments from the parser
     QString inputFilename;
+    QString bsmFilename;
     QStringList positionalArguments = parser.positionalArguments();
 
-    if (positionalArguments.count() != 1) {
-        qWarning() << "You must specify the input VFS image filename";
+    if (positionalArguments.count() != 2) {
+        qWarning() << "You must specify the input VFS image filename and the bad sector map metadata filename";
         return 1;
     }
     inputFilename = positionalArguments.at(0);
+    bsmFilename = positionalArguments.at(1);
 
     // Perform the processing
-    qInfo() << "Beginning VFS image verification of" << inputFilename;
+    qInfo() << "Beginning VFS image verification of" << inputFilename << "using bad sector map metadata from" << bsmFilename;
     AdfsVerifier adfsVerifier;
 
-    if (!adfsVerifier.process(inputFilename)) {
+    if (!adfsVerifier.process(inputFilename, bsmFilename)) {
         return 1;
     }
 

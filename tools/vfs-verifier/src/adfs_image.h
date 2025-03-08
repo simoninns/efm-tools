@@ -37,6 +37,7 @@ public:
     bool open(QString filename);
     void close();
     QByteArray readSectors(quint64 sector, quint64 count, bool verifyChecksum);
+    quint32 adfsSectorToEfmSector(quint32 adfsSector);
     bool isValid() const;
 
 private:

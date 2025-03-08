@@ -27,11 +27,19 @@
 AdfsVerifier::AdfsVerifier()
 {}
 
-bool AdfsVerifier::process(const QString &filename)
+bool AdfsVerifier::process(const QString &filename, const QString &bsmFilename)
 {
+    // Open the VFS image file
     m_image.open(filename);
     if (!m_image.isValid()) {
-        qCritical() << "AdfsVerifier::process() - Could not open image file" << filename;
+        qCritical() << "AdfsVerifier::process() - Could not open VFS image file" << filename;
+        return false;
+    }
+
+    // Open the BSM file
+    BadSectors badSectors;
+    if (!badSectors.open(bsmFilename)) {
+        qCritical() << "AdfsVerifier::process() - Could not open BSM metadata file" << bsmFilename;
         return false;
     }
 
@@ -41,20 +49,70 @@ bool AdfsVerifier::process(const QString &filename)
     // Read the root directory
     AdfsDirectory adfsDirectory(m_image.readSectors(2, 5, false));
 
+    QVector<quint32> usedEfmSectors;
+    QVector<quint32> errorEfmSectors;
+
+    // Verify the root directory entries one at a time
+    for (int i = 0; i < adfsDirectory.entries().size(); ++i) {
+        
+        qint32 startSector = adfsDirectory.entries().at(i).startSector();
+        qint32 byteLength = adfsDirectory.entries().at(i).byteLength();
+        qint32 sectorLength = (byteLength + 255) / 256;
+
+        // Show the file data
+        qDebug() << "Directory entry" << i << "start sector" << startSector << "length" << sectorLength << "sectors - object name" << adfsDirectory.entries().at(i).objectName();
+
+        // Ensure that all the used sectors are not in the bad sector list
+        for (int j = 0; j < sectorLength; ++j) {
+            quint32 efmSector = m_image.adfsSectorToEfmSector(startSector + j);
+            if (badSectors.isSectorBad(efmSector) && !errorEfmSectors.contains(efmSector)) {
+                qWarning().noquote() << "AdfsVerifier::process() - Bad EFM sector" << efmSector << "found in file" << adfsDirectory.entries().at(i).objectName() << "ADFS sector" << toString24bits(startSector + j);
+                errorEfmSectors.append(efmSector);
+
+                // Display the bad sector data
+                QByteArray badSectorData = m_image.readSectors(efmSector,1, false);
+                hexDump(badSectorData, startSector + j);
+            }
+        }
+    }
+
+    // Did verification fail?
+    if (errorEfmSectors.size() > 0) {
+        qInfo() << "AdfsVerifier::process() - Verification failed -" << errorEfmSectors.size() << "bad sectors found in VFS image file" << filename;
+    } else {
+        qInfo() << "AdfsVerifier::process() - Verification passed - no bad sectors found in VFS image file" << filename;
+    }
+
     // Close the image
     m_image.close();
+    badSectors.close();
     return true;
 }
 
-// Note: The FSM is 2 sectors long, 0 and 1
-void AdfsVerifier::readFreeSpaceMap(quint64 sector)
+// Display a hex dump of a series of ADFS sectors
+void AdfsVerifier::hexDump(QByteArray &data, qint32 startSector) const
 {
-    // QByteArray sector0 = readSector(0);
-    // QByteArray sector1 = readSector(1);
-    // // The free space map is from 0x00 to 0xF5 inclusive (sector 0)
-    // // Each free space is 3 bytes.
-
-    // // The length of each free space is from 0x00 to 0xF5 inclusive (sector 1)
-    // // Each free space length is 3 bytes.
+    const int bytesPerLine = 32;
+    for (int i = 0; i < data.size(); i += bytesPerLine) {
+        QString line = QString("%1: ").arg(i, 8, 16, QChar('0'));
+        
+        // Hex values
+        for (int j = 0; j < bytesPerLine; ++j) {
+            if (i + j < data.size())
+                line += QString("%1 ").arg(static_cast<quint8>(data[i + j]), 2, 16, QChar('0'));
+            else
+                line += "   ";
+        }
+        
+        line += " |";
+        
+        // ASCII representation
+        for (int j = 0; j < bytesPerLine && i + j < data.size(); ++j) {
+            char c = data[i + j];
+            line += QChar((c >= 32 && c <= 126) ? c : '.');
+        }
+        line += "|";
+        
+        qDebug().noquote() << line;
+    }
 }
-

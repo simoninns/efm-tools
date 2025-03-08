@@ -44,9 +44,9 @@ bool EfmProcessor::process(const QString &inputFilename, const QString &outputFi
     if (m_outputDataMetadata) {
         QString metadataFilename = outputFilename;
         if (metadataFilename.endsWith(".dat")) {
-            metadataFilename.replace(".dat", ".metadata");
+            metadataFilename.replace(".dat", ".bsm"); // Bad Sector Map
         } else {
-            metadataFilename.append(".metadata");
+            metadataFilename.append(".bsm");
         }
         m_writerSectorMetadata.open(metadataFilename);
     }

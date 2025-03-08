@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
 
     // Group of options for specifying output data file type
     QList<QCommandLineOption> outputTypeOptions = {
-        QCommandLineOption("output-data-metadata",
-                QCoreApplication::translate("main", "Output ECMA-130 sector metadata")),
+        QCommandLineOption("output-metadata",
+                QCoreApplication::translate("main", "Output bad sector map metadata")),
     };
     parser.addOptions(outputTypeOptions);
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     processStandardDebugOptions(parser);
 
     // Check for output data type options
-    bool outputDataMetadata = parser.isSet("output-data-metadata");
+    bool outputDataMetadata = parser.isSet("output-metadata");
 
     // Check for frame data options
     bool showRawSector = parser.isSet("show-rawsector");

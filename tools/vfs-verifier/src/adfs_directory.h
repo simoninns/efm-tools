@@ -47,7 +47,7 @@ public:
     bool isPrivate() const { return m_private; }
     quint32 loadAddress() const { return m_loadAddress; }
     quint32 execAddress() const { return m_execAddress; }
-    quint32 length() const { return m_length; }
+    quint32 byteLength() const { return m_byteLength; }
     quint32 startSector() const { return m_startSector; }
     quint8 sequenceNumber() const { return m_sequenceNumber; }
     
@@ -67,7 +67,7 @@ private:
 
     quint32 m_loadAddress;
     quint32 m_execAddress;
-    quint32 m_length;
+    quint32 m_byteLength;
     quint32 m_startSector;
     quint32 m_sequenceNumber;
 };
@@ -76,6 +76,8 @@ class AdfsDirectory
 {
 public:
     AdfsDirectory(QByteArray sectors);
+
+    QVector<AdfsDirectoryEntry> entries() const;
 
     void show();
 

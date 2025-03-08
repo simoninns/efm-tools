@@ -1,6 +1,6 @@
 /************************************************************************
 
-    adfs_verifier.h
+    adfs_filecheck.h
 
     vfs-verifier - Acorn VFS (Domesday) image verifier
     Copyright (C) 2025 Simon Inns
@@ -22,29 +22,17 @@
 
 ************************************************************************/
 
-#ifndef ADFS_VERIFIER_H
-#define ADFS_VERIFIER_H
+#ifndef ADFS_FILECHECK_H
+#define ADFS_FILECHECK_H
 
-#include <QString>
 #include <QDebug>
-#include <QFile>
 
-#include "adfs_image.h"
-#include "adfs_fsm.h"
-#include "adfs_directory.h"
-#include "adfs_filecheck.h"
-#include "bad_sectors.h"
-
-class AdfsVerifier
+class AdfsFileCheck
 {
 public:
-    AdfsVerifier();
-    
-    bool process(const QString &filename, const QString &bsmFilename);
+    AdfsFileCheck();
 
-private:
-    AdfsImage m_image;
-    void hexDump(QByteArray &data, qint32 startSector) const;
+    bool checkFile(QByteArray fileData);
 };
 
-#endif // ADFS_VERIFIER_H
+#endif // ADFS_FILECHECK_H
