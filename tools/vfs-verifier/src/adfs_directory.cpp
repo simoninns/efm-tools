@@ -142,7 +142,7 @@ AdfsDirectory::AdfsDirectory(QByteArray sectors)
     m_masterSequenceNumber = ((msnBcd >> 4) * 10) + (msnBcd & 0x0F);
 
     // Read the 47 directory entries
-    qDebug() << "Directory:";
+    qInfo() << "Directory entries:";
     for (int i = 0; i < 47; ++i) {
         QByteArray entryData = sectors.mid(5 + (i * 26), 26);
         AdfsDirectoryEntry entry(entryData);
